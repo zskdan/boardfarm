@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select, update
@@ -12,6 +12,10 @@ from ..models import Agent, Board
 from ..schemas import AgentOut
 
 router = APIRouter(prefix="/agents", tags=["agents"])
+
+
+def _now_utc() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 @router.post("/register", response_model=AgentOut)
@@ -26,13 +30,15 @@ async def register_agent(
     result = await db.execute(select(Agent).where(Agent.name == name))
     agent = result.scalar_one_or_none()
 
-    now = datetime.utcnow()
+    now = _now_utc()
     if agent is None:
         agent = Agent(id=str(uuid.uuid4()), name=name, url=url, last_seen=now)
         db.add(agent)
     else:
         agent.url = url
         agent.last_seen = now
+
+    agent.agent_token = body.get("token", "")
 
     await db.flush()
 
@@ -56,7 +62,7 @@ async def heartbeat(body: dict, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Agent).where(Agent.name == name))
     agent = result.scalar_one_or_none()
     if agent:
-        agent.last_seen = datetime.utcnow()
+        agent.last_seen = _now_utc()
         await db.commit()
     return {"ok": True}
 

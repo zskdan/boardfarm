@@ -1,31 +1,46 @@
+import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..auth import require_auth
+from ..auth import require_auth, require_auth_or_admin
 from ..database import get_db
 from ..models import Board, Booking
 from ..schemas import BookingOut, CommandsOut
+from ..ws import broadcast
 
 router = APIRouter(tags=["bookings"])
 
 MAX_BOOKING_HOURS = 24
 AGENT_TIMEOUT = 5.0
 
+# Per-board asyncio locks to prevent double-booking race conditions
+_board_locks: dict[str, asyncio.Lock] = {}
+
+
+def _get_lock(board_id: str) -> asyncio.Lock:
+    return _board_locks.setdefault(board_id, asyncio.Lock())
+
 
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-async def _call_agent(agent_url: str, path: str, method: str = "POST") -> None:
+async def _call_agent(
+    agent_url: str, path: str, agent_token: str = "", method: str = "POST"
+) -> None:
     try:
+        headers = {}
+        if agent_token:
+            headers["X-Agent-Token"] = agent_token
         async with httpx.AsyncClient(timeout=AGENT_TIMEOUT) as client:
-            await client.request(method, f"{agent_url}{path}")
+            await client.request(method, f"{agent_url}{path}", headers=headers)
     except Exception:
         pass  # Agent offline — booking still proceeds
 
@@ -81,39 +96,53 @@ async def book_board(
             status_code=422, detail=f"duration_hours must be 1-{MAX_BOOKING_HOURS}"
         )
 
-    board = await _load_board(board_id, db)
+    async with _get_lock(board_id):
+        board = await _load_board(board_id, db)
 
-    if not board.enabled:
-        raise HTTPException(status_code=409, detail="Board is disabled")
+        if not board.enabled:
+            raise HTTPException(status_code=409, detail="Board is disabled")
 
-    for bk in board.bookings:
-        if bk.active:
+        for bk in board.bookings:
+            if bk.active:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Board already booked by {bk.username} until {bk.end_time.isoformat()}",
+                )
+
+        now = _now_utc()
+        booking = Booking(
+            id=str(uuid.uuid4()),
+            board_id=board_id,
+            username=user,
+            start_time=now,
+            end_time=now + timedelta(hours=duration_hours),
+        )
+        db.add(booking)
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
             raise HTTPException(
-                status_code=409,
-                detail=f"Board already booked by {bk.username} until {bk.end_time.isoformat()}",
+                status_code=409, detail="Board already has an active booking"
+            )
+        await db.refresh(booking)
+
+        agent_token = board.agent.agent_token if board.agent else ""
+        if board.agent and board.agent.url:
+            await _call_agent(
+                board.agent.url,
+                f"/boards/{board_id}/services/start",
+                agent_token=agent_token,
             )
 
-    now = _now_utc()
-    booking = Booking(
-        id=str(uuid.uuid4()),
-        board_id=board_id,
-        username=user,
-        start_time=now,
-        end_time=now + timedelta(hours=duration_hours),
-    )
-    db.add(booking)
-    await db.commit()
-    await db.refresh(booking)
+        result = await db.execute(
+            select(Booking)
+            .where(Booking.id == booking.id)
+            .options(selectinload(Booking.board).selectinload(Board.agent))
+        )
+        booking = result.scalar_one()
 
-    if board.agent and board.agent.url:
-        await _call_agent(board.agent.url, f"/boards/{board_id}/services/start")
-
-    result = await db.execute(
-        select(Booking)
-        .where(Booking.id == booking.id)
-        .options(selectinload(Booking.board).selectinload(Board.agent))
-    )
-    booking = result.scalar_one()
+    asyncio.create_task(broadcast({"type": "booking_changed", "board_id": board_id}))
     return _booking_out(booking)
 
 
@@ -121,27 +150,35 @@ async def book_board(
 async def release_booking(
     booking_id: str,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
+    auth: tuple[str, bool] = Depends(require_auth_or_admin),
 ):
+    user, is_admin = auth
     booking = await _load_booking(booking_id, db)
 
     if not booking.active:
         raise HTTPException(status_code=409, detail="Booking is already inactive")
 
-    if booking.username != user:
+    if not is_admin and booking.username != user:
         raise HTTPException(
             status_code=403, detail="You can only release your own bookings"
         )
 
     booking.active = False
-    booking.release_reason = "manual"
+    booking.release_reason = "admin" if is_admin and booking.username != user else "manual"
     await db.commit()
 
     board = booking.board
+    agent_token = board.agent.agent_token if board and board.agent else ""
     if board and board.agent and board.agent.url:
-        await _call_agent(board.agent.url, f"/boards/{board.id}/services/stop")
+        await _call_agent(
+            board.agent.url,
+            f"/boards/{board.id}/services/stop",
+            agent_token=agent_token,
+        )
 
+    board_id = booking.board_id
     await db.refresh(booking)
+    asyncio.create_task(broadcast({"type": "booking_changed", "board_id": board_id}))
     return _booking_out(booking)
 
 

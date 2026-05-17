@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -13,6 +13,7 @@ class Agent(Base):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     url: Mapped[str] = mapped_column(String, nullable=False)
     last_seen: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    agent_token: Mapped[str] = mapped_column(String, default="")
 
     boards: Mapped[list["Board"]] = relationship("Board", back_populates="agent")
 
@@ -24,6 +25,7 @@ class Board(Base):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[str] = mapped_column(String, default="")
     location: Mapped[str] = mapped_column(String, default="")
+    current_notes: Mapped[str] = mapped_column(String, default="")
     agent_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("agents.id", ondelete="SET NULL"), nullable=True
     )
@@ -62,6 +64,15 @@ class Tool(Base):
 
 class Booking(Base):
     __tablename__ = "bookings"
+
+    __table_args__ = (
+        Index(
+            "uq_active_booking",
+            "board_id",
+            unique=True,
+            sqlite_where=text("active = 1"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     board_id: Mapped[str] = mapped_column(

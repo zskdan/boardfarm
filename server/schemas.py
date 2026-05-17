@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timezone
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, field_serializer, field_validator, model_validator
 
 
 def _now_utc() -> datetime:
@@ -20,6 +20,10 @@ class AgentOut(BaseModel):
         delta = (_now_utc() - self.last_seen).total_seconds()
         self.online = delta < 90
         return self
+
+    @field_serializer("last_seen")
+    def _dt(self, v: datetime) -> str:
+        return v.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
 
     model_config = {"from_attributes": True}
 
@@ -43,6 +47,7 @@ class BoardIn(BaseModel):
     name: str
     description: str = ""
     location: str = ""
+    current_notes: str = ""
     features: dict = {}
     jtag_port: int = 3121
     uart_tcp_port: int = 5555
@@ -57,6 +62,7 @@ class BoardUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     location: str | None = None
+    current_notes: str | None = None
     features: dict | None = None
     jtag_port: int | None = None
     uart_tcp_port: int | None = None
@@ -78,6 +84,14 @@ class BookingOut(BaseModel):
     active: bool
     release_reason: str
 
+    @field_serializer("start_time")
+    def _start_time(self, v: datetime) -> str:
+        return v.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+
+    @field_serializer("end_time")
+    def _end_time(self, v: datetime) -> str:
+        return v.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+
     model_config = {"from_attributes": True}
 
 
@@ -86,6 +100,7 @@ class BoardOut(BaseModel):
     name: str
     description: str
     location: str
+    current_notes: str = ""
     agent_id: str | None
     host_ip: str | None
     features: dict

@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { listBookings } from '../api/client';
 
 function duration(start: string, end: string): string {
-  const ms = new Date(end + 'Z').getTime() - new Date(start + 'Z').getTime();
+  const ms = new Date(end).getTime() - new Date(start).getTime();
   const h = Math.floor(ms / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
@@ -117,7 +117,7 @@ export default function HistoryPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-600">{bk.username}</td>
                     <td className="px-4 py-3 text-gray-500">
-                      {new Date(bk.start_time + 'Z').toLocaleString()}
+                      {new Date(bk.start_time).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-gray-500">
                       {duration(bk.start_time, bk.end_time)}

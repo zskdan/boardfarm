@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { BookingInfo } from '../api/types';
 
 function msLeft(endTime: string): number {
-  return new Date(endTime + 'Z').getTime() - Date.now();
+  return new Date(endTime).getTime() - Date.now();
 }
 
 function fmt(ms: number): string {
@@ -55,7 +55,7 @@ export default function BookingTimer({
         {expired ? 'Expired' : fmt(remaining)}
       </div>
       <div className="text-xs text-gray-500">
-        Until {new Date(booking.end_time + 'Z').toLocaleTimeString()}
+        Until {new Date(booking.end_time).toLocaleTimeString()}
       </div>
       <div className="flex gap-2">
         {!booking.extended && !expired && (

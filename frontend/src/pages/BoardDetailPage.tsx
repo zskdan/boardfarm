@@ -10,6 +10,7 @@ import {
   getUsername,
   releaseBooking,
 } from '../api/client';
+import BoardNotes from '../components/BoardNotes';
 import BookingTimer from '../components/BookingTimer';
 import ConnectionCommands from '../components/ConnectionCommands';
 import StatusBadge from '../components/StatusBadge';
@@ -140,6 +141,12 @@ export default function BoardDetailPage() {
           </div>
         )}
 
+        {/* Notes */}
+        <div className="bg-white rounded-xl border p-5 mb-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-2">Notes</h2>
+          <BoardNotes boardId={board.id} notes={board.current_notes ?? ''} />
+        </div>
+
         {/* Booking section */}
         <div className="bg-white rounded-xl border p-5 mb-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Booking</h2>
@@ -162,7 +169,7 @@ export default function BoardDetailPage() {
           ) : otherBooking ? (
             <div className="text-sm text-gray-600">
               Booked by <strong>{otherBooking.username}</strong> until{' '}
-              {new Date(otherBooking.end_time + 'Z').toLocaleString()}
+              {new Date(otherBooking.end_time).toLocaleString()}
             </div>
           ) : board.agent_online && board.enabled ? (
             <div className="flex items-center gap-3">

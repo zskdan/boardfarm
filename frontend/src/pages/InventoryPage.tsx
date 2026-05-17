@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listBoards } from '../api/client';
 import BoardCard from '../components/BoardCard';
+import { useStatusSocket } from '../hooks/useStatusSocket';
 
 type Filter = 'all' | 'free' | 'booked' | 'offline';
 
@@ -11,7 +12,9 @@ export default function InventoryPage() {
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
 
-  const { data: boards = [], isLoading, refetch, isFetching } = useQuery({
+  useStatusSocket();
+
+  const { data: boards = [], isLoading, refetch, isFetching, isError } = useQuery({
     queryKey: ['boards'],
     queryFn: listBoards,
     refetchInterval: 15_000,
@@ -87,6 +90,13 @@ export default function InventoryPage() {
             </button>
           ))}
         </div>
+
+        {/* Offline indicator */}
+        {isError && (
+          <div className="mb-4 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+            Cannot reach server. Retrying…
+          </div>
+        )}
 
         {/* Grid */}
         {isLoading ? (

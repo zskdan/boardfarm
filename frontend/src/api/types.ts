@@ -56,6 +56,7 @@ export interface BoardInfo {
   agent_online: boolean;
   active_booking: BookingInfo | null;
   tools: ToolInfo[];
+  current_notes: string;
 }
 
 export interface BoardCreate {
@@ -70,6 +71,7 @@ export interface BoardCreate {
   power_script: string;
   power_args: Record<string, unknown>;
   enabled: boolean;
+  current_notes: string;
 }
 
 export interface CommandsInfo {

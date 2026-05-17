@@ -97,6 +97,11 @@ export async function deleteBoard(id: string): Promise<void> {
   await api().delete(`/boards/${id}`);
 }
 
+export async function updateBoardNotes(id: string, notes: string): Promise<BoardInfo> {
+  const { data } = await api().patch<BoardInfo>(`/boards/${id}`, { current_notes: notes });
+  return data;
+}
+
 // ── Tools ────────────────────────────────────────────────────────────────────
 
 export async function listTools(boardId: string): Promise<ToolInfo[]> {

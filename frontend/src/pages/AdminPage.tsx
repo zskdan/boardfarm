@@ -25,6 +25,7 @@ const DEFAULT_BOARD: BoardCreate = {
   power_script: '',
   power_args: {},
   enabled: true,
+  current_notes: '',
 };
 
 function AddBoardModal({ onClose }: { onClose: () => void }) {
