@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from .database import async_session
 from .models import Board, Booking
+from .ws import broadcast
 
 logger = logging.getLogger(__name__)
 AGENT_TIMEOUT = 5.0
@@ -16,8 +17,15 @@ AGENT_TIMEOUT = 5.0
 async def _stop_agent_services(board: Board, board_id: str) -> None:
     if board and board.agent and board.agent.url:
         try:
+            agent_token = board.agent.agent_token if board.agent else ""
+            headers = {}
+            if agent_token:
+                headers["X-Agent-Token"] = agent_token
             async with httpx.AsyncClient(timeout=AGENT_TIMEOUT) as client:
-                await client.post(f"{board.agent.url}/boards/{board_id}/services/stop")
+                await client.post(
+                    f"{board.agent.url}/boards/{board_id}/services/stop",
+                    headers=headers,
+                )
         except Exception:
             pass
 
@@ -46,5 +54,11 @@ async def expiry_loop(interval_seconds: int = 60) -> None:
                     await _stop_agent_services(booking.board, booking.board_id)
                 if expired:
                     await db.commit()
+                    for booking in expired:
+                        asyncio.create_task(
+                            broadcast(
+                                {"type": "booking_expired", "board_id": booking.board_id}
+                            )
+                        )
         except Exception:
             logger.exception("Error in expiry loop")
