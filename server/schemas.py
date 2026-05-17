@@ -1,0 +1,118 @@
+import json
+from datetime import datetime, timezone
+
+from pydantic import BaseModel, field_validator, model_validator
+
+
+def _now_utc() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+class AgentOut(BaseModel):
+    id: str
+    name: str
+    url: str
+    last_seen: datetime
+    online: bool = False
+
+    @model_validator(mode="after")
+    def compute_online(self) -> "AgentOut":
+        delta = (_now_utc() - self.last_seen).total_seconds()
+        self.online = delta < 90
+        return self
+
+    model_config = {"from_attributes": True}
+
+
+class ToolIn(BaseModel):
+    type: str
+    model: str = ""
+    connection: str = "usb"
+    connection_detail: str = ""
+    notes: str = ""
+
+
+class ToolOut(ToolIn):
+    id: str
+    board_id: str
+
+    model_config = {"from_attributes": True}
+
+
+class BoardIn(BaseModel):
+    name: str
+    description: str = ""
+    location: str = ""
+    features: dict = {}
+    jtag_port: int = 3121
+    uart_tcp_port: int = 5555
+    ssh_user: str = "root"
+    ssh_port: int = 22
+    power_script: str = ""
+    power_args: dict = {}
+    enabled: bool = True
+
+
+class BoardUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    location: str | None = None
+    features: dict | None = None
+    jtag_port: int | None = None
+    uart_tcp_port: int | None = None
+    ssh_user: str | None = None
+    ssh_port: int | None = None
+    power_script: str | None = None
+    power_args: dict | None = None
+    enabled: bool | None = None
+
+
+class BookingOut(BaseModel):
+    id: str
+    board_id: str
+    board_name: str = ""
+    username: str
+    start_time: datetime
+    end_time: datetime
+    extended: bool
+    active: bool
+    release_reason: str
+
+    model_config = {"from_attributes": True}
+
+
+class BoardOut(BaseModel):
+    id: str
+    name: str
+    description: str
+    location: str
+    agent_id: str | None
+    host_ip: str | None
+    features: dict
+    jtag_port: int
+    uart_tcp_port: int
+    ssh_user: str
+    ssh_port: int
+    power_script: str
+    power_args: dict
+    enabled: bool
+    agent_online: bool = False
+    active_booking: BookingOut | None = None
+    tools: list[ToolOut] = []
+
+    @field_validator("features", "power_args", mode="before")
+    @classmethod
+    def parse_json_str(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
+
+    model_config = {"from_attributes": True}
+
+
+class CommandsOut(BaseModel):
+    jtag_connect: str
+    vivado_tcl: str
+    uart: str
+    ssh: str
+    power_on: str

@@ -1,0 +1,8 @@
+fastapi>=0.110
+uvicorn[standard]
+sqlalchemy>=2.0
+aiosqlite
+pydantic-settings
+pyyaml
+httpx
+zeroconf>=0.115

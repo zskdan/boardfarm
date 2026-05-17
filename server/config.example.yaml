@@ -1,0 +1,4 @@
+server:
+  port: 8765
+  token: "changeme"
+  db_path: "./boardfarm.db"

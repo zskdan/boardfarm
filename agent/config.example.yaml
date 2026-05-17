@@ -1,0 +1,16 @@
+agent:
+  name: "lab-host-1"
+  port: 8766
+  server_url: "http://192.168.1.100:8765"
+  server_token: "changeme"
+  host_ip: "192.168.1.5"
+
+boards:
+  - id: "zynq-dev-1"
+    uart_device: "/dev/ttyUSB0"
+    uart_baud: 115200
+    jtag_port: 3121
+    uart_tcp_port: 5555
+    power_script: "../../power/usb_relay.py"
+    power_args:
+      relay_id: 1
