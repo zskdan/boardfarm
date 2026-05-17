@@ -1,8 +1,9 @@
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from ..auth import require_agent_auth
 from ..config import config
 from ..services import hw_server, power, uart_proxy
 
@@ -17,7 +18,7 @@ def _get_board(board_id: str):
 
 
 @router.post("/boards/{board_id}/services/start")
-async def start_services(board_id: str):
+async def start_services(board_id: str, _: None = Depends(require_agent_auth)):
     board = _get_board(board_id)
     jtag_ok = await hw_server.start(board_id, board.jtag_port)
     uart_ok = await uart_proxy.start(
@@ -27,7 +28,7 @@ async def start_services(board_id: str):
 
 
 @router.post("/boards/{board_id}/services/stop")
-async def stop_services(board_id: str):
+async def stop_services(board_id: str, _: None = Depends(require_agent_auth)):
     _get_board(board_id)
     await hw_server.stop(board_id)
     await uart_proxy.stop(board_id)
@@ -39,7 +40,7 @@ class PowerBody(BaseModel):
 
 
 @router.post("/boards/{board_id}/power")
-async def power_action(board_id: str, body: PowerBody):
+async def power_action(board_id: str, body: PowerBody, _: None = Depends(require_agent_auth)):
     board = _get_board(board_id)
     ok = await power.run(board.power_script, body.action, board.power_args)
     if not ok:

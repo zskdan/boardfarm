@@ -15,6 +15,8 @@ class BoardConfig:
     uart_tcp_port: int = 5555
     power_script: str = ""
     power_args: dict = field(default_factory=dict)
+    host_check_ip: str = ""      # IP to probe for health check
+    host_check_port: int = 22    # port to probe (SSH default)
 
 
 @dataclass
@@ -23,6 +25,7 @@ class AgentConfig:
     port: int = 8766
     server_url: str = "http://localhost:8765"
     server_token: str = "changeme"
+    agent_token: str = "agent-secret"  # Token the agent requires for incoming calls from server
     host_ip: str = "127.0.0.1"
     boards: list[BoardConfig] = field(default_factory=list)
 
@@ -46,6 +49,8 @@ def load_config(path: str = "config.yaml") -> AgentConfig:
                 uart_tcp_port=b.get("uart_tcp_port", 5555),
                 power_script=b.get("power_script", ""),
                 power_args=b.get("power_args", {}),
+                host_check_ip=b.get("host_check_ip", ""),
+                host_check_port=b.get("host_check_port", 22),
             )
         )
 
@@ -54,6 +59,7 @@ def load_config(path: str = "config.yaml") -> AgentConfig:
         port=agent_data.get("port", 8766),
         server_url=agent_data.get("server_url", "http://localhost:8765"),
         server_token=agent_data.get("server_token", "changeme"),
+        agent_token=agent_data.get("agent_token", "agent-secret"),
         host_ip=agent_data.get("host_ip", "127.0.0.1"),
         boards=boards,
     )

@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import config
 from .heartbeat import heartbeat_loop
 from .routers import boards, hardware
+from .services import health as health_svc
 from .services import hw_server, mdns, uart_proxy
 
 logging.basicConfig(level=logging.INFO)
@@ -30,17 +31,50 @@ async def _register_with_server() -> None:
         logger.warning("Could not register with server at %s (will retry via heartbeat)", config.server_url)
 
 
+async def _recover_active_bookings() -> None:
+    """On startup, restart services for any boards that have active bookings."""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                f"{config.server_url}/bookings",
+                params={"active": "true"},
+                headers={"X-Token": config.server_token, "X-User": "__agent__"},
+            )
+            if resp.status_code != 200:
+                return
+            bookings = resp.json()
+        our_board_ids = {b.id for b in config.boards}
+        board_map = {b.id: b for b in config.boards}
+        for booking in bookings:
+            bid = booking["board_id"]
+            if bid in our_board_ids:
+                b = board_map[bid]
+                logger.info("Recovering services for board %s (active booking: %s)", bid, booking["id"])
+                await hw_server.start(bid, b.jtag_port)
+                await uart_proxy.start(bid, b.uart_device, b.uart_baud, b.uart_tcp_port)
+    except Exception:
+        logger.exception("Error during booking recovery")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await mdns.start(config.name, config.host_ip, config.port, len(config.boards))
     await _register_with_server()
-    hb_task = asyncio.create_task(heartbeat_loop(config.server_url, config.name))
+    await _recover_active_bookings()
+    agent_url = f"http://{config.host_ip}:{config.port}"
+    hb_task = asyncio.create_task(heartbeat_loop(config.server_url, config.name, agent_url, [b.id for b in config.boards]))
+    health_task = asyncio.create_task(health_svc.probe_loop(config.boards))
 
     yield
 
     hb_task.cancel()
+    health_task.cancel()
     try:
         await hb_task
+    except asyncio.CancelledError:
+        pass
+    try:
+        await health_task
     except asyncio.CancelledError:
         pass
     await hw_server.stop_all()
