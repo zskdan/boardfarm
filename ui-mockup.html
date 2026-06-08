@@ -100,11 +100,12 @@
             <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Booked by</th>
             <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Location</th>
             <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Tools</th>
+            <th class="px-4 py-3"></th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
 
-          <!-- zynq-dev-1: Booked by alice -->
+          <!-- zynq-dev-1: Booked by alice — no book button -->
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
               <a href="#" class="font-medium text-gray-900 hover:text-blue-600 hover:underline">zynq-dev-1</a>
@@ -112,21 +113,12 @@
             </td>
             <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">Booked</span></td>
             <td class="px-4 py-3"><span class="font-medium text-gray-800">alice</span></td>
-            <td class="px-4 py-3">
-              <div class="flex items-center gap-1 text-xs text-gray-500">
-                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
-                Lab A / Rack 2 / Slot 1
-              </div>
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex flex-wrap gap-1">
-                <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer <span class="opacity-70">(Saleae Logic 8)</span></span>
-                <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply <span class="opacity-70">(Rigol DP832)</span></span>
-              </div>
-            </td>
+            <td class="px-4 py-3"><div class="flex items-center gap-1 text-xs text-gray-500"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>Lab A / Rack 2 / Slot 1</div></td>
+            <td class="px-4 py-3"><div class="flex flex-wrap gap-1"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer <span class="opacity-70">(Saleae Logic 8)</span></span><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply <span class="opacity-70">(Rigol DP832)</span></span></div></td>
+            <td class="px-4 py-3"></td>
           </tr>
 
-          <!-- zynq-dev-2: Free -->
+          <!-- zynq-dev-2: Free — Book button (collapsed) -->
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
               <a href="#" class="font-medium text-gray-900 hover:text-blue-600 hover:underline">zynq-dev-2</a>
@@ -134,36 +126,30 @@
             </td>
             <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Free</span></td>
             <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
-            <td class="px-4 py-3">
-              <div class="flex items-center gap-1 text-xs text-gray-500">
-                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
-                Lab A / Rack 2 / Slot 2
-              </div>
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex flex-wrap gap-1">
-                <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer <span class="opacity-70">(Saleae Logic Pro 16)</span></span>
-                <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Oscilloscope <span class="opacity-70">(Rigol DS1054Z)</span></span>
-              </div>
-            </td>
+            <td class="px-4 py-3"><div class="flex items-center gap-1 text-xs text-gray-500"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>Lab A / Rack 2 / Slot 2</div></td>
+            <td class="px-4 py-3"><div class="flex flex-wrap gap-1"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer <span class="opacity-70">(Saleae Logic Pro 16)</span></span><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Oscilloscope <span class="opacity-70">(Rigol DS1054Z)</span></span></div></td>
+            <td class="px-4 py-3 text-right"><button class="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">Book</button></td>
           </tr>
 
-          <!-- stm32-nucleo-1: Free -->
-          <tr class="hover:bg-gray-50">
+          <!-- stm32-nucleo-1: Free — Book button (expanded/active state) -->
+          <tr class="hover:bg-gray-50 bg-blue-50">
             <td class="px-4 py-3">
               <a href="#" class="font-medium text-gray-900 hover:text-blue-600 hover:underline">stm32-nucleo-1</a>
               <p class="text-xs text-gray-400 mt-0.5 max-w-xs truncate">STM32 Nucleo-H743ZI2, ARM Cortex-M7 evaluation board</p>
             </td>
             <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Free</span></td>
             <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
-            <td class="px-4 py-3">
-              <div class="flex items-center gap-1 text-xs text-gray-500">
-                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
-                Lab A / Rack 3 / Slot 1
+            <td class="px-4 py-3"><div class="flex items-center gap-1 text-xs text-gray-500"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>Lab A / Rack 3 / Slot 1</div></td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Debugger <span class="opacity-70">(ST-LINK V3)</span></span></td>
+            <td class="px-4 py-3 text-right">
+              <!-- expanded quick-book state -->
+              <div class="flex items-center justify-end gap-1.5">
+                <select class="border rounded px-1.5 py-1 text-xs bg-white">
+                  <option>1h</option><option>2h</option><option selected>4h</option><option>8h</option><option>12h</option><option>24h</option>
+                </select>
+                <button class="px-2.5 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">Confirm</button>
+                <button class="px-2 py-1 text-xs text-gray-400 hover:text-gray-600">✕</button>
               </div>
-            </td>
-            <td class="px-4 py-3">
-              <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Debugger <span class="opacity-70">(ST-LINK V3)</span></span>
             </td>
           </tr>
 
@@ -175,18 +161,12 @@
             </td>
             <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">Booked</span></td>
             <td class="px-4 py-3"><span class="font-medium text-gray-800">bob</span></td>
-            <td class="px-4 py-3">
-              <div class="flex items-center gap-1 text-xs text-gray-500">
-                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
-                Lab B / Bench 1
-              </div>
-            </td>
-            <td class="px-4 py-3">
-              <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply <span class="opacity-70">(Bench PSU 30V/5A)</span></span>
-            </td>
+            <td class="px-4 py-3"><div class="flex items-center gap-1 text-xs text-gray-500"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>Lab B / Bench 1</div></td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply <span class="opacity-70">(Bench PSU 30V/5A)</span></span></td>
+            <td class="px-4 py-3"></td>
           </tr>
 
-          <!-- ultra96-v2: Free -->
+          <!-- ultra96-v2: Free — Book button -->
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
               <a href="#" class="font-medium text-gray-900 hover:text-blue-600 hover:underline">ultra96-v2</a>
@@ -194,21 +174,12 @@
             </td>
             <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Free</span></td>
             <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
-            <td class="px-4 py-3">
-              <div class="flex items-center gap-1 text-xs text-gray-500">
-                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
-                Lab A / Rack 1 / Slot 3
-              </div>
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex flex-wrap gap-1">
-                <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer <span class="opacity-70">(Saleae Logic 8)</span></span>
-                <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply <span class="opacity-70">(Rigol DP711)</span></span>
-              </div>
-            </td>
+            <td class="px-4 py-3"><div class="flex items-center gap-1 text-xs text-gray-500"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>Lab A / Rack 1 / Slot 3</div></td>
+            <td class="px-4 py-3"><div class="flex flex-wrap gap-1"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer <span class="opacity-70">(Saleae Logic 8)</span></span><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply <span class="opacity-70">(Rigol DP711)</span></span></div></td>
+            <td class="px-4 py-3 text-right"><button class="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">Book</button></td>
           </tr>
 
-          <!-- arty-a7: Offline/Disabled -->
+          <!-- arty-a7: Offline — no button -->
           <tr class="hover:bg-gray-50 opacity-50">
             <td class="px-4 py-3">
               <a href="#" class="font-medium text-gray-900 hover:text-blue-600 hover:underline">arty-a7</a>
@@ -216,15 +187,9 @@
             </td>
             <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">Offline</span></td>
             <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
-            <td class="px-4 py-3">
-              <div class="flex items-center gap-1 text-xs text-gray-500">
-                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
-                Lab B / Bench 2
-              </div>
-            </td>
-            <td class="px-4 py-3">
-              <span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">Debugger <span class="opacity-70">(JTAG-HS3)</span></span>
-            </td>
+            <td class="px-4 py-3"><div class="flex items-center gap-1 text-xs text-gray-500"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>Lab B / Bench 2</div></td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">Debugger <span class="opacity-70">(JTAG-HS3)</span></span></td>
+            <td class="px-4 py-3"></td>
           </tr>
 
         </tbody>

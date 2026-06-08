@@ -1,13 +1,77 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MapPin, Plus, RefreshCw, Settings } from 'lucide-react';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { listBoards } from '../api/client';
+import { useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { bookBoard, listBoards } from '../api/client';
 import StatusBadge from '../components/StatusBadge';
 import ToolBadge from '../components/ToolBadge';
 import { useStatusSocket } from '../hooks/useStatusSocket';
 
 type Filter = 'all' | 'free' | 'booked' | 'offline';
+
+const DURATIONS = [1, 2, 4, 8, 12, 24];
+
+function QuickBook({ boardId, boardName }: { boardId: string; boardName: string }) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [hours, setHours] = useState(4);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const mut = useMutation({
+    mutationFn: () => bookBoard(boardId, hours),
+    onSuccess: (booking) => {
+      qc.invalidateQueries({ queryKey: ['boards'] });
+      navigate(`/boards/${boardId}`);
+    },
+  });
+
+  if (!open) {
+    return (
+      <button
+        onClick={(e) => { e.preventDefault(); setOpen(true); }}
+        className="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap"
+      >
+        Book
+      </button>
+    );
+  }
+
+  return (
+    <div ref={ref} className="flex items-center gap-1.5">
+      <select
+        className="border rounded px-1.5 py-1 text-xs"
+        value={hours}
+        onChange={(e) => setHours(Number(e.target.value))}
+        autoFocus
+      >
+        {DURATIONS.map((h) => (
+          <option key={h} value={h}>{h}h</option>
+        ))}
+      </select>
+      <button
+        onClick={() => mut.mutate()}
+        disabled={mut.isPending}
+        className="px-2.5 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
+      >
+        {mut.isPending ? '…' : 'Confirm'}
+      </button>
+      <button
+        onClick={() => setOpen(false)}
+        className="px-2 py-1 text-xs text-gray-400 hover:text-gray-600"
+      >
+        ✕
+      </button>
+      {mut.isError && (
+        <span className="text-xs text-red-500">
+          {(mut.error as Error).message}
+        </span>
+      )}
+    </div>
+  );
+}
+
+type Filter2 = 'all' | 'free' | 'booked' | 'offline';
 
 export default function InventoryPage() {
   const [filter, setFilter] = useState<Filter>('all');
@@ -37,6 +101,9 @@ export default function InventoryPage() {
 
     return matchSearch && matchFilter;
   });
+
+  const isFree = (b: (typeof boards)[0]) =>
+    b.enabled && b.agent_online && !b.active_booking;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -115,6 +182,7 @@ export default function InventoryPage() {
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Booked by</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Location</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Tools</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -165,6 +233,11 @@ export default function InventoryPage() {
                         ))}
                         {b.tools.length === 0 && <span className="text-gray-300">—</span>}
                       </div>
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      {isFree(b) && (
+                        <QuickBook boardId={b.id} boardName={b.name} />
+                      )}
                     </td>
                   </tr>
                 ))}
