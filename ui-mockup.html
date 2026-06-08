@@ -14,19 +14,21 @@
   .animate-pulse { animation: pulse 2s cubic-bezier(.4,0,.6,1) infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .animate-spin { animation: spin 1s linear infinite; }
+  .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; align-items:center; justify-content:center; padding:1rem; }
+  .overlay.open { display:flex; }
 </style>
 </head>
 <body class="bg-gray-100">
 
 <!-- Nav tabs -->
 <div class="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
-  <div class="max-w-6xl mx-auto px-4 flex gap-1 py-2 overflow-x-auto">
-    <button onclick="show('discovery')"   id="tab-discovery"   class="tab-btn px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap">🔌 Discovery</button>
-    <button onclick="show('inventory')"   id="tab-inventory"   class="tab-btn px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap">📋 Inventory</button>
-    <button onclick="show('detail')"      id="tab-detail"      class="tab-btn px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap">🖥 Board Detail (booked by me)</button>
-    <button onclick="show('detail2')"     id="tab-detail2"     class="tab-btn px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap">🖥 Board Detail (free)</button>
-    <button onclick="show('history')"     id="tab-history"     class="tab-btn px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap">📜 History</button>
-    <button onclick="show('admin')"       id="tab-admin"       class="tab-btn px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap">⚙️ Admin</button>
+  <div class="max-w-7xl mx-auto px-4 flex gap-1 py-2 overflow-x-auto">
+    <button onclick="show('discovery')"  id="tab-discovery"  class="tab-btn px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap">🔌 Discovery</button>
+    <button onclick="show('inventory')"  id="tab-inventory"  class="tab-btn px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap">📋 Inventory</button>
+    <button onclick="show('inventory-delete')" id="tab-inventory-delete" class="tab-btn px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap">🗑 Inventory (delete mode)</button>
+    <button onclick="show('detail')"     id="tab-detail"     class="tab-btn px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap">🖥 Board Detail (mine)</button>
+    <button onclick="show('detail2')"    id="tab-detail2"    class="tab-btn px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap">🖥 Board Detail (free)</button>
+    <button onclick="show('history')"    id="tab-history"    class="tab-btn px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap">📜 History</button>
   </div>
 </div>
 
@@ -53,44 +55,69 @@
         <label class="block text-xs font-medium text-gray-600 mb-1">Token</label>
         <input type="password" class="w-full border rounded-lg px-3 py-2 text-sm" value="changeme" />
       </div>
-      <button class="w-full py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors text-sm">Connect</button>
-      <p class="text-xs text-center text-gray-400">Agents on the LAN are discovered automatically via mDNS once connected.</p>
+      <button class="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700">
+        Connect →
+      </button>
     </div>
   </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════ INVENTORY -->
 <div id="page-inventory" class="page min-h-screen bg-gray-50">
-  <div class="max-w-6xl mx-auto px-4 py-6">
+  <div class="max-w-7xl mx-auto px-4 py-6">
 
-    <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6 gap-3 flex-wrap">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Board Inventory</h1>
-        <p class="text-sm text-gray-500">6 boards registered · 2 agents online</p>
+        <p class="text-sm text-gray-500">6 boards registered</p>
       </div>
-      <div class="flex gap-2 flex-wrap">
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Filter input -->
+        <div class="flex items-center gap-1.5 border rounded-lg bg-white px-3 py-1.5">
+          <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+          </svg>
+          <input class="text-sm focus:outline-none w-36 bg-transparent" placeholder="Filter boards…" />
+        </div>
+        <!-- Refresh -->
         <button class="p-2 rounded-lg border bg-white hover:bg-gray-50" title="Refresh">
-          <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
         </button>
-        <button class="flex items-center gap-1 px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm text-gray-700">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-          Admin
-        </button>
-        <button class="flex items-center gap-1 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <!-- Add Board -->
+        <button onclick="openAddModal()" class="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
           Add Board
         </button>
+        <!-- Settings -->
+        <button onclick="openSettingsModal()" class="flex items-center gap-1.5 px-3 py-2 border bg-white text-sm rounded-lg hover:bg-gray-50">
+          <svg class="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+          Settings
+        </button>
+        <!-- Delete -->
+        <button onclick="show('inventory-delete')" class="flex items-center gap-1.5 px-3 py-2 border bg-white text-sm rounded-lg hover:bg-gray-50 text-gray-600">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+          Delete
+        </button>
+        <!-- History -->
+        <a onclick="show('history')" href="#" class="flex items-center gap-1.5 px-3 py-2 border bg-white text-sm rounded-lg hover:bg-gray-50 text-gray-600">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          History
+        </a>
       </div>
     </div>
 
-    <div class="flex gap-2 mb-5 flex-wrap">
-      <input class="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 min-w-[160px] bg-white" placeholder="Search boards or users…" />
-      <button class="px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white">All</button>
-      <button class="px-3 py-1.5 text-sm rounded-lg bg-white border text-gray-600 hover:bg-gray-50">Free</button>
-      <button class="px-3 py-1.5 text-sm rounded-lg bg-white border text-gray-600 hover:bg-gray-50">Booked</button>
-      <button class="px-3 py-1.5 text-sm rounded-lg bg-white border text-gray-600 hover:bg-gray-50">Offline</button>
-    </div>
-
+    <!-- Table -->
     <div class="bg-white rounded-xl border overflow-hidden">
       <table class="w-full text-sm">
         <thead class="bg-gray-50 border-b">
@@ -100,222 +127,358 @@
             <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Booked by</th>
             <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Location</th>
             <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Tools</th>
-            <th class="px-4 py-3"></th>
+            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
-
-          <!-- zynq-dev-1: Booked by alice — no book button -->
+          <!-- Row 1: booked -->
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
-              <a href="#" class="font-medium text-gray-900 hover:text-blue-600 hover:underline">zynq-dev-1</a>
-              <p class="text-xs text-gray-400 mt-0.5 max-w-xs truncate">Xilinx Zynq-7000 SoC dev board, primary FPGA dev target</p>
+              <span class="font-medium text-gray-900">zynq-dev-1</span>
+              <p class="text-xs text-gray-400 mt-0.5">Xilinx Zynq-7020 SoC dev board</p>
             </td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">Booked</span></td>
-            <td class="px-4 py-3"><span class="font-medium text-gray-800">alice</span></td>
-            <td class="px-4 py-3"><div class="flex items-center gap-1 text-xs text-gray-500"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>Lab A / Rack 2 / Slot 1</div></td>
-            <td class="px-4 py-3"><div class="flex flex-wrap gap-1"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer <span class="opacity-70">(Saleae Logic 8)</span></span><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply <span class="opacity-70">(Rigol DP832)</span></span></div></td>
-            <td class="px-4 py-3"></td>
-          </tr>
-
-          <!-- zynq-dev-2: Free — Book button (collapsed) -->
-          <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
-              <a href="#" class="font-medium text-gray-900 hover:text-blue-600 hover:underline">zynq-dev-2</a>
-              <p class="text-xs text-gray-400 mt-0.5 max-w-xs truncate">Xilinx Zynq-7000 SoC dev board, secondary / stress testing</p>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>Booked
+              </span>
             </td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Free</span></td>
-            <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
-            <td class="px-4 py-3"><div class="flex items-center gap-1 text-xs text-gray-500"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>Lab A / Rack 2 / Slot 2</div></td>
-            <td class="px-4 py-3"><div class="flex flex-wrap gap-1"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer <span class="opacity-70">(Saleae Logic Pro 16)</span></span><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Oscilloscope <span class="opacity-70">(Rigol DS1054Z)</span></span></div></td>
-            <td class="px-4 py-3 text-right"><button class="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">Book</button></td>
-          </tr>
-
-          <!-- stm32-nucleo-1: Free — Book button (expanded/active state) -->
-          <tr class="hover:bg-gray-50 bg-blue-50">
             <td class="px-4 py-3">
-              <a href="#" class="font-medium text-gray-900 hover:text-blue-600 hover:underline">stm32-nucleo-1</a>
-              <p class="text-xs text-gray-400 mt-0.5 max-w-xs truncate">STM32 Nucleo-H743ZI2, ARM Cortex-M7 evaluation board</p>
+              <span class="font-medium text-gray-800">alice</span>
+              <p class="text-xs text-gray-400 mt-0.5 max-w-[160px] truncate">Testing new bitstream for DSP pipeline</p>
             </td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Free</span></td>
-            <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
-            <td class="px-4 py-3"><div class="flex items-center gap-1 text-xs text-gray-500"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>Lab A / Rack 3 / Slot 1</div></td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Debugger <span class="opacity-70">(ST-LINK V3)</span></span></td>
-            <td class="px-4 py-3 text-right">
-              <!-- expanded quick-book state -->
-              <div class="flex items-center justify-end gap-1.5">
-                <select class="border rounded px-1.5 py-1 text-xs bg-white">
-                  <option>1h</option><option>2h</option><option selected>4h</option><option>8h</option><option>12h</option><option>24h</option>
-                </select>
-                <button class="px-2.5 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">Confirm</button>
-                <button class="px-2 py-1 text-xs text-gray-400 hover:text-gray-600">✕</button>
+            <td class="px-4 py-3">
+              <span class="flex items-center gap-1 text-xs text-gray-500">
+                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Lab A / Rack 1 / Slot 2
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex flex-wrap gap-1">
+                <span class="px-1.5 py-0.5 text-xs rounded bg-purple-100 text-purple-700 font-medium">logic_analyzer</span>
+                <span class="px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-700 font-medium">power_supply</span>
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-end gap-2">
+                <button onclick="openEditModal('zynq-dev-1')" class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white hover:bg-gray-50 text-gray-600 whitespace-nowrap">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                  Modify
+                </button>
               </div>
             </td>
           </tr>
-
-          <!-- rpi4-test: Booked by bob -->
+          <!-- Row 2: free -->
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
-              <a href="#" class="font-medium text-gray-900 hover:text-blue-600 hover:underline">rpi4-test</a>
-              <p class="text-xs text-gray-400 mt-0.5 max-w-xs truncate">Raspberry Pi 4 Model B 8GB, general-purpose test node</p>
+              <span class="font-medium text-gray-900">stm32-nucleo-1</span>
+              <p class="text-xs text-gray-400 mt-0.5">STM32 Nucleo-144 development board</p>
             </td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">Booked</span></td>
-            <td class="px-4 py-3"><span class="font-medium text-gray-800">bob</span></td>
-            <td class="px-4 py-3"><div class="flex items-center gap-1 text-xs text-gray-500"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>Lab B / Bench 1</div></td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply <span class="opacity-70">(Bench PSU 30V/5A)</span></span></td>
-            <td class="px-4 py-3"></td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>Free
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <span class="text-gray-300">—</span>
+            </td>
+            <td class="px-4 py-3">
+              <span class="flex items-center gap-1 text-xs text-gray-500">
+                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Lab B / Bench 2
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex flex-wrap gap-1">
+                <span class="px-1.5 py-0.5 text-xs rounded bg-orange-100 text-orange-700 font-medium">debugger</span>
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-end gap-2">
+                <button onclick="openBookModal('stm32-nucleo-1')" class="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">Book</button>
+                <button onclick="openEditModal('stm32-nucleo-1')" class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white hover:bg-gray-50 text-gray-600 whitespace-nowrap">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                  Modify
+                </button>
+              </div>
+            </td>
           </tr>
-
-          <!-- ultra96-v2: Free — Book button -->
+          <!-- Row 3: free -->
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
-              <a href="#" class="font-medium text-gray-900 hover:text-blue-600 hover:underline">ultra96-v2</a>
-              <p class="text-xs text-gray-400 mt-0.5 max-w-xs truncate">Avnet Ultra96-V2, Zynq UltraScale+ MPSoC</p>
+              <span class="font-medium text-gray-900">arty-a7-1</span>
+              <p class="text-xs text-gray-400 mt-0.5">Digilent Arty A7-100T FPGA board</p>
             </td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Free</span></td>
-            <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
-            <td class="px-4 py-3"><div class="flex items-center gap-1 text-xs text-gray-500"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>Lab A / Rack 1 / Slot 3</div></td>
-            <td class="px-4 py-3"><div class="flex flex-wrap gap-1"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer <span class="opacity-70">(Saleae Logic 8)</span></span><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply <span class="opacity-70">(Rigol DP711)</span></span></div></td>
-            <td class="px-4 py-3 text-right"><button class="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">Book</button></td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>Free
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <span class="text-gray-300">—</span>
+            </td>
+            <td class="px-4 py-3">
+              <span class="flex items-center gap-1 text-xs text-gray-500">
+                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Lab A / Rack 2 / Slot 1
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex flex-wrap gap-1">
+                <span class="px-1.5 py-0.5 text-xs rounded bg-purple-100 text-purple-700 font-medium">logic_analyzer</span>
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-end gap-2">
+                <button onclick="openBookModal('arty-a7-1')" class="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">Book</button>
+                <button onclick="openEditModal('arty-a7-1')" class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white hover:bg-gray-50 text-gray-600 whitespace-nowrap">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                  Modify
+                </button>
+              </div>
+            </td>
           </tr>
-
-          <!-- arty-a7: Offline — no button -->
+          <!-- Row 4: booked by bob -->
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3">
+              <span class="font-medium text-gray-900">zynq-ultra-1</span>
+              <p class="text-xs text-gray-400 mt-0.5">Xilinx Zynq UltraScale+ MPSoC ZCU102</p>
+            </td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>Booked
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <span class="font-medium text-gray-800">bob</span>
+              <p class="text-xs text-gray-400 mt-0.5 max-w-[160px] truncate">Running stress test</p>
+            </td>
+            <td class="px-4 py-3">
+              <span class="flex items-center gap-1 text-xs text-gray-500">
+                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Server Room / Rack B
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex flex-wrap gap-1">
+                <span class="px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-700 font-medium">power_supply</span>
+                <span class="px-1.5 py-0.5 text-xs rounded bg-teal-100 text-teal-700 font-medium">oscilloscope</span>
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-end gap-2">
+                <button onclick="openEditModal('zynq-ultra-1')" class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white hover:bg-gray-50 text-gray-600 whitespace-nowrap">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                  Modify
+                </button>
+              </div>
+            </td>
+          </tr>
+          <!-- Row 5: offline -->
           <tr class="hover:bg-gray-50 opacity-50">
             <td class="px-4 py-3">
-              <a href="#" class="font-medium text-gray-900 hover:text-blue-600 hover:underline">arty-a7</a>
-              <p class="text-xs text-amber-600 mt-0.5">⚠ USB JTAG cable broken — awaiting replacement</p>
+              <span class="font-medium text-gray-900">rpi4-dev-1</span>
+              <p class="text-xs text-gray-400 mt-0.5">Raspberry Pi 4 Model B (4GB)</p>
             </td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">Offline</span></td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block"></span>Offline
+              </span>
+            </td>
             <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
-            <td class="px-4 py-3"><div class="flex items-center gap-1 text-xs text-gray-500"><svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>Lab B / Bench 2</div></td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">Debugger <span class="opacity-70">(JTAG-HS3)</span></span></td>
-            <td class="px-4 py-3"></td>
+            <td class="px-4 py-3">
+              <span class="flex items-center gap-1 text-xs text-gray-500">
+                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Lab C / Bench 1
+              </span>
+            </td>
+            <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-end gap-2">
+                <button class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white text-gray-600 whitespace-nowrap">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                  Modify
+                </button>
+              </div>
+            </td>
           </tr>
-
+          <!-- Row 6: disabled -->
+          <tr class="hover:bg-gray-50 opacity-50">
+            <td class="px-4 py-3">
+              <span class="font-medium text-gray-900">beagle-bb-1</span>
+              <p class="text-xs text-gray-400 mt-0.5">BeagleBone Black (disabled)</p>
+            </td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block"></span>Disabled
+              </span>
+            </td>
+            <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
+            <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
+            <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-end gap-2">
+                <button class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white text-gray-600 whitespace-nowrap">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                  Modify
+                </button>
+              </div>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
+  </div>
+</div>
 
-    <div class="mt-6 text-center">
-      <a href="#" class="text-sm text-blue-600 hover:underline">View booking history →</a>
+<!-- ════════════════════════════════════════════════ INVENTORY – DELETE MODE -->
+<div id="page-inventory-delete" class="page min-h-screen bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <div class="flex items-center justify-between mb-6 gap-3 flex-wrap">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Board Inventory</h1>
+        <p class="text-sm text-gray-500">6 boards registered</p>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex items-center gap-1.5 border rounded-lg bg-white px-3 py-1.5">
+          <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
+          <input class="text-sm focus:outline-none w-36 bg-transparent" placeholder="Filter boards…" />
+        </div>
+        <button class="p-2 rounded-lg border bg-white hover:bg-gray-50" title="Refresh">
+          <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+        <button class="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg opacity-50 cursor-default">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Add Board
+        </button>
+        <button class="flex items-center gap-1.5 px-3 py-2 border bg-white text-sm rounded-lg opacity-50 cursor-default">
+          <svg class="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>Settings
+        </button>
+        <!-- Delete (2) active -->
+        <button class="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          Delete (2)
+        </button>
+        <!-- Cancel -->
+        <button onclick="show('inventory')" class="flex items-center gap-1.5 px-3 py-2 border bg-white text-sm rounded-lg hover:bg-gray-50">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Cancel
+        </button>
+        <a onclick="show('history')" href="#" class="flex items-center gap-1.5 px-3 py-2 border bg-white text-sm rounded-lg hover:bg-gray-50 text-gray-600">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>History
+        </a>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 border-b">
+          <tr>
+            <th class="w-10 px-4 py-3"></th>
+            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Board</th>
+            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
+            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Booked by</th>
+            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Location</th>
+            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Tools</th>
+            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <!-- checked row -->
+          <tr class="bg-red-50">
+            <td class="px-4 py-3"><input type="checkbox" checked class="w-4 h-4 accent-red-600" /></td>
+            <td class="px-4 py-3"><span class="font-medium text-gray-900">zynq-dev-1</span><p class="text-xs text-gray-400 mt-0.5">Xilinx Zynq-7020 SoC dev board</p></td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>Booked</span></td>
+            <td class="px-4 py-3"><span class="font-medium text-gray-800">alice</span></td>
+            <td class="px-4 py-3"><span class="text-xs text-gray-500">Lab A / Rack 1 / Slot 2</span></td>
+            <td class="px-4 py-3"><span class="px-1.5 py-0.5 text-xs rounded bg-purple-100 text-purple-700 font-medium">logic_analyzer</span></td>
+            <td class="px-4 py-3"><div class="flex items-center justify-end gap-2"><button class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white text-gray-600"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>Modify</button></div></td>
+          </tr>
+          <!-- unchecked -->
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3"><input type="checkbox" class="w-4 h-4 accent-red-600" /></td>
+            <td class="px-4 py-3"><span class="font-medium text-gray-900">stm32-nucleo-1</span><p class="text-xs text-gray-400 mt-0.5">STM32 Nucleo-144 development board</p></td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>Free</span></td>
+            <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
+            <td class="px-4 py-3"><span class="text-xs text-gray-500">Lab B / Bench 2</span></td>
+            <td class="px-4 py-3"><span class="px-1.5 py-0.5 text-xs rounded bg-orange-100 text-orange-700 font-medium">debugger</span></td>
+            <td class="px-4 py-3"><div class="flex items-center justify-end gap-2"><button class="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white">Book</button><button class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white text-gray-600"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>Modify</button></div></td>
+          </tr>
+          <!-- checked -->
+          <tr class="bg-red-50">
+            <td class="px-4 py-3"><input type="checkbox" checked class="w-4 h-4 accent-red-600" /></td>
+            <td class="px-4 py-3"><span class="font-medium text-gray-900">arty-a7-1</span><p class="text-xs text-gray-400 mt-0.5">Digilent Arty A7-100T FPGA board</p></td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>Free</span></td>
+            <td class="px-4 py-3"><span class="text-gray-300">—</span></td>
+            <td class="px-4 py-3"><span class="text-xs text-gray-500">Lab A / Rack 2 / Slot 1</span></td>
+            <td class="px-4 py-3"><span class="px-1.5 py-0.5 text-xs rounded bg-purple-100 text-purple-700 font-medium">logic_analyzer</span></td>
+            <td class="px-4 py-3"><div class="flex items-center justify-end gap-2"><button class="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white">Book</button><button class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white text-gray-600"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>Modify</button></div></td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3"><input type="checkbox" class="w-4 h-4 accent-red-600" /></td>
+            <td class="px-4 py-3"><span class="font-medium text-gray-900">zynq-ultra-1</span><p class="text-xs text-gray-400 mt-0.5">Xilinx Zynq UltraScale+ MPSoC ZCU102</p></td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>Booked</span></td>
+            <td class="px-4 py-3"><span class="font-medium text-gray-800">bob</span></td>
+            <td class="px-4 py-3"><span class="text-xs text-gray-500">Server Room / Rack B</span></td>
+            <td class="px-4 py-3"><span class="px-1.5 py-0.5 text-xs rounded bg-teal-100 text-teal-700 font-medium">oscilloscope</span></td>
+            <td class="px-4 py-3"><div class="flex items-center justify-end gap-2"><button class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white text-gray-600"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>Modify</button></div></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════ BOARD DETAIL (booked by me) -->
 <div id="page-detail" class="page min-h-screen bg-gray-50">
-  <div class="max-w-3xl mx-auto px-4 py-6">
-    <a href="#" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-4">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-      Back to inventory
-    </a>
-
-    <div class="bg-white rounded-xl border p-5 mb-4">
-      <div class="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <h1 class="text-xl font-bold text-gray-900">zynq-dev-1</h1>
-          <p class="text-xs text-gray-400 font-mono mt-0.5">a1b2c3d4-1111-2222-3333-aabbccddeeff</p>
-        </div>
-        <span class="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700 mt-1">Booked</span>
-      </div>
-      <p class="text-sm text-gray-600 mb-3">Xilinx Zynq-7000 SoC dev board, primary FPGA dev target</p>
-      <div class="flex flex-wrap gap-4 text-sm text-gray-500 mb-3">
-        <div class="flex items-center gap-1">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
-          Lab A / Rack 2 / Slot 1
-        </div>
-        <div class="flex items-center gap-1 text-green-600">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/></svg>
-          192.168.1.5 · agent online
-        </div>
-      </div>
-      <div class="flex flex-wrap gap-1">
-        <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer <span class="opacity-70">(Saleae Logic 8 · /dev/ttyUSB1)</span></span>
-        <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply <span class="opacity-70">(Rigol DP832 · 192.168.1.30:5000)</span></span>
-      </div>
+  <div class="max-w-3xl mx-auto px-4 py-8">
+    <div class="flex items-center gap-2 mb-6">
+      <a onclick="show('inventory')" href="#" class="text-sm text-gray-500 hover:text-blue-600">← Inventory</a>
     </div>
-
-    <div class="bg-white rounded-xl border p-5 mb-4">
-      <h2 class="text-sm font-semibold text-gray-700 mb-2">Features</h2>
-      <div class="flex flex-wrap gap-2">
-        <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700">jtag: true</span>
-        <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700">uart: true</span>
-        <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700">network: eth0</span>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-xl border p-5 mb-4">
-      <h2 class="text-sm font-semibold text-gray-700 mb-2">Notes</h2>
-      <div class="flex items-start gap-2">
-        <p class="text-sm text-gray-300 italic flex-1">No notes</p>
-        <button class="text-gray-400 hover:text-blue-600">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-        </button>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-xl border p-5 mb-4">
-      <h2 class="text-sm font-semibold text-gray-700 mb-3">My Booking</h2>
-      <div class="flex items-center gap-3 text-xs text-gray-500 mb-3">
-        <span>Booked by <strong class="text-gray-700">alice</strong></span>
-        <span>·</span>
-        <span>Started 08/06/2026, 12:00</span>
-        <span>·</span>
-        <span>Expires 08/06/2026, 14:00</span>
-      </div>
-      <div class="text-3xl font-mono font-semibold text-orange-500 animate-pulse mb-1">1:42:17</div>
-      <div class="text-xs text-gray-400 mb-3">remaining (expires at 14:00)</div>
-      <div class="flex gap-2">
-        <button class="px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700">Extend +1h</button>
-        <button class="px-3 py-1.5 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700">Release</button>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-xl border p-5">
-      <h2 class="text-sm font-semibold text-gray-700 mb-3">Connection Commands</h2>
-      <div class="flex flex-col gap-3">
-
+    <div class="bg-white rounded-2xl border p-6 mb-4">
+      <div class="flex items-start justify-between mb-4">
         <div>
-          <span class="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">JTAG (hw_server)</span>
-          <div class="flex items-start gap-2 bg-gray-900 rounded p-3">
-            <pre class="flex-1 text-sm text-green-400">connect_hw_server -url tcp:192.168.1.5:3121</pre>
-            <button class="text-gray-500 hover:text-gray-300 flex-shrink-0">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-            </button>
-          </div>
+          <h2 class="text-2xl font-bold text-gray-900">zynq-dev-1</h2>
+          <p class="text-gray-500 text-sm mt-0.5">Xilinx Zynq-7020 SoC dev board</p>
         </div>
-
-        <div>
-          <span class="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">Vivado TCL</span>
-          <div class="flex items-start gap-2 bg-gray-900 rounded p-3">
-            <pre class="flex-1 text-sm text-green-400 whitespace-pre-wrap">connect_hw_server -url tcp:192.168.1.5:3121
-open_hw_target</pre>
-            <button class="text-gray-500 hover:text-gray-300 flex-shrink-0">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-            </button>
-          </div>
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-700">
+          <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>Booked by you
+        </span>
+      </div>
+      <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+        <div><span class="text-gray-400 text-xs">Location</span><p class="text-gray-800 mt-0.5">Lab A / Rack 1 / Slot 2</p></div>
+        <div><span class="text-gray-400 text-xs">Agent</span><p class="text-gray-800 mt-0.5">lab-host-1 <span class="text-green-600 text-xs">● online</span></p></div>
+        <div><span class="text-gray-400 text-xs">Host IP</span><p class="text-gray-800 mt-0.5 font-mono">192.168.1.5</p></div>
+        <div><span class="text-gray-400 text-xs">JTAG Port</span><p class="text-gray-800 mt-0.5 font-mono">3121</p></div>
+      </div>
+      <div class="flex flex-wrap gap-1 mb-4">
+        <span class="px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-700 font-medium">logic_analyzer · Saleae Logic 8</span>
+        <span class="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700 font-medium">power_supply · Rigol DP832</span>
+      </div>
+      <!-- Booking info -->
+      <div class="bg-blue-50 rounded-xl p-4 mb-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-semibold text-blue-900">Booking active</span>
+          <span class="text-sm text-blue-700 font-mono">3h 42m remaining</span>
         </div>
-
-        <div>
-          <span class="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">UART (telnet)</span>
-          <div class="flex items-start gap-2 bg-gray-900 rounded p-3">
-            <pre class="flex-1 text-sm text-green-400">telnet 192.168.1.5 5555</pre>
-            <button class="text-gray-500 hover:text-gray-300 flex-shrink-0">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-            </button>
-          </div>
+        <p class="text-xs text-blue-600 mb-3">Testing new bitstream for DSP pipeline</p>
+        <div class="flex gap-2">
+          <button class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Extend +4h</button>
+          <button class="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50">Release</button>
         </div>
-
-        <div>
-          <span class="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">SSH</span>
-          <div class="flex items-start gap-2 bg-gray-900 rounded p-3">
-            <pre class="flex-1 text-sm text-green-400">ssh root@192.168.1.5 -p 22</pre>
-            <button class="text-gray-500 hover:text-gray-300 flex-shrink-0">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-            </button>
-          </div>
+      </div>
+      <!-- Commands -->
+      <div class="space-y-2">
+        <p class="text-xs font-medium text-gray-600 uppercase tracking-wide">Connection Commands</p>
+        <div class="bg-gray-900 rounded-lg p-3">
+          <p class="text-xs text-gray-400 mb-1">JTAG (Vivado)</p>
+          <code class="text-green-400 text-xs font-mono">connect_hw_server -url tcp:192.168.1.5:3121</code>
         </div>
-
+        <div class="bg-gray-900 rounded-lg p-3">
+          <p class="text-xs text-gray-400 mb-1">UART</p>
+          <code class="text-green-400 text-xs font-mono">telnet 192.168.1.5 5555</code>
+        </div>
+        <div class="bg-gray-900 rounded-lg p-3">
+          <p class="text-xs text-gray-400 mb-1">SSH</p>
+          <code class="text-green-400 text-xs font-mono">ssh root@192.168.1.5 -p 22</code>
+        </div>
       </div>
     </div>
   </div>
@@ -323,179 +486,103 @@ open_hw_target</pre>
 
 <!-- ═══════════════════════════════════════════════════════════ BOARD DETAIL (free) -->
 <div id="page-detail2" class="page min-h-screen bg-gray-50">
-  <div class="max-w-3xl mx-auto px-4 py-6">
-    <a href="#" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-4">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-      Back to inventory
-    </a>
-
-    <div class="bg-white rounded-xl border p-5 mb-4">
-      <div class="flex items-start justify-between gap-3 mb-3">
+  <div class="max-w-3xl mx-auto px-4 py-8">
+    <div class="flex items-center gap-2 mb-6">
+      <a onclick="show('inventory')" href="#" class="text-sm text-gray-500 hover:text-blue-600">← Inventory</a>
+    </div>
+    <div class="bg-white rounded-2xl border p-6">
+      <div class="flex items-start justify-between mb-4">
         <div>
-          <h1 class="text-xl font-bold text-gray-900">stm32-nucleo-1</h1>
-          <p class="text-xs text-gray-400 font-mono mt-0.5">b2c3d4e5-2222-3333-4444-bbccddee0011</p>
+          <h2 class="text-2xl font-bold text-gray-900">stm32-nucleo-1</h2>
+          <p class="text-gray-500 text-sm mt-0.5">STM32 Nucleo-144 development board</p>
         </div>
-        <span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 mt-1">Free</span>
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
+          <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>Free
+        </span>
       </div>
-      <p class="text-sm text-gray-600 mb-3">STM32 Nucleo-H743ZI2, ARM Cortex-M7 evaluation board</p>
-      <div class="flex flex-wrap gap-4 text-sm text-gray-500 mb-3">
-        <div class="flex items-center gap-1">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
-          Lab A / Rack 3 / Slot 1
-        </div>
-        <div class="flex items-center gap-1 text-green-600">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/></svg>
-          192.168.1.6 · agent online
-        </div>
+      <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+        <div><span class="text-gray-400 text-xs">Location</span><p class="text-gray-800 mt-0.5">Lab B / Bench 2</p></div>
+        <div><span class="text-gray-400 text-xs">Agent</span><p class="text-gray-800 mt-0.5">lab-host-2 <span class="text-green-600 text-xs">● online</span></p></div>
       </div>
-      <div class="flex flex-wrap gap-1">
-        <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Debugger <span class="opacity-70">(ST-LINK V3 · /dev/ttyACM0)</span></span>
+      <div class="flex flex-wrap gap-1 mb-6">
+        <span class="px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700 font-medium">debugger · ST-Link v3</span>
       </div>
-    </div>
-
-    <div class="bg-white rounded-xl border p-5 mb-4">
-      <h2 class="text-sm font-semibold text-gray-700 mb-2">Features</h2>
-      <div class="flex flex-wrap gap-2">
-        <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700">jtag: true</span>
-        <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700">uart: true</span>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-xl border p-5 mb-4">
-      <h2 class="text-sm font-semibold text-gray-700 mb-2">Notes</h2>
-      <div class="flex items-start gap-2">
-        <p class="text-sm text-gray-300 italic flex-1">No notes</p>
-        <button class="text-gray-400 hover:text-blue-600">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-        </button>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-xl border p-5">
-      <h2 class="text-sm font-semibold text-gray-700 mb-3">Book this board</h2>
-      <div class="flex items-center gap-3">
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-gray-600">Duration</label>
-          <select class="border rounded px-2 py-1 text-sm">
-            <option>1h</option>
-            <option>2h</option>
-            <option selected>4h</option>
-            <option>8h</option>
-            <option>12h</option>
-            <option>24h</option>
-          </select>
-        </div>
-        <button class="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">Book Now</button>
-      </div>
-      <p class="text-xs text-gray-400 mt-2">Maximum booking: 24h · extendable once</p>
+      <button onclick="openBookModal('stm32-nucleo-1')" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
+        Book this board
+      </button>
     </div>
   </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════ HISTORY -->
 <div id="page-history" class="page min-h-screen bg-gray-50">
-  <div class="max-w-4xl mx-auto px-4 py-6">
-    <a href="#" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-4">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-      Back to inventory
-    </a>
-    <h1 class="text-2xl font-bold text-gray-900 mb-4">Booking History</h1>
-
-    <div class="flex gap-2 mb-4 flex-wrap">
-      <input class="border rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Filter by user or board…" style="width:220px"/>
-      <button class="px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white">All</button>
-      <button class="px-3 py-1.5 text-sm rounded-lg bg-white border text-gray-600 hover:bg-gray-50">Active</button>
-      <button class="px-3 py-1.5 text-sm rounded-lg bg-white border text-gray-600 hover:bg-gray-50">Past</button>
+  <div class="max-w-5xl mx-auto px-4 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Booking History</h1>
+        <p class="text-sm text-gray-500">All past and active bookings</p>
+      </div>
+      <a onclick="show('inventory')" href="#" class="text-sm text-blue-600 hover:underline">← Back to Inventory</a>
     </div>
-
+    <!-- Filters -->
+    <div class="bg-white rounded-xl border p-4 mb-4 flex flex-wrap gap-3 items-center text-sm">
+      <input class="border rounded-lg px-3 py-1.5 text-sm w-36" placeholder="Board…" />
+      <input class="border rounded-lg px-3 py-1.5 text-sm w-32" placeholder="User…" />
+      <label class="flex items-center gap-1.5 text-gray-600"><input type="checkbox" class="accent-blue-600" /> Active only</label>
+      <button class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm">Apply</button>
+    </div>
     <div class="bg-white rounded-xl border overflow-hidden">
       <table class="w-full text-sm">
         <thead class="bg-gray-50 border-b">
           <tr>
-            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Board</th>
-            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">User</th>
-            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Start</th>
-            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Duration</th>
-            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
+            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Board</th>
+            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">User</th>
+            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Start</th>
+            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">End</th>
+            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
+            <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Comment</th>
           </tr>
         </thead>
-        <tbody class="divide-y">
+        <tbody class="divide-y divide-gray-100">
           <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-blue-600 hover:underline cursor-pointer">zynq-dev-1</td>
-            <td class="px-4 py-3 text-gray-700 font-medium">alice</td>
-            <td class="px-4 py-3 text-gray-500">08/06/2026, 12:00</td>
-            <td class="px-4 py-3 text-gray-500">2h 0m</td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700">Active</span></td>
+            <td class="px-4 py-3 font-medium">zynq-dev-1</td>
+            <td class="px-4 py-3">alice</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">2026-06-08 09:00</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">2026-06-08 17:00</td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">● active</span></td>
+            <td class="px-4 py-3 text-gray-400 text-xs">Testing new bitstream for DSP pipeline</td>
           </tr>
           <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-blue-600 hover:underline cursor-pointer">rpi4-test</td>
-            <td class="px-4 py-3 text-gray-700">bob</td>
-            <td class="px-4 py-3 text-gray-500">08/06/2026, 12:30</td>
-            <td class="px-4 py-3 text-gray-500">2h 0m</td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700">Active</span></td>
+            <td class="px-4 py-3 font-medium">arty-a7-1</td>
+            <td class="px-4 py-3">charlie</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">2026-06-07 14:00</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">2026-06-07 18:00</td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">released</span></td>
+            <td class="px-4 py-3 text-gray-400 text-xs">CI pipeline run</td>
           </tr>
           <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-blue-600 hover:underline cursor-pointer">zynq-dev-1</td>
-            <td class="px-4 py-3 text-gray-700">bob</td>
-            <td class="px-4 py-3 text-gray-500">08/06/2026, 08:00</td>
-            <td class="px-4 py-3 text-gray-500">8h 0m <span class="text-xs text-gray-400">(+ext)</span></td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Released</span></td>
+            <td class="px-4 py-3 font-medium">stm32-nucleo-1</td>
+            <td class="px-4 py-3">alice</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">2026-06-07 09:30</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">2026-06-07 13:00</td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">expired</span></td>
+            <td class="px-4 py-3 text-gray-400 text-xs">Firmware flash test</td>
           </tr>
           <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-blue-600 hover:underline cursor-pointer">zynq-dev-1</td>
-            <td class="px-4 py-3 text-gray-700">charlie</td>
-            <td class="px-4 py-3 text-gray-500">07/06/2026, 18:00</td>
-            <td class="px-4 py-3 text-gray-500">2h 0m</td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Expired</span></td>
+            <td class="px-4 py-3 font-medium">zynq-ultra-1</td>
+            <td class="px-4 py-3">bob</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">2026-06-08 08:00</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">2026-06-08 16:00</td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">● active</span></td>
+            <td class="px-4 py-3 text-gray-400 text-xs">Running stress test</td>
           </tr>
           <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-blue-600 hover:underline cursor-pointer">zynq-dev-2</td>
-            <td class="px-4 py-3 text-gray-700">dave</td>
-            <td class="px-4 py-3 text-gray-500">07/06/2026, 14:00</td>
-            <td class="px-4 py-3 text-gray-500">3h 0m</td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Released</span></td>
-          </tr>
-          <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-blue-600 hover:underline cursor-pointer">rpi4-test</td>
-            <td class="px-4 py-3 text-gray-700">dave</td>
-            <td class="px-4 py-3 text-gray-500">07/06/2026, 10:00</td>
-            <td class="px-4 py-3 text-gray-500">2h 0m</td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Released</span></td>
-          </tr>
-          <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-blue-600 hover:underline cursor-pointer">stm32-nucleo-1</td>
-            <td class="px-4 py-3 text-gray-700">charlie</td>
-            <td class="px-4 py-3 text-gray-500">06/06/2026, 10:00</td>
-            <td class="px-4 py-3 text-gray-500">5h 0m</td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Expired</span></td>
-          </tr>
-          <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-blue-600 hover:underline cursor-pointer">ultra96-v2</td>
-            <td class="px-4 py-3 text-gray-700">alice</td>
-            <td class="px-4 py-3 text-gray-500">05/06/2026, 10:00</td>
-            <td class="px-4 py-3 text-gray-500">24h 0m <span class="text-xs text-gray-400">(+ext)</span></td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Expired</span></td>
-          </tr>
-          <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-blue-600 hover:underline cursor-pointer">zynq-dev-2</td>
-            <td class="px-4 py-3 text-gray-700">alice</td>
-            <td class="px-4 py-3 text-gray-500">05/06/2026, 08:00</td>
-            <td class="px-4 py-3 text-gray-500">6h 0m</td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Released</span></td>
-          </tr>
-          <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-blue-600 hover:underline cursor-pointer">stm32-nucleo-1</td>
-            <td class="px-4 py-3 text-gray-700">bob</td>
-            <td class="px-4 py-3 text-gray-500">04/06/2026, 14:00</td>
-            <td class="px-4 py-3 text-gray-500">12h 0m <span class="text-xs text-gray-400">(+ext)</span></td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Released</span></td>
-          </tr>
-          <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-blue-600 hover:underline cursor-pointer">arty-a7</td>
-            <td class="px-4 py-3 text-gray-700">bob</td>
-            <td class="px-4 py-3 text-gray-500">03/06/2026, 08:00</td>
-            <td class="px-4 py-3 text-gray-500">4h 0m</td>
-            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">Admin release</span></td>
+            <td class="px-4 py-3 font-medium">zynq-dev-1</td>
+            <td class="px-4 py-3">dave</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">2026-06-06 10:00</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">2026-06-06 14:00</td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">released</span></td>
+            <td class="px-4 py-3 text-gray-400 text-xs">Bringing up new OS image</td>
           </tr>
         </tbody>
       </table>
@@ -503,246 +590,165 @@ open_hw_target</pre>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════ ADMIN -->
-<div id="page-admin" class="page min-h-screen bg-gray-50">
-  <div class="max-w-5xl mx-auto px-4 py-6">
-    <a href="#" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-4">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-      Back to inventory
-    </a>
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">Admin</h1>
-      <button class="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-        Add Board
-      </button>
-    </div>
-
-    <div class="flex flex-col gap-4">
-
-      <!-- zynq-dev-1 -->
-      <div class="bg-white rounded-xl border p-4">
-        <div class="flex items-start justify-between gap-2 mb-3">
-          <div>
-            <a href="#" class="font-semibold text-gray-900 hover:underline">zynq-dev-1</a>
-            <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-600">Booked · alice</span>
-            <p class="text-xs text-gray-400 font-mono mt-0.5">a1b2c3d4-1111-2222-3333-aabbccddeeff</p>
-          </div>
-          <button class="text-red-400 hover:text-red-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-        </div>
-        <div class="flex items-center gap-2 mb-3">
-          <input class="border rounded px-2 py-1 text-sm flex-1" value="Lab A / Rack 2 / Slot 1" />
-          <button class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">Save</button>
-        </div>
-        <div class="flex flex-wrap gap-1 mb-2">
-          <div class="flex items-center gap-1">
-            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer (Saleae Logic 8)</span>
-            <button class="text-gray-300 hover:text-red-500"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-          </div>
-          <div class="flex items-center gap-1">
-            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply (Rigol DP832)</span>
-            <button class="text-gray-300 hover:text-red-500"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-          </div>
-          <button class="flex items-center gap-0.5 text-xs text-gray-400 hover:text-blue-600"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> tool</button>
-        </div>
-        <label class="flex items-center gap-2 text-xs text-gray-500"><input type="checkbox" checked /> Enabled</label>
-      </div>
-
-      <!-- zynq-dev-2 (has note) -->
-      <div class="bg-white rounded-xl border p-4">
-        <div class="flex items-start justify-between gap-2 mb-3">
-          <div>
-            <a href="#" class="font-semibold text-gray-900 hover:underline">zynq-dev-2</a>
-            <p class="text-xs text-gray-400 font-mono mt-0.5">b2c3d4e5-1111-2222-3333-bbccddee0011</p>
-            <p class="text-xs text-amber-600 mt-0.5">⚠ Needs power cycle after JTAG disconnect</p>
-          </div>
-          <button class="text-red-400 hover:text-red-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-        </div>
-        <div class="flex items-center gap-2 mb-3">
-          <input class="border rounded px-2 py-1 text-sm flex-1" value="Lab A / Rack 2 / Slot 2" />
-          <button class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">Save</button>
-        </div>
-        <div class="flex flex-wrap gap-1 mb-2">
-          <div class="flex items-center gap-1">
-            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer (Saleae Logic Pro 16)</span>
-            <button class="text-gray-300 hover:text-red-500"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-          </div>
-          <div class="flex items-center gap-1">
-            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Oscilloscope (Rigol DS1054Z)</span>
-            <button class="text-gray-300 hover:text-red-500"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-          </div>
-          <button class="flex items-center gap-0.5 text-xs text-gray-400 hover:text-blue-600"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> tool</button>
-        </div>
-        <label class="flex items-center gap-2 text-xs text-gray-500"><input type="checkbox" checked /> Enabled</label>
-      </div>
-
-      <!-- stm32-nucleo-1 -->
-      <div class="bg-white rounded-xl border p-4">
-        <div class="flex items-start justify-between gap-2 mb-3">
-          <div>
-            <a href="#" class="font-semibold text-gray-900 hover:underline">stm32-nucleo-1</a>
-            <p class="text-xs text-gray-400 font-mono mt-0.5">c3d4e5f6-2222-3333-4444-ccddee001122</p>
-          </div>
-          <button class="text-red-400 hover:text-red-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-        </div>
-        <div class="flex items-center gap-2 mb-3">
-          <input class="border rounded px-2 py-1 text-sm flex-1" value="Lab A / Rack 3 / Slot 1" />
-          <button class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">Save</button>
-        </div>
-        <div class="flex flex-wrap gap-1 mb-2">
-          <div class="flex items-center gap-1">
-            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Debugger (ST-LINK V3)</span>
-            <button class="text-gray-300 hover:text-red-500"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-          </div>
-          <button class="flex items-center gap-0.5 text-xs text-gray-400 hover:text-blue-600"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> tool</button>
-        </div>
-        <label class="flex items-center gap-2 text-xs text-gray-500"><input type="checkbox" checked /> Enabled</label>
-      </div>
-
-      <!-- rpi4-test -->
-      <div class="bg-white rounded-xl border p-4">
-        <div class="flex items-start justify-between gap-2 mb-3">
-          <div>
-            <a href="#" class="font-semibold text-gray-900 hover:underline">rpi4-test</a>
-            <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-600">Booked · bob</span>
-            <p class="text-xs text-gray-400 font-mono mt-0.5">d4e5f6a7-3333-4444-5555-ddeeff001122</p>
-          </div>
-          <button class="text-red-400 hover:text-red-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-        </div>
-        <div class="flex items-center gap-2 mb-3">
-          <input class="border rounded px-2 py-1 text-sm flex-1" value="Lab B / Bench 1" />
-          <button class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">Save</button>
-        </div>
-        <div class="flex flex-wrap gap-1 mb-2">
-          <div class="flex items-center gap-1">
-            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply (Bench PSU 30V/5A)</span>
-            <button class="text-gray-300 hover:text-red-500"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-          </div>
-          <button class="flex items-center gap-0.5 text-xs text-gray-400 hover:text-blue-600"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> tool</button>
-        </div>
-        <label class="flex items-center gap-2 text-xs text-gray-500"><input type="checkbox" checked /> Enabled</label>
-      </div>
-
-      <!-- ultra96-v2 -->
-      <div class="bg-white rounded-xl border p-4">
-        <div class="flex items-start justify-between gap-2 mb-3">
-          <div>
-            <a href="#" class="font-semibold text-gray-900 hover:underline">ultra96-v2</a>
-            <p class="text-xs text-gray-400 font-mono mt-0.5">e5f6a7b8-4444-5555-6666-eeff00112233</p>
-          </div>
-          <button class="text-red-400 hover:text-red-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-        </div>
-        <div class="flex items-center gap-2 mb-3">
-          <input class="border rounded px-2 py-1 text-sm flex-1" value="Lab A / Rack 1 / Slot 3" />
-          <button class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">Save</button>
-        </div>
-        <div class="flex flex-wrap gap-1 mb-2">
-          <div class="flex items-center gap-1">
-            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Logic Analyzer (Saleae Logic 8)</span>
-            <button class="text-gray-300 hover:text-red-500"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-          </div>
-          <div class="flex items-center gap-1">
-            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">Power Supply (Rigol DP711)</span>
-            <button class="text-gray-300 hover:text-red-500"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-          </div>
-          <button class="flex items-center gap-0.5 text-xs text-gray-400 hover:text-blue-600"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> tool</button>
-        </div>
-        <label class="flex items-center gap-2 text-xs text-gray-500"><input type="checkbox" checked /> Enabled</label>
-      </div>
-
-      <!-- arty-a7: disabled -->
-      <div class="bg-white rounded-xl border p-4 opacity-75">
-        <div class="flex items-start justify-between gap-2 mb-3">
-          <div>
-            <a href="#" class="font-semibold text-gray-900 hover:underline">arty-a7</a>
-            <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">Disabled</span>
-            <p class="text-xs text-gray-400 font-mono mt-0.5">f6a7b8c9-5555-6666-7777-ff0011223344</p>
-            <p class="text-xs text-amber-600 mt-0.5">⚠ USB JTAG cable broken — awaiting replacement</p>
-          </div>
-          <button class="text-red-400 hover:text-red-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-        </div>
-        <div class="flex items-center gap-2 mb-3">
-          <input class="border rounded px-2 py-1 text-sm flex-1" value="Lab B / Bench 2" />
-          <button class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">Save</button>
-        </div>
-        <div class="flex flex-wrap gap-1 mb-2">
-          <div class="flex items-center gap-1">
-            <span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">Debugger (Digilent JTAG-HS3)</span>
-            <button class="text-gray-300 hover:text-red-500"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-          </div>
-          <button class="flex items-center gap-0.5 text-xs text-gray-400 hover:text-blue-600"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> tool</button>
-        </div>
-        <label class="flex items-center gap-2 text-xs text-gray-500"><input type="checkbox" /> Enabled</label>
-      </div>
-
-    </div>
-  </div>
-</div>
-
 </div><!-- end pt-14 -->
 
-<script>
-function show(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    b.classList.remove('bg-blue-600','text-white');
-    b.classList.add('text-gray-600','hover:bg-gray-100');
-  });
-  document.getElementById('page-' + page).classList.add('active');
-  const btn = document.getElementById('tab-' + page);
-  btn.classList.add('bg-blue-600','text-white');
-  btn.classList.remove('text-gray-600','hover:bg-gray-100');
-}
-show('discovery');
-
-// Book modal
-function openBookModal(name) {
-  document.getElementById('modal-board-name').textContent = name;
-  document.getElementById('book-modal').classList.remove('hidden');
-}
-function closeBookModal() {
-  document.getElementById('book-modal').classList.add('hidden');
-}
-</script>
-
-<!-- ═══ BOOK MODAL (shared overlay) ════════════════════════════════════════ -->
-<div id="book-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+<!-- ════════════════════════════════════════════════════ MODAL: Book -->
+<div id="overlay-book" class="overlay" onclick="if(event.target===this)closeAllOverlays()">
   <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
     <div class="flex items-start justify-between mb-4">
       <div>
         <h2 class="text-lg font-bold text-gray-900">Book board</h2>
-        <p id="modal-board-name" class="text-sm text-gray-500 mt-0.5">zynq-dev-2</p>
+        <p class="text-sm text-gray-500 mt-0.5" id="book-board-name">stm32-nucleo-1</p>
       </div>
-      <button onclick="closeBookModal()" class="text-gray-400 hover:text-gray-600 mt-0.5">
-        <svg class="w-4.5 h-4.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      <button onclick="closeAllOverlays()" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
     </div>
-
     <div class="flex flex-col gap-4">
-      <label class="flex flex-col gap-1.5">
+      <label class="flex flex-col gap-1">
         <span class="text-xs font-medium text-gray-600">Duration (hours)</span>
-        <input type="number" min="1" max="24" value="4"
-          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        <span class="text-xs text-gray-400">Maximum 24 hours · extendable once after booking</span>
+        <input type="number" min="1" max="24" value="4" class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <span class="text-xs text-gray-400">Maximum 24 h · extendable once</span>
       </label>
-
-      <label class="flex flex-col gap-1.5">
-        <span class="text-xs font-medium text-gray-600">Comment <span class="text-gray-400 font-normal">(optional)</span></span>
-        <textarea rows="3" maxlength="500"
-          placeholder="What are you using this board for?"
-          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-gray-600">Comment <span class="font-normal text-gray-400">(optional)</span></span>
+        <textarea rows="3" maxlength="500" placeholder="What are you using this board for?" class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
       </label>
-
-      <div class="flex gap-2 justify-end">
-        <button onclick="closeBookModal()"
-          class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
-        <button class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-          Book for 4h
-        </button>
+      <div class="flex gap-2 justify-end mt-2">
+        <button onclick="closeAllOverlays()" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
+        <button class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Book for 4h</button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- ════════════════════════════════════════════════════ MODAL: Add Board -->
+<div id="overlay-add" class="overlay" onclick="if(event.target===this)closeAllOverlays()">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm max-h-[90vh] overflow-y-auto p-6">
+    <div class="flex items-start justify-between mb-4">
+      <h2 class="text-lg font-bold text-gray-900">Add Board</h2>
+      <button onclick="closeAllOverlays()" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="flex flex-col gap-3">
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Name</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="zynq-dev-3" /></label>
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Description</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Xilinx …" /></label>
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Location</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Lab A / Rack 2 / Slot 3" /></label>
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">SSH User</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" value="root" /></label>
+      <div class="flex gap-2">
+        <label class="flex flex-col gap-1 flex-1"><span class="text-xs font-medium text-gray-600">JTAG Port</span><input type="number" class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" value="3121" /></label>
+        <label class="flex flex-col gap-1 flex-1"><span class="text-xs font-medium text-gray-600">SSH Port</span><input type="number" class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" value="22" /></label>
+      </div>
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Features (JSON)</span><textarea class="border rounded-lg px-3 py-1.5 text-sm w-full font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" rows="2">{}</textarea></label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" checked /> Enabled</label>
+      <div class="flex gap-2 justify-end mt-2">
+        <button onclick="closeAllOverlays()" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
+        <button class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ MODAL: Settings -->
+<div id="overlay-settings" class="overlay" onclick="if(event.target===this)closeAllOverlays()">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+    <div class="flex items-start justify-between mb-4">
+      <h2 class="text-lg font-bold text-gray-900">Settings</h2>
+      <button onclick="closeAllOverlays()" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="flex flex-col gap-3">
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Server URL</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="http://192.168.1.100:8765" /></label>
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Username</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="alice" /></label>
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Token</span><input type="password" class="border rounded-lg px-3 py-1.5 text-sm w-full" value="changeme" /></label>
+      <div class="flex gap-2 justify-end mt-2">
+        <button onclick="closeAllOverlays()" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
+        <button class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save</button>
+      </div>
+      <button class="text-xs text-red-500 hover:underline text-center mt-1">Disconnect (return to login)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ MODAL: Edit Board -->
+<div id="overlay-edit" class="overlay" onclick="if(event.target===this)closeAllOverlays()">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+    <div class="flex items-start justify-between mb-4">
+      <h2 class="text-lg font-bold text-gray-900">Edit — <span id="edit-board-name">zynq-dev-1</span></h2>
+      <button onclick="closeAllOverlays()" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="flex flex-col gap-3">
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Name</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="zynq-dev-1" /></label>
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Description</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="Xilinx Zynq-7020 SoC dev board" /></label>
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Location</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="Lab A / Rack 1 / Slot 2" /></label>
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">SSH User</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="root" /></label>
+      <div class="flex gap-2">
+        <label class="flex flex-col gap-1 flex-1"><span class="text-xs font-medium text-gray-600">JTAG Port</span><input type="number" class="border rounded-lg px-3 py-1.5 text-sm w-full" value="3121" /></label>
+        <label class="flex flex-col gap-1 flex-1"><span class="text-xs font-medium text-gray-600">SSH Port</span><input type="number" class="border rounded-lg px-3 py-1.5 text-sm w-full" value="22" /></label>
+      </div>
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Features (JSON)</span><textarea class="border rounded-lg px-3 py-1.5 text-sm w-full font-mono" rows="2">{"jtag": true, "uart": "/dev/ttyUSB0"}</textarea></label>
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Notes</span><textarea class="border rounded-lg px-3 py-1.5 text-sm w-full" rows="2"></textarea></label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" checked /> Enabled</label>
+      <!-- Tools section -->
+      <div class="pt-1 border-t">
+        <p class="text-xs font-medium text-gray-600 mb-2">Attached Tools</p>
+        <div class="flex flex-wrap gap-1 mb-2">
+          <div class="flex items-center gap-1">
+            <span class="px-1.5 py-0.5 text-xs rounded bg-purple-100 text-purple-700 font-medium">logic_analyzer · Saleae Logic 8</span>
+            <button class="text-gray-300 hover:text-red-500 text-xs">✕</button>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-700 font-medium">power_supply · Rigol DP832</span>
+            <button class="text-gray-300 hover:text-red-500 text-xs">✕</button>
+          </div>
+        </div>
+        <button class="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Add tool
+        </button>
+      </div>
+      <div class="flex gap-2 justify-end mt-2">
+        <button onclick="closeAllOverlays()" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
+        <button class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const tabs = document.querySelectorAll('.tab-btn');
+function show(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('page-' + id);
+  if (el) el.classList.add('active');
+  tabs.forEach(b => {
+    b.classList.toggle('bg-blue-50', b.id === 'tab-' + id);
+    b.classList.toggle('text-blue-700', b.id === 'tab-' + id);
+    b.classList.toggle('text-gray-700', b.id !== 'tab-' + id);
+  });
+}
+function closeAllOverlays() {
+  document.querySelectorAll('.overlay').forEach(o => o.classList.remove('open'));
+}
+function openBookModal(name) {
+  document.getElementById('book-board-name').textContent = name;
+  document.getElementById('overlay-book').classList.add('open');
+}
+function openAddModal() {
+  document.getElementById('overlay-add').classList.add('open');
+}
+function openSettingsModal() {
+  document.getElementById('overlay-settings').classList.add('open');
+}
+function openEditModal(name) {
+  document.getElementById('edit-board-name').textContent = name;
+  document.getElementById('overlay-edit').classList.add('open');
+}
+show('inventory');
+</script>
 </body>
 </html>
