@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { Plus, RefreshCw, Settings } from 'lucide-react';
+import { MapPin, Plus, RefreshCw, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listBoards } from '../api/client';
-import BoardCard from '../components/BoardCard';
+import StatusBadge from '../components/StatusBadge';
+import ToolBadge from '../components/ToolBadge';
 import { useStatusSocket } from '../hooks/useStatusSocket';
 
 type Filter = 'all' | 'free' | 'booked' | 'offline';
@@ -25,7 +26,8 @@ export default function InventoryPage() {
       !search ||
       b.name.toLowerCase().includes(search.toLowerCase()) ||
       b.location.toLowerCase().includes(search.toLowerCase()) ||
-      b.description.toLowerCase().includes(search.toLowerCase());
+      b.description.toLowerCase().includes(search.toLowerCase()) ||
+      (b.active_booking?.username ?? '').toLowerCase().includes(search.toLowerCase());
 
     const matchFilter =
       filter === 'all' ||
@@ -71,8 +73,8 @@ export default function InventoryPage() {
         {/* Filters */}
         <div className="flex gap-2 mb-4 flex-wrap">
           <input
-            className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 min-w-[160px]"
-            placeholder="Search boards…"
+            className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 min-w-[160px] bg-white"
+            placeholder="Search boards or users…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -98,16 +100,76 @@ export default function InventoryPage() {
           </div>
         )}
 
-        {/* Grid */}
+        {/* Table */}
         {isLoading ? (
           <div className="text-center text-gray-400 py-20">Loading…</div>
         ) : filtered.length === 0 ? (
           <div className="text-center text-gray-400 py-20">No boards found</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filtered.map((b) => (
-              <BoardCard key={b.id} board={b} />
-            ))}
+          <div className="bg-white rounded-xl border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Board</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Booked by</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Location</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Tools</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.map((b) => (
+                  <tr
+                    key={b.id}
+                    className={`hover:bg-gray-50 transition-colors ${!b.enabled ? 'opacity-50' : ''}`}
+                  >
+                    <td className="px-4 py-3">
+                      <Link
+                        to={`/boards/${b.id}`}
+                        className="font-medium text-gray-900 hover:text-blue-600 hover:underline"
+                      >
+                        {b.name}
+                      </Link>
+                      {b.description && (
+                        <p className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{b.description}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge
+                        agentOnline={b.agent_online}
+                        activeBooking={!!b.active_booking}
+                        enabled={b.enabled}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      {b.active_booking ? (
+                        <span className="font-medium text-gray-800">{b.active_booking.username}</span>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {b.location ? (
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <MapPin size={11} className="flex-shrink-0" />
+                          {b.location}
+                        </div>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {b.tools.map((t) => (
+                          <ToolBadge key={t.id} tool={t} />
+                        ))}
+                        {b.tools.length === 0 && <span className="text-gray-300">—</span>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
