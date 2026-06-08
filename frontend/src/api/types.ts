@@ -36,6 +36,7 @@ export interface BookingInfo {
   extended: boolean;
   active: boolean;
   release_reason: string;
+  comment: string;
 }
 
 export interface BoardInfo {

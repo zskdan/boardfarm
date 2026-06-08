@@ -95,6 +95,7 @@ async def book_board(
         raise HTTPException(
             status_code=422, detail=f"duration_hours must be 1-{MAX_BOOKING_HOURS}"
         )
+    comment: str = str(body.get("comment", ""))[:500]
 
     async with _get_lock(board_id):
         board = await _load_board(board_id, db)
@@ -116,6 +117,7 @@ async def book_board(
             username=user,
             start_time=now,
             end_time=now + timedelta(hours=duration_hours),
+            comment=comment,
         )
         db.add(booking)
         try:

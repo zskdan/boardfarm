@@ -123,9 +123,11 @@ export async function deleteTool(toolId: string): Promise<void> {
 export async function bookBoard(
   boardId: string,
   durationHours: number,
+  comment = '',
 ): Promise<BookingInfo> {
   const { data } = await api().post<BookingInfo>(`/boards/${boardId}/book`, {
     duration_hours: durationHours,
+    comment,
   });
   return data;
 }

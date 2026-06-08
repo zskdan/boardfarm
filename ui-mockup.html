@@ -694,6 +694,55 @@ function show(page) {
   btn.classList.remove('text-gray-600','hover:bg-gray-100');
 }
 show('discovery');
+
+// Book modal
+function openBookModal(name) {
+  document.getElementById('modal-board-name').textContent = name;
+  document.getElementById('book-modal').classList.remove('hidden');
+}
+function closeBookModal() {
+  document.getElementById('book-modal').classList.add('hidden');
+}
 </script>
+
+<!-- ═══ BOOK MODAL (shared overlay) ════════════════════════════════════════ -->
+<div id="book-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h2 class="text-lg font-bold text-gray-900">Book board</h2>
+        <p id="modal-board-name" class="text-sm text-gray-500 mt-0.5">zynq-dev-2</p>
+      </div>
+      <button onclick="closeBookModal()" class="text-gray-400 hover:text-gray-600 mt-0.5">
+        <svg class="w-4.5 h-4.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="flex flex-col gap-4">
+      <label class="flex flex-col gap-1.5">
+        <span class="text-xs font-medium text-gray-600">Duration (hours)</span>
+        <input type="number" min="1" max="24" value="4"
+          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <span class="text-xs text-gray-400">Maximum 24 hours · extendable once after booking</span>
+      </label>
+
+      <label class="flex flex-col gap-1.5">
+        <span class="text-xs font-medium text-gray-600">Comment <span class="text-gray-400 font-normal">(optional)</span></span>
+        <textarea rows="3" maxlength="500"
+          placeholder="What are you using this board for?"
+          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+      </label>
+
+      <div class="flex gap-2 justify-end">
+        <button onclick="closeBookModal()"
+          class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
+        <button class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          Book for 4h
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

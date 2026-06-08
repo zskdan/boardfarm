@@ -83,6 +83,7 @@ class BookingOut(BaseModel):
     extended: bool
     active: bool
     release_reason: str
+    comment: str = ""
 
     @field_serializer("start_time")
     def _start_time(self, v: datetime) -> str:

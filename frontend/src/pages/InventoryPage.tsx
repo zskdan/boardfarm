@@ -1,81 +1,105 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MapPin, Plus, RefreshCw, Settings } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { MapPin, Plus, RefreshCw, Settings, X } from 'lucide-react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { bookBoard, listBoards } from '../api/client';
+import type { BoardInfo } from '../api/types';
 import StatusBadge from '../components/StatusBadge';
 import ToolBadge from '../components/ToolBadge';
 import { useStatusSocket } from '../hooks/useStatusSocket';
 
 type Filter = 'all' | 'free' | 'booked' | 'offline';
 
-const DURATIONS = [1, 2, 4, 8, 12, 24];
+// ── Book modal ────────────────────────────────────────────────────────────────
 
-function QuickBook({ boardId, boardName }: { boardId: string; boardName: string }) {
+function BookModal({ board, onClose }: { board: BoardInfo; onClose: () => void }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
   const [hours, setHours] = useState(4);
-  const ref = useRef<HTMLDivElement>(null);
+  const [comment, setComment] = useState('');
 
   const mut = useMutation({
-    mutationFn: () => bookBoard(boardId, hours),
-    onSuccess: (booking) => {
+    mutationFn: () => bookBoard(board.id, hours, comment),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['boards'] });
-      navigate(`/boards/${boardId}`);
+      onClose();
+      navigate(`/boards/${board.id}`);
     },
   });
 
-  if (!open) {
-    return (
-      <button
-        onClick={(e) => { e.preventDefault(); setOpen(true); }}
-        className="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap"
-      >
-        Book
-      </button>
-    );
-  }
-
   return (
-    <div ref={ref} className="flex items-center gap-1.5">
-      <select
-        className="border rounded px-1.5 py-1 text-xs"
-        value={hours}
-        onChange={(e) => setHours(Number(e.target.value))}
-        autoFocus
-      >
-        {DURATIONS.map((h) => (
-          <option key={h} value={h}>{h}h</option>
-        ))}
-      </select>
-      <button
-        onClick={() => mut.mutate()}
-        disabled={mut.isPending}
-        className="px-2.5 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
-      >
-        {mut.isPending ? '…' : 'Confirm'}
-      </button>
-      <button
-        onClick={() => setOpen(false)}
-        className="px-2 py-1 text-xs text-gray-400 hover:text-gray-600"
-      >
-        ✕
-      </button>
-      {mut.isError && (
-        <span className="text-xs text-red-500">
-          {(mut.error as Error).message}
-        </span>
-      )}
+    <div
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Book board</h2>
+            <p className="text-sm text-gray-500 mt-0.5">{board.name}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 mt-0.5">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-gray-600">Duration (hours)</span>
+            <input
+              type="number"
+              min={1}
+              max={24}
+              value={hours}
+              onChange={(e) => setHours(Math.min(24, Math.max(1, Number(e.target.value))))}
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-xs text-gray-400">Maximum 24 hours · extendable once after booking</span>
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-gray-600">Comment <span className="text-gray-400 font-normal">(optional)</span></span>
+            <textarea
+              rows={3}
+              maxLength={500}
+              placeholder="What are you using this board for?"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+          </label>
+
+          {mut.isError && (
+            <p className="text-xs text-red-600">{(mut.error as Error).message}</p>
+          )}
+
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => mut.mutate()}
+              disabled={mut.isPending}
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {mut.isPending ? 'Booking…' : `Book for ${hours}h`}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-type Filter2 = 'all' | 'free' | 'booked' | 'offline';
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
+  const [bookingBoard, setBookingBoard] = useState<BoardInfo | null>(null);
 
   useStatusSocket();
 
@@ -102,8 +126,7 @@ export default function InventoryPage() {
     return matchSearch && matchFilter;
   });
 
-  const isFree = (b: (typeof boards)[0]) =>
-    b.enabled && b.agent_online && !b.active_booking;
+  const isFree = (b: BoardInfo) => b.enabled && b.agent_online && !b.active_booking;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -211,7 +234,14 @@ export default function InventoryPage() {
                     </td>
                     <td className="px-4 py-3">
                       {b.active_booking ? (
-                        <span className="font-medium text-gray-800">{b.active_booking.username}</span>
+                        <div>
+                          <span className="font-medium text-gray-800">{b.active_booking.username}</span>
+                          {b.active_booking.comment && (
+                            <p className="text-xs text-gray-400 mt-0.5 max-w-[160px] truncate" title={b.active_booking.comment}>
+                              {b.active_booking.comment}
+                            </p>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-gray-300">—</span>
                       )}
@@ -234,9 +264,14 @@ export default function InventoryPage() {
                         {b.tools.length === 0 && <span className="text-gray-300">—</span>}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <td className="px-4 py-3 text-right">
                       {isFree(b) && (
-                        <QuickBook boardId={b.id} boardName={b.name} />
+                        <button
+                          onClick={() => setBookingBoard(b)}
+                          className="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap"
+                        >
+                          Book
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -253,6 +288,10 @@ export default function InventoryPage() {
           </Link>
         </div>
       </div>
+
+      {bookingBoard && (
+        <BookModal board={bookingBoard} onClose={() => setBookingBoard(null)} />
+      )}
     </div>
   );
 }

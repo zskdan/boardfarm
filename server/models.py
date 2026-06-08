@@ -84,5 +84,6 @@ class Booking(Base):
     extended: Mapped[bool] = mapped_column(Boolean, default=False)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     release_reason: Mapped[str] = mapped_column(String, default="")
+    comment: Mapped[str] = mapped_column(String, default="")
 
     board: Mapped["Board"] = relationship("Board", back_populates="bookings")
