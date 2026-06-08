@@ -1,5 +1,7 @@
 import asyncio
 import pytest
+
+pytest_plugins = ["tests.dataset"]
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
