@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     token: str = "changeme"
     db_path: str = "./boardfarm.db"
     admin_users: list[str] = []
+    # max_booking_hours: positive int = cap, None = unlimited, 0 = never expires
+    max_booking_hours: int | None = 24
 
     model_config = {"env_prefix": "BOARDFARM_"}
 
@@ -26,6 +28,8 @@ class Settings(BaseSettings):
                 object.__setattr__(self, "db_path", srv["db_path"])
             if "admin_users" in srv and os.getenv("BOARDFARM_ADMIN_USERS") is None:
                 object.__setattr__(self, "admin_users", srv["admin_users"])
+            if "max_booking_hours" in srv and os.getenv("BOARDFARM_MAX_BOOKING_HOURS") is None:
+                object.__setattr__(self, "max_booking_hours", srv["max_booking_hours"])
 
 
 settings = Settings()

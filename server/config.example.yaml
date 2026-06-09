@@ -4,3 +4,8 @@ server:
   db_path: "./boardfarm.db"
   admin_users:
     - "admin"
+  # Maximum booking duration. Options:
+  #   <positive integer>  – cap in hours (default: 24)
+  #   null                – unlimited (user chooses any duration)
+  #   0                   – bookings never expire (permanent until released)
+  max_booking_hours: 24

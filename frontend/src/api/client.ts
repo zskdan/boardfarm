@@ -9,10 +9,11 @@ import type {
   ToolInfo,
 } from './types';
 
-// Stored in localStorage: server URL, username, token
+// Stored in localStorage: server URL, username, token, booking limit
 const LS_SERVER_URL = 'bf_server_url';
 const LS_USERNAME = 'bf_username';
 const LS_TOKEN = 'bf_token';
+const LS_BOOKING_LIMIT = 'bf_booking_limit';
 
 export function getServerUrl(): string {
   return localStorage.getItem(LS_SERVER_URL) ?? 'http://localhost:8765';
@@ -31,6 +32,20 @@ export function getToken(): string {
 }
 export function setToken(t: string) {
   localStorage.setItem(LS_TOKEN, t);
+}
+
+// BookingLimit: a positive integer (hour cap), 'unlimited' (no cap), or 'never' (no expiry)
+export type BookingLimit = number | 'unlimited' | 'never';
+
+export function getBookingLimit(): BookingLimit {
+  const v = localStorage.getItem(LS_BOOKING_LIMIT);
+  if (v === 'unlimited') return 'unlimited';
+  if (v === 'never') return 'never';
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : 24;
+}
+export function setBookingLimit(v: BookingLimit) {
+  localStorage.setItem(LS_BOOKING_LIMIT, String(v));
 }
 
 function makeClient() {
@@ -54,7 +69,15 @@ function api() {
 
 export async function checkHealth(serverUrl: string): Promise<boolean> {
   try {
-    await axios.get(`${serverUrl}/health`, { timeout: 5000 });
+    const { data } = await axios.get(`${serverUrl}/health`, { timeout: 5000 });
+    // Sync the server's booking limit into localStorage as the default.
+    // The user can override it in Settings afterwards.
+    if (!localStorage.getItem(LS_BOOKING_LIMIT) && data.max_booking_hours !== undefined) {
+      const mh = data.max_booking_hours;
+      const limit: BookingLimit =
+        mh === null ? 'unlimited' : mh === 0 ? 'never' : (mh as number);
+      setBookingLimit(limit);
+    }
     return true;
   } catch {
     return false;

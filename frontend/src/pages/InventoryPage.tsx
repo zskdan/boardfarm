@@ -17,15 +17,18 @@ import {
   createBoard,
   deleteBoard,
   deleteTool,
+  getBookingLimit,
   getServerUrl,
   getToken,
   getUsername,
   listBoards,
+  setBookingLimit,
   setServerUrl,
   setToken,
   setUsername,
   updateBoard,
 } from '../api/client';
+import type { BookingLimit } from '../api/client';
 import type { BoardCreate, BoardInfo, ToolCreate } from '../api/types';
 import StatusBadge from '../components/StatusBadge';
 import ToolBadge from '../components/ToolBadge';
@@ -226,10 +229,21 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   const [user, setUser] = useState(getUsername());
   const [token, setTokenState] = useState(getToken());
 
+  const currentLimit = getBookingLimit();
+  const [limitKind, setLimitKind] = useState<'hours' | 'unlimited' | 'never'>(
+    currentLimit === 'unlimited' ? 'unlimited' : currentLimit === 'never' ? 'never' : 'hours',
+  );
+  const [limitHours, setLimitHours] = useState<number>(
+    typeof currentLimit === 'number' ? currentLimit : 24,
+  );
+
   function save() {
     setServerUrl(url);
     setUsername(user);
     setToken(token);
+    const limit: BookingLimit =
+      limitKind === 'hours' ? Math.max(1, limitHours) : limitKind;
+    setBookingLimit(limit);
     onClose();
   }
   function disconnect() {
@@ -250,6 +264,26 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
           <Field label="Token">
             <input type="password" className={inputCls} value={token} onChange={(e) => setTokenState(e.target.value)} />
           </Field>
+
+          <Field label="Booking limit">
+            <select className={inputCls} value={limitKind}
+              onChange={(e) => setLimitKind(e.target.value as typeof limitKind)}>
+              <option value="hours">Limited (hours)</option>
+              <option value="unlimited">Unlimited</option>
+              <option value="never">Never expires</option>
+            </select>
+            {limitKind === 'hours' && (
+              <input type="number" min={1} className={`${inputCls} mt-1`}
+                value={limitHours}
+                onChange={(e) => setLimitHours(Math.max(1, Number(e.target.value)))} />
+            )}
+            <span className="text-xs text-gray-400 mt-0.5">
+              {limitKind === 'hours' && `Max ${limitHours}h per booking`}
+              {limitKind === 'unlimited' && 'User chooses any duration'}
+              {limitKind === 'never' && 'Bookings do not auto-expire'}
+            </span>
+          </Field>
+
           <ModalActions onCancel={onClose} onConfirm={save} confirmLabel="Save" />
           <button onClick={disconnect} className="text-xs text-red-500 hover:underline text-center mt-1">
             Disconnect (return to login)
@@ -267,11 +301,15 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
 function BookModal({ board, onClose }: { board: BoardInfo; onClose: () => void }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [hours, setHours] = useState(4);
+  const limit = getBookingLimit();
+  const isNever = limit === 'never';
+  const maxHours = typeof limit === 'number' ? limit : undefined;
+  const defaultHours = maxHours ? Math.min(4, maxHours) : 4;
+  const [hours, setHours] = useState(defaultHours);
   const [comment, setComment] = useState('');
 
   const mut = useMutation({
-    mutationFn: () => bookBoard(board.id, hours, comment),
+    mutationFn: () => bookBoard(board.id, isNever ? 1 : hours, comment),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['boards'] }); onClose(); navigate(`/boards/${board.id}`); },
   });
 
@@ -279,11 +317,23 @@ function BookModal({ board, onClose }: { board: BoardInfo; onClose: () => void }
     <Overlay onClose={onClose}>
       <ModalCard title="Book board" subtitle={board.name} onClose={onClose}>
         <div className="flex flex-col gap-4">
-          <Field label="Duration (hours)">
-            <input type="number" min={1} max={24} className={inputCls} value={hours}
-              onChange={(e) => setHours(Math.min(24, Math.max(1, Number(e.target.value))))} />
-            <span className="text-xs text-gray-400 mt-1">Maximum 24 h · extendable once</span>
-          </Field>
+          {isNever ? (
+            <div className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-800">
+              This booking will not expire automatically — it stays active until you release it.
+            </div>
+          ) : (
+            <Field label="Duration (hours)">
+              <input type="number" min={1} {...(maxHours ? { max: maxHours } : {})}
+                className={inputCls} value={hours}
+                onChange={(e) => {
+                  const v = Math.max(1, Number(e.target.value));
+                  setHours(maxHours ? Math.min(maxHours, v) : v);
+                }} />
+              <span className="text-xs text-gray-400 mt-1">
+                {maxHours ? `Maximum ${maxHours} h · extendable once` : 'No limit · extendable once'}
+              </span>
+            </Field>
+          )}
           <Field label={<>Comment <span className="font-normal text-gray-400">(optional)</span></>}>
             <textarea rows={3} maxLength={500} className={`${inputCls} resize-none`}
               placeholder="What are you using this board for?"
@@ -291,7 +341,7 @@ function BookModal({ board, onClose }: { board: BoardInfo; onClose: () => void }
           </Field>
           {mut.error && <p className="text-xs text-red-600">{(mut.error as Error).message}</p>}
           <ModalActions onCancel={onClose} onConfirm={() => mut.mutate()}
-            confirmLabel={mut.isPending ? 'Booking…' : `Book for ${hours}h`}
+            confirmLabel={mut.isPending ? 'Booking…' : isNever ? 'Book (permanent)' : `Book for ${hours}h`}
             confirmDisabled={mut.isPending} />
         </div>
       </ModalCard>

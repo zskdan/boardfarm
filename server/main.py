@@ -49,4 +49,8 @@ async def ws_status(websocket: WebSocket):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "0.1.0"}
+    return {
+        "status": "ok",
+        "version": "0.1.0",
+        "max_booking_hours": settings.max_booking_hours,
+    }

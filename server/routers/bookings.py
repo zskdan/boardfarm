@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..auth import require_auth, require_auth_or_admin
+from ..config import settings
 from ..database import get_db
 from ..models import Board, Booking
 from ..schemas import BookingOut, CommandsOut
@@ -17,8 +18,9 @@ from ..ws import broadcast
 
 router = APIRouter(tags=["bookings"])
 
-MAX_BOOKING_HOURS = 24
 AGENT_TIMEOUT = 5.0
+# Sentinel used when max_booking_hours == 0 (never expires)
+_PERMANENT_HOURS = 24 * 365 * 10  # 10 years
 
 # Per-board asyncio locks to prevent double-booking race conditions
 _board_locks: dict[str, asyncio.Lock] = {}
@@ -90,12 +92,21 @@ async def book_board(
     db: AsyncSession = Depends(get_db),
     user: str = Depends(require_auth),
 ):
-    duration_hours = int(body.get("duration_hours", 1))
-    if duration_hours < 1 or duration_hours > MAX_BOOKING_HOURS:
-        raise HTTPException(
-            status_code=422, detail=f"duration_hours must be 1-{MAX_BOOKING_HOURS}"
-        )
     comment: str = str(body.get("comment", ""))[:500]
+    max_h = settings.max_booking_hours
+
+    if max_h == 0:
+        # Never-expires mode: ignore duration_hours, use far-future end_time
+        effective_hours = _PERMANENT_HOURS
+    else:
+        duration_hours = int(body.get("duration_hours", 1))
+        if duration_hours < 1:
+            raise HTTPException(status_code=422, detail="duration_hours must be >= 1")
+        if max_h is not None and duration_hours > max_h:
+            raise HTTPException(
+                status_code=422, detail=f"duration_hours must be <= {max_h}"
+            )
+        effective_hours = duration_hours
 
     async with _get_lock(board_id):
         board = await _load_board(board_id, db)
@@ -116,7 +127,7 @@ async def book_board(
             board_id=board_id,
             username=user,
             start_time=now,
-            end_time=now + timedelta(hours=duration_hours),
+            end_time=now + timedelta(hours=effective_hours),
             comment=comment,
         )
         db.add(booking)
@@ -201,10 +212,12 @@ async def extend_booking(
     if booking.extended:
         raise HTTPException(status_code=409, detail="Booking already extended once")
 
+    max_h = settings.max_booking_hours
     new_end = booking.end_time + timedelta(hours=hours)
-    max_end = booking.start_time + timedelta(hours=MAX_BOOKING_HOURS)
-    if new_end > max_end:
-        new_end = max_end
+    if max_h and max_h > 0:
+        max_end = booking.start_time + timedelta(hours=max_h)
+        if new_end > max_end:
+            new_end = max_end
 
     booking.end_time = new_end
     booking.extended = True

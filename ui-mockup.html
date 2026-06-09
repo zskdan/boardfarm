@@ -880,6 +880,17 @@ img{display:block;max-width:100%}
       <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Server URL</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="http://192.168.1.100:8765" /></label>
       <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Username</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="alice" /></label>
       <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Token</span><input type="password" class="border rounded-lg px-3 py-1.5 text-sm w-full" value="changeme" /></label>
+      <!-- Booking limit -->
+      <div class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-gray-600">Booking limit</span>
+        <select id="limit-kind" class="border rounded-lg px-3 py-1.5 text-sm w-full" onchange="updateLimitUI()">
+          <option value="hours" selected>Limited (hours)</option>
+          <option value="unlimited">Unlimited</option>
+          <option value="never">Never expires</option>
+        </select>
+        <input id="limit-hours" type="number" min="1" value="24" class="border rounded-lg px-3 py-1.5 text-sm w-full mt-1" />
+        <span id="limit-hint" class="text-xs text-gray-400 mt-0.5">Max 24 h per booking</span>
+      </div>
       <div class="flex gap-2 justify-end mt-2">
         <button onclick="closeAllOverlays()" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
         <button class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save</button>
@@ -938,6 +949,15 @@ img{display:block;max-width:100%}
 
 <script>
 const tabs = document.querySelectorAll('.tab-btn');
+function updateLimitUI() {
+  const kind = document.getElementById('limit-kind').value;
+  const hoursInput = document.getElementById('limit-hours');
+  const hint = document.getElementById('limit-hint');
+  hoursInput.style.display = kind === 'hours' ? '' : 'none';
+  if (kind === 'hours') hint.textContent = 'Max ' + hoursInput.value + ' h per booking';
+  if (kind === 'unlimited') hint.textContent = 'User chooses any duration';
+  if (kind === 'never') hint.textContent = 'Bookings do not auto-expire';
+}
 function show(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + id);
