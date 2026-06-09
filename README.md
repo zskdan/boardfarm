@@ -36,7 +36,7 @@ A development board booking system for shared hardware labs.
 
 ### Docker Compose (recommended)
 
-The fastest way to run the server and frontend together:
+The fastest way to run the server and frontend together — no Node.js or Python required on the host:
 
 **1. Configure the server**
 
@@ -46,37 +46,28 @@ cp server/config.example.yaml server/config.yaml
 #   token: "your-strong-secret"
 ```
 
-**2. Build the frontend**
-
-```bash
-cd frontend
-npm install
-npm run build   # produces frontend/dist/
-cd ..
-```
-
-**3. Start the stack**
+**2. Start the stack**
 
 ```bash
 docker compose up --build
 ```
 
-This starts two containers:
+Docker builds both images from source and starts two containers:
 
-| Container | Port | Description |
-|-----------|------|-------------|
-| `server`  | 8765 | FastAPI booking API |
-| `frontend`| 80   | Nginx serving the React SPA + proxying `/api/` to the server |
+| Container  | Port | Description |
+|------------|------|-------------|
+| `server`   | 8765 | FastAPI booking API |
+| `frontend` | 80   | Nginx serving the React SPA (built inside Docker) |
 
 The SQLite database is stored in a named volume (`boardfarm_data`) so it persists across restarts.
 
-**4. Open the UI**
+**3. Open the UI**
 
 ```
 http://localhost
 ```
 
-Enter `http://localhost:8765` as the server URL (or `http://localhost/api` if going through the Nginx proxy), the shared token from your config, and you're in.
+Enter `http://localhost:8765` as the server URL, the token from your config, and you're in.
 
 **Useful commands**
 
@@ -175,14 +166,13 @@ cp config.example.yaml config.yaml
 uvicorn agent.main:app --port 8766
 ```
 
-#### 4. Frontend
+#### 4. Frontend (dev server)
 
 ```bash
 cd frontend
 npm install
 npm run dev
-# Open http://localhost:5173
-# Enter server URL, username, and token
+# Open http://localhost:5173 and enter the server URL and token
 ```
 
 ---
