@@ -55,7 +55,7 @@ export interface SetupCreate {
   board_ids: string[];
 }
 
-export interface BoardInfo {
+export interface DeviceInfo {
   id: string;
   device_id: string;
   serial_number: string;
@@ -73,13 +73,17 @@ export interface BoardInfo {
   ssh_port: number;
   power_script: string;
   power_args: Record<string, unknown>;
+  usb_device: string;
   enabled: boolean;
   agent_online: boolean;
   active_booking: BookingInfo | null;
   current_notes: string;
 }
 
-export interface BoardCreate {
+/** Backward-compat alias */
+export type BoardInfo = DeviceInfo;
+
+export interface DeviceCreate {
   name: string;
   serial_number: string;
   revision: string;
@@ -94,9 +98,13 @@ export interface BoardCreate {
   ssh_port: number;
   power_script: string;
   power_args: Record<string, unknown>;
+  usb_device?: string;
   enabled: boolean;
   current_notes: string;
 }
+
+/** Backward-compat alias */
+export type BoardCreate = DeviceCreate;
 
 export interface CommandsInfo {
   jtag_connect: string;

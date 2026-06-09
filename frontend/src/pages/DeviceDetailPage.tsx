@@ -1,16 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, Copy, MapPin, Wifi, WifiOff } from 'lucide-react';
+import { ArrowLeft, Check, Copy, MapPin, Usb, Wifi, WifiOff } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  bookBoard,
+  bookDevice,
   extendBooking,
-  getBoard,
   getCommands,
+  getDevice,
   getUsername,
   releaseBooking,
 } from '../api/client';
-import BoardNotes from '../components/BoardNotes';
+import DeviceNotes from '../components/DeviceNotes';
 import BookingTimer from '../components/BookingTimer';
 import ConnectionCommands from '../components/ConnectionCommands';
 import StatusBadge from '../components/StatusBadge';
@@ -43,20 +43,20 @@ function ShellLine({ label, cmd }: { label: string; cmd: string }) {
   );
 }
 
-export default function BoardDetailPage() {
+export default function DeviceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const [duration, setDuration] = useState(4);
   const me = getUsername();
 
-  const { data: board, isLoading } = useQuery({
-    queryKey: ['board', id],
-    queryFn: () => getBoard(id!),
+  const { data: device, isLoading } = useQuery({
+    queryKey: ['device', id],
+    queryFn: () => getDevice(id!),
     refetchInterval: 15_000,
   });
 
   const myBooking =
-    board?.active_booking?.username === me ? board.active_booking : null;
+    device?.active_booking?.username === me ? device.active_booking : null;
 
   const { data: commands } = useQuery({
     queryKey: ['commands', myBooking?.id],
@@ -65,12 +65,12 @@ export default function BoardDetailPage() {
   });
 
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ['board', id] });
-    qc.invalidateQueries({ queryKey: ['boards'] });
+    qc.invalidateQueries({ queryKey: ['device', id] });
+    qc.invalidateQueries({ queryKey: ['devices'] });
   };
 
   const bookMut = useMutation({
-    mutationFn: () => bookBoard(id!, duration, '', me),
+    mutationFn: () => bookDevice(id!, duration, '', me),
     onSuccess: invalidate,
   });
 
@@ -87,7 +87,7 @@ export default function BoardDetailPage() {
     onSuccess: invalidate,
   });
 
-  if (isLoading || !board) {
+  if (isLoading || !device) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">
         Loading…
@@ -96,93 +96,98 @@ export default function BoardDetailPage() {
   }
 
   const otherBooking =
-    board.active_booking && board.active_booking.username !== me
-      ? board.active_booking
+    device.active_booking && device.active_booking.username !== me
+      ? device.active_booking
       : null;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-6">
         <Link
-          to="/boards"
+          to="/devices"
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-4"
         >
           <ArrowLeft size={14} /> Back to inventory
         </Link>
 
-        {/* Board header */}
+        {/* Device header */}
         <div className="bg-white rounded-xl border p-5 mb-4">
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold text-gray-900">{board.name}</h1>
-              {board.device_id && (
+              <h1 className="text-xl font-bold text-gray-900">{device.name}</h1>
+              {device.device_id && (
                 <span className="font-mono text-sm bg-gray-100 text-gray-600 px-2 py-0.5 rounded border">
-                  {board.device_id}
+                  {device.device_id}
                 </span>
               )}
             </div>
             <StatusBadge
-              agentOnline={board.agent_online}
-              activeBooking={!!board.active_booking}
-              enabled={board.enabled}
+              agentOnline={device.agent_online}
+              activeBooking={!!device.active_booking}
+              enabled={device.enabled}
             />
           </div>
 
-          {board.description && (
-            <p className="text-sm text-gray-600 mb-3">{board.description}</p>
+          {device.description && (
+            <p className="text-sm text-gray-600 mb-3">{device.description}</p>
           )}
 
           <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-            {board.location && (
+            {device.location && (
               <div className="flex items-center gap-1">
                 <MapPin size={13} />
-                {board.location}
+                {device.location}
               </div>
             )}
-            {board.device_ip && (
+            {device.device_ip && (
               <div className="flex items-center gap-1">
                 <span className="text-xs font-semibold text-gray-400 uppercase">IP</span>
-                <span className="font-mono">{board.device_ip}</span>
+                <span className="font-mono">{device.device_ip}</span>
               </div>
             )}
-            {board.host_ip && (
+            {device.host_ip && (
               <div className="flex items-center gap-1">
-                {board.agent_online ? (
+                {device.agent_online ? (
                   <Wifi size={13} className="text-green-500" />
                 ) : (
                   <WifiOff size={13} className="text-gray-400" />
                 )}
-                <span className="text-xs">Agent: {board.host_ip}</span>
+                <span className="text-xs">Agent: {device.host_ip}</span>
               </div>
             )}
-            {!board.device_ip && !board.host_ip && (
+            {device.usb_device && (
+              <div className="flex items-center gap-1">
+                <Usb size={13} className="text-gray-400" />
+                <span className="font-mono text-xs">{device.usb_device}</span>
+              </div>
+            )}
+            {!device.device_ip && !device.host_ip && (
               <div className="flex items-center gap-1 text-gray-400">
                 <WifiOff size={13} />
                 No IP configured
               </div>
             )}
-            {board.serial_number && (
+            {device.serial_number && (
               <div className="flex items-center gap-1">
                 <span className="text-xs font-semibold text-gray-400 uppercase">S/N</span>
-                <span className="font-mono">{board.serial_number}</span>
+                <span className="font-mono">{device.serial_number}</span>
               </div>
             )}
-            {board.revision && (
+            {device.revision && (
               <div className="flex items-center gap-1">
                 <span className="text-xs font-semibold text-gray-400 uppercase">Rev</span>
-                <span>{board.revision}</span>
+                <span>{device.revision}</span>
               </div>
             )}
           </div>
-
         </div>
 
         {/* Features */}
-        {Object.keys(board.features).length > 0 && (
+        {Object.keys(device.features).length > 0 && (
           <div className="bg-white rounded-xl border p-5 mb-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-2">Features</h2>
             <div className="flex flex-wrap gap-2">
-              {Object.entries(board.features).map(([k, v]) => (
+              {Object.entries(device.features).map(([k, v]) => (
                 <span
                   key={k}
                   className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700"
@@ -195,32 +200,32 @@ export default function BoardDetailPage() {
         )}
 
         {/* Connectivity */}
-        {(board.ssh_port > 0 || board.uart_tcp_port > 0 || board.jtag_port > 0 || board.power_script) && (
+        {(device.ssh_port > 0 || device.uart_tcp_port > 0 || device.jtag_port > 0 || device.power_script) && (
           <div className="bg-white rounded-xl border p-5 mb-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Connectivity</h2>
             <div className="flex flex-col gap-2">
-              {board.ssh_port > 0 && (
+              {device.ssh_port > 0 && (
                 <ShellLine
                   label="SSH"
-                  cmd={`ssh ${board.ssh_user}@${board.device_ip || board.host_ip || 'DEVICE_IP'} -p ${board.ssh_port}`}
+                  cmd={`ssh ${device.ssh_user}@${device.device_ip || device.host_ip || 'DEVICE_IP'} -p ${device.ssh_port}`}
                 />
               )}
-              {board.uart_tcp_port > 0 && (
+              {device.uart_tcp_port > 0 && (
                 <ShellLine
                   label="UART"
-                  cmd={`telnet ${board.host_ip ?? 'AGENT_IP'} ${board.uart_tcp_port}`}
+                  cmd={`telnet ${device.host_ip ?? 'AGENT_IP'} ${device.uart_tcp_port}`}
                 />
               )}
-              {board.jtag_port > 0 && (
+              {device.jtag_port > 0 && (
                 <ShellLine
                   label="JTAG"
-                  cmd={`connect_hw_server -url tcp:${board.host_ip ?? 'AGENT_IP'}:${board.jtag_port}`}
+                  cmd={`connect_hw_server -url tcp:${device.host_ip ?? 'AGENT_IP'}:${device.jtag_port}`}
                 />
               )}
-              {board.power_script && (
+              {device.power_script && (
                 <ShellLine
                   label="Power"
-                  cmd={`python3 ${board.power_script} --action on`}
+                  cmd={`python3 ${device.power_script} --action on`}
                 />
               )}
             </div>
@@ -230,7 +235,7 @@ export default function BoardDetailPage() {
         {/* Notes */}
         <div className="bg-white rounded-xl border p-5 mb-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-2">Notes</h2>
-          <BoardNotes boardId={board.id} notes={board.current_notes ?? ''} />
+          <DeviceNotes deviceId={device.id} notes={device.current_notes ?? ''} />
         </div>
 
         {/* Booking section */}
@@ -257,7 +262,7 @@ export default function BoardDetailPage() {
               Booked by <strong>{otherBooking.username}</strong> until{' '}
               {new Date(otherBooking.end_time).toLocaleString()}
             </div>
-          ) : board.enabled ? (
+          ) : device.enabled ? (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <label className="text-xs text-gray-600">Duration</label>

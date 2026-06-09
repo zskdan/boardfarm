@@ -7,7 +7,7 @@ import {
   createSetup,
   deleteSetup,
   getDefaultUser,
-  listBoards,
+  listDevices,
   listSetups,
   releaseSetupBooking,
   setDefaultUser,
@@ -66,7 +66,7 @@ function AddSetupModal({ onClose }: { onClose: () => void }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
 
-  const { data: boards = [] } = useQuery({ queryKey: ['boards'], queryFn: listBoards });
+  const { data: boards = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices });
 
   const mut = useMutation({
     mutationFn: () =>
@@ -225,7 +225,7 @@ function BookSetupModal({ setup, onClose }: { setup: SetupInfo; onClose: () => v
     onSuccess: () => {
       setDefaultUser(username);
       qc.invalidateQueries({ queryKey: ['setups'] });
-      qc.invalidateQueries({ queryKey: ['boards'] });
+      qc.invalidateQueries({ queryKey: ['devices'] });
       onClose();
     },
   });
@@ -294,7 +294,7 @@ function SetupCard({ setup }: { setup: SetupInfo }) {
     mutationFn: () => releaseSetupBooking(setup.id, me),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['setups'] });
-      qc.invalidateQueries({ queryKey: ['boards'] });
+      qc.invalidateQueries({ queryKey: ['devices'] });
     },
   });
 
@@ -391,7 +391,7 @@ export default function SetupsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-6">
-        <Link to="/boards"
+        <Link to="/devices"
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-4">
           <ArrowLeft size={14} /> Back to inventory
         </Link>

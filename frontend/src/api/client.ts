@@ -2,10 +2,10 @@ import axios from 'axios';
 import type {
   ActivityEntry,
   AgentInfo,
-  BoardCreate,
-  BoardInfo,
   BookingInfo,
   CommandsInfo,
+  DeviceCreate,
+  DeviceInfo,
   SetupCreate,
   SetupInfo,
 } from './types';
@@ -34,7 +34,6 @@ export function getDefaultUser(): string {
 export function setDefaultUser(u: string) {
   localStorage.setItem(LS_DEFAULT_USER, u);
 }
-// Backward-compat aliases used by other pages
 export const getUsername = getDefaultUser;
 export const setUsername = setDefaultUser;
 
@@ -86,12 +85,10 @@ function apiAs(user: string) { return makeClient(user); }
 export async function checkHealth(serverUrl: string): Promise<boolean> {
   try {
     const { data } = await axios.get(`${serverUrl}/health`, { timeout: 5000 });
-    // Sync server-configured booking limit (only if user hasn't overridden it yet)
     if (data.max_booking_hours !== undefined && !localStorage.getItem(LS_BOOKING_LIMIT)) {
       const mh = data.max_booking_hours;
       setBookingLimit(mh === null ? 'unlimited' : mh === 0 ? 'never' : (mh as number));
     }
-    // Sync server-configured default user (only if none stored yet)
     if (data.default_user && !getDefaultUser()) {
       setDefaultUser(data.default_user);
     }
@@ -108,55 +105,65 @@ export async function listAgents(): Promise<AgentInfo[]> {
   return data;
 }
 
-// ── Boards (Inventory) ────────────────────────────────────────────────────────
+// ── Devices (Inventory) ───────────────────────────────────────────────────────
 
-export async function listBoards(): Promise<BoardInfo[]> {
-  const { data } = await api().get<BoardInfo[]>('/boards');
+export async function listDevices(): Promise<DeviceInfo[]> {
+  const { data } = await api().get<DeviceInfo[]>('/devices');
   return data;
 }
 
-export async function getBoard(id: string): Promise<BoardInfo> {
-  const { data } = await api().get<BoardInfo>(`/boards/${id}`);
+export async function getDevice(id: string): Promise<DeviceInfo> {
+  const { data } = await api().get<DeviceInfo>(`/devices/${id}`);
   return data;
 }
 
-export async function createBoard(body: BoardCreate, username: string): Promise<BoardInfo> {
-  const { data } = await apiAs(username).post<BoardInfo>('/boards', body);
+export async function createDevice(body: DeviceCreate, username: string): Promise<DeviceInfo> {
+  const { data } = await apiAs(username).post<DeviceInfo>('/devices', body);
   return data;
 }
 
-export async function updateBoard(
+export async function updateDevice(
   id: string,
-  body: Partial<BoardCreate>,
+  body: Partial<DeviceCreate>,
   username: string,
-): Promise<BoardInfo> {
-  const { data } = await apiAs(username).patch<BoardInfo>(`/boards/${id}`, body);
+): Promise<DeviceInfo> {
+  const { data } = await apiAs(username).patch<DeviceInfo>(`/devices/${id}`, body);
   return data;
 }
 
-export async function deleteBoard(id: string): Promise<void> {
-  await api().delete(`/boards/${id}`);
+export async function deleteDevice(id: string): Promise<void> {
+  await api().delete(`/devices/${id}`);
 }
 
-export async function updateBoardNotes(id: string, notes: string): Promise<BoardInfo> {
-  const { data } = await api().patch<BoardInfo>(`/boards/${id}`, { current_notes: notes });
+export async function updateDeviceNotes(id: string, notes: string): Promise<DeviceInfo> {
+  const { data } = await api().patch<DeviceInfo>(`/devices/${id}`, { current_notes: notes });
   return data;
 }
+
+// Backward-compat aliases (used by BookingPage, AgentStatus, etc.)
+export const listBoards = listDevices;
+export const getBoard = getDevice;
+export const createBoard = createDevice;
+export const updateBoard = updateDevice;
+export const deleteBoard = deleteDevice;
+export const updateBoardNotes = updateDeviceNotes;
 
 // ── Bookings ──────────────────────────────────────────────────────────────────
 
-export async function bookBoard(
-  boardId: string,
+export async function bookDevice(
+  deviceId: string,
   durationHours: number,
   comment: string,
   username: string,
 ): Promise<BookingInfo> {
-  const { data } = await apiAs(username).post<BookingInfo>(`/boards/${boardId}/book`, {
+  const { data } = await apiAs(username).post<BookingInfo>(`/boards/${deviceId}/book`, {
     duration_hours: durationHours,
     comment,
   });
   return data;
 }
+
+export const bookBoard = bookDevice;
 
 export async function releaseBooking(bookingId: string, username: string): Promise<BookingInfo> {
   const { data } = await apiAs(username).delete<BookingInfo>(`/bookings/${bookingId}`);

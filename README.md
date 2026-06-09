@@ -1,13 +1,13 @@
 # Boardfarm
 
-A development board booking and inventory system for shared hardware labs. Teams register physical boards (FPGAs, microcontrollers, SoCs) in a central server, book them by username, and get ready-to-run shell commands for SSH, UART, JTAG, and power control.
+A development device booking and inventory system for shared hardware labs. Teams register physical devices (FPGAs, microcontrollers, SoCs, instruments) in a central server, book them by username, and get ready-to-run shell commands for SSH, UART, JTAG, and power control.
 
 ## Architecture
 
 ```
 ┌─────────────┐     REST/HTTP      ┌───────────────────────────┐
 │  Frontend   │ ─────────────────> │  Server (central)         │
-│ (React SPA) │                    │  - Board inventory        │
+│ (React SPA) │                    │  - Device inventory       │
 └─────────────┘                    │  - Booking history        │
                                    │  - Setup groups           │
                                    │  - Agent registry         │
@@ -15,7 +15,7 @@ A development board booking and inventory system for shared hardware labs. Teams
                                                │ REST/HTTP
                                     ┌──────────┴──────────┐
                                     │  Agent(s)           │
-                                    │  (per board-host PC)│
+                                    │  (per device-host)  │
                                     │  - hw_server JTAG   │
                                     │  - socat UART proxy │
                                     │  - Power control    │
@@ -27,7 +27,7 @@ A development board booking and inventory system for shared hardware labs. Teams
 | Directory | Description |
 |-----------|-------------|
 | `server/` | Central inventory & booking API (FastAPI, SQLite) |
-| `agent/`  | Hardware agent per board-host PC (FastAPI + mDNS) |
+| `agent/`  | Hardware agent per device-host PC (FastAPI + mDNS) |
 | `power/`  | Power control scripts (USB relay, GPIO, dummy) |
 | `frontend/` | React + Vite SPA |
 
@@ -78,11 +78,11 @@ server:
   token: ""              # empty = no token required (fine for internal labs)
   max_booking_hours: 24  # N = cap in hours, null = unlimited, 0 = never expires
   default_user: null     # username pre-filled in every form (null = none)
-  admin_users:           # can release any booking and delete any board
+  admin_users:           # can release any booking and delete any device
     - "admin"
 ```
 
-#### Agent (on the host PC wired to boards)
+#### Agent (on the host PC wired to devices)
 
 The agent needs direct access to USB/serial devices — run it natively, not in Docker.
 
@@ -90,7 +90,7 @@ The agent needs direct access to USB/serial devices — run it natively, not in 
 cd agent
 pip install -r requirements.txt
 cp config.example.yaml config.yaml
-# Edit: server_url, server_token, host_ip, board IDs
+# Edit: server_url, server_token, host_ip, device IDs
 uvicorn agent.main:app --port 8766
 ```
 
@@ -116,7 +116,7 @@ agent:
   host_ip: "192.168.1.5"   # this machine's LAN IP
 
 boards:
-  - id: "paste-board-uuid-here"
+  - id: "paste-device-uuid-here"
     uart_device: "/dev/ttyUSB0"
     uart_baud: 115200
     jtag_port: 3121
@@ -150,7 +150,7 @@ Custom controllers: subclass `power.base.PowerController`.
 
 | Device detail (shell commands) | Booking history |
 |-------------------------------|----------------|
-| ![Board detail with SSH/UART/JTAG shell commands](screenshots/board-detail.png) | ![History page with audit log](screenshots/history.png) |
+| ![Device detail with SSH/UART/JTAG shell commands](screenshots/board-detail.png) | ![History page with audit log](screenshots/history.png) |
 
 | Settings | Add Setup (device picker) |
 |----------|--------------------------|
@@ -166,7 +166,7 @@ Custom controllers: subclass `power.base.PowerController`.
 
 > **No login required.** You supply your username when performing an action (book, release, add). A default username is stored locally in the browser and pre-filled in every form.
 
-### Inventory (`/boards`)
+### Inventory (`/devices`)
 
 Lists every registered device with live status:
 
@@ -174,20 +174,23 @@ Lists every registered device with live status:
 - **Device ID** — server-assigned unique identifier (e.g. `DEV-A3F9C1`), shown as a monospace badge next to the device name
 - **Booked by** — current holder's username and booking comment
 - **Location** — physical rack/bench location
-- **Tools** — colour-coded badges for attached hardware (logic analyzer, power supply, …)
+- **Features** — colour-coded badges for device capabilities (e.g. `jtag: true`, `fpga: zynq-7020`)
 - **Actions** — Book · Release · Modify
 
-The **Filter** box searches by device name, device ID, location, username, or tool type.
+The **Filter** box searches by device name, device ID, location, username, or feature key.
 
-**Add Device** form has two optional sections, both collapsed by default:
-- **Has Ethernet / SSH** — reveal Device IP, SSH User, SSH Port
+**Add Device** form has three optional sections, all collapsed by default:
+
+- **Ethernet** — reveal SSH connectivity:
+  - **SSH** *(sub-checkbox, on by default)* — reveal Device IP, SSH User, SSH Port
+- **USB** — reveal USB device path (e.g. `/dev/ttyUSB0`)
 - **Has hardware agent** — reveal Agent Host IP, JTAG Port, UART TCP Port, Power Script, Power Args
 
-### Device detail (`/boards/:id`)
+### Device detail (`/devices/:id`)
 
 Each device has a detail page with:
 
-- **Hardware info** — device ID, serial number, PCB revision, location, agent status
+- **Hardware info** — device ID, serial number, PCB revision, location, IP addresses, USB device path, agent status
 - **Features** — arbitrary key/value capability map (e.g. `jtag: true`)
 - **Connectivity** — ready-to-run shell commands, each in its own terminal block with a **Copy** button:
 
@@ -205,7 +208,7 @@ When you have an active booking, a **Connection Commands** section appears at th
 
 ### Setups (`/setups`)
 
-Groups of devices that are always used together (e.g. "FPGA + test host + oscilloscope").
+Groups of devices that are always used together (e.g. "FPGA + logic analyzer + test host").
 
 - **Book atomically** — all devices in a setup are reserved in a single transaction. If any device is already taken the whole booking fails, with a message listing which devices are blocked and by whom.
 - **Release atomically** — releases all devices in the setup at once.
@@ -214,9 +217,9 @@ Groups of devices that are always used together (e.g. "FPGA + test host + oscill
 
 ### Booking history (`/history`)
 
-Full audit log of all actions: bookings, releases, extensions, device creates/updates/deletes, tool changes. Each entry records the device name and its auto-assigned device ID, so records stay meaningful after renames.
+Full audit log of all actions: bookings, releases, extensions, device creates/updates/deletes. Each entry records the device name and its auto-assigned device ID, so records stay meaningful after renames.
 
-Filter by user or action category (Bookings / Device changes / Tools).
+Filter by user or action category (Bookings / Device changes).
 
 ---
 
@@ -231,30 +234,21 @@ Filter by user or action category (Bookings / Device changes / Tools).
 
 ### Server endpoints (`http://server:8765`)
 
-**Boards**
+**Devices**
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/boards` | List all boards with live status |
-| GET | `/boards/{id}` | Board detail + tools + active booking |
-| POST | `/boards` | Add board (`device_id` is auto-assigned by server) |
-| PATCH | `/boards/{id}` | Update board metadata |
-| DELETE | `/boards/{id}` | Remove board (fails if actively booked) |
-
-**Tools**
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/boards/{id}/tools` | List tools attached to a board |
-| POST | `/boards/{id}/tools` | Add tool |
-| PATCH | `/tools/{id}` | Update tool |
-| DELETE | `/tools/{id}` | Remove tool |
+| GET | `/devices` | List all devices with live status |
+| GET | `/devices/{id}` | Device detail + active booking |
+| POST | `/devices` | Add device (`device_id` is auto-assigned by server) |
+| PATCH | `/devices/{id}` | Update device metadata |
+| DELETE | `/devices/{id}` | Remove device (fails if actively booked) |
 
 **Bookings**
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/boards/{id}/book` | Book a single board `{duration_hours, comment}` |
+| POST | `/boards/{id}/book` | Book a single device `{duration_hours, comment}` |
 | DELETE | `/bookings/{id}` | Release booking (admin can release any) |
 | PATCH | `/bookings/{id}/extend` | Extend by N hours (once per booking) |
 | GET | `/bookings/{id}/commands` | SSH / UART / JTAG / power command strings |
@@ -286,7 +280,7 @@ Filter by user or action category (Bookings / Device changes / Tools).
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Liveness + version |
-| GET | `/boards` | Boards managed by this agent |
+| GET | `/boards` | Devices managed by this agent |
 | POST | `/boards/{id}/services/start` | Start hw_server + UART proxy |
 | POST | `/boards/{id}/services/stop` | Stop services |
 | POST | `/boards/{id}/power` | Power action `{action: on\|off\|reset}` |
@@ -304,8 +298,10 @@ Filter by user or action category (Bookings / Device changes / Tools).
 | `revision` | string | PCB revision (optional) |
 | `description` | string | Free text |
 | `location` | string | Physical location (e.g. `Lab A / Rack 3 / Slot 1`) |
-| `host_ip` | string | IP of the agent's host PC |
-| `ssh_user` / `ssh_port` | string / int | SSH access |
+| `device_ip` | string | Device's own IP address (SSH target) |
+| `host_ip` | string | IP of the agent's host PC (JTAG / UART / power) |
+| `ssh_user` / `ssh_port` | string / int | SSH access (shown when Ethernet + SSH enabled) |
+| `usb_device` | string | USB device path on agent host (e.g. `/dev/ttyUSB0`) |
 | `uart_tcp_port` | int | TCP port for UART proxy |
 | `jtag_port` | int | hw_server port |
 | `power_script` | string | Path to power control script |

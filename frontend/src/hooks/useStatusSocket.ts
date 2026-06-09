@@ -21,9 +21,9 @@ export function useStatusSocket() {
             const data = JSON.parse(event.data);
             if (data.type === 'booking_changed' || data.type === 'booking_expired') {
               // Invalidate board queries so UI refreshes immediately
-              qc.invalidateQueries({ queryKey: ['boards'] });
+              qc.invalidateQueries({ queryKey: ['devices'] });
               if (data.board_id) {
-                qc.invalidateQueries({ queryKey: ['board', data.board_id] });
+                qc.invalidateQueries({ queryKey: ['device', data.board_id] });
               }
             }
           } catch { /* ignore parse errors */ }

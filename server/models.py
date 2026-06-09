@@ -76,6 +76,7 @@ class Board(Base):
     ssh_port: Mapped[int] = mapped_column(Integer, default=22)
     power_script: Mapped[str] = mapped_column(String, default="")
     power_args: Mapped[str] = mapped_column(String, default="{}")  # JSON
+    usb_device: Mapped[str] = mapped_column(String, default="")
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
     agent: Mapped["Agent | None"] = relationship("Agent", back_populates="boards")

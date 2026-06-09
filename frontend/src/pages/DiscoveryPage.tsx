@@ -25,7 +25,7 @@ export default function DiscoveryPage() {
       setUsername(user);
       setToken(token);
       setStatus('ok');
-      navigate('/boards');
+      navigate('/devices');
     } else {
       setStatus('fail');
     }

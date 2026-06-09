@@ -43,6 +43,7 @@ async def init_db() -> None:
             "ALTER TABLE bookings ADD COLUMN setup_id TEXT",
             "ALTER TABLE bookings ADD COLUMN setup_name TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE boards ADD COLUMN device_ip TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE boards ADD COLUMN usb_device TEXT NOT NULL DEFAULT ''",
         ):
             try:
                 await conn.execute(text(col_def))

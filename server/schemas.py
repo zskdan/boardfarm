@@ -28,7 +28,7 @@ class AgentOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class BoardIn(BaseModel):
+class DeviceIn(BaseModel):
     name: str
     serial_number: str = ""
     revision: str = ""
@@ -44,10 +44,11 @@ class BoardIn(BaseModel):
     ssh_port: int = 0
     power_script: str = ""
     power_args: dict = {}
+    usb_device: str = ""
     enabled: bool = True
 
 
-class BoardUpdate(BaseModel):
+class DeviceUpdate(BaseModel):
     name: str | None = None
     serial_number: str | None = None
     revision: str | None = None
@@ -63,6 +64,7 @@ class BoardUpdate(BaseModel):
     ssh_port: int | None = None
     power_script: str | None = None
     power_args: dict | None = None
+    usb_device: str | None = None
     enabled: bool | None = None
 
 
@@ -91,7 +93,7 @@ class BookingOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class BoardOut(BaseModel):
+class DeviceOut(BaseModel):
     id: str
     device_id: str = ""
     serial_number: str = ""
@@ -110,6 +112,7 @@ class BoardOut(BaseModel):
     ssh_port: int
     power_script: str
     power_args: dict
+    usb_device: str = ""
     enabled: bool
     agent_online: bool = False
     active_booking: BookingOut | None = None

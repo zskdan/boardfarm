@@ -15,23 +15,23 @@ import {
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  bookBoard,
-  createBoard,
-  deleteBoard,
+  bookDevice,
+  createDevice,
+  deleteDevice,
   getBookingLimit,
   getDefaultUser,
   getServerUrl,
   getToken,
-  listBoards,
+  listDevices,
   releaseBooking,
   setBookingLimit,
   setDefaultUser,
   setServerUrl,
   setToken,
-  updateBoard,
+  updateDevice,
 } from '../api/client';
 import type { BookingLimit } from '../api/client';
-import type { BoardCreate, BoardInfo } from '../api/types';
+import type { DeviceCreate, DeviceInfo } from '../api/types';
 import StatusBadge from '../components/StatusBadge';
 import { useStatusSocket } from '../hooks/useStatusSocket';
 
@@ -39,30 +39,19 @@ import { useStatusSocket } from '../hooks/useStatusSocket';
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const FIELD_BASIC: [string, keyof BoardCreate][] = [
+const FIELD_BASIC: [string, keyof DeviceCreate][] = [
   ['Name', 'name'],
   ['Serial Number', 'serial_number'],
   ['Revision', 'revision'],
   ['Description', 'description'],
   ['Location', 'location'],
 ];
-const FIELD_ETHERNET: [string, keyof BoardCreate][] = [
-  ['Device IP', 'device_ip'],
-  ['SSH User', 'ssh_user'],
-];
-const FIELD_AGENT_TEXT: [string, keyof BoardCreate][] = [
-  ['Agent Host IP', 'host_ip'],
-  ['Power Script', 'power_script'],
-];
-const FIELD_AGENT_NUM: [string, keyof BoardCreate][] = [
-  ['JTAG Port', 'jtag_port'],
-  ['UART TCP Port', 'uart_tcp_port'],
-];
-const DEFAULT_BOARD: BoardCreate = {
+
+const DEFAULT_DEVICE: DeviceCreate = {
   name: '', serial_number: '', revision: '', description: '',
   location: '', device_ip: '', host_ip: '', features: {}, jtag_port: 3121, uart_tcp_port: 5555,
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
-  enabled: true, current_notes: '',
+  usb_device: '', enabled: true, current_notes: '',
 };
 
 function limitLabel(l: BookingLimit): string {
@@ -119,25 +108,42 @@ function BookingLimitModal({ onClose }: { onClose: () => void }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Add Board Modal
+// Add Device Modal
 // ─────────────────────────────────────────────────────────────────────────────
 
-function AddBoardModal({ onClose }: { onClose: () => void }) {
+function AddDeviceModal({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [username, setUsernameState] = useState(getDefaultUser());
-  const [form, setForm] = useState<BoardCreate>(DEFAULT_BOARD);
+  const [form, setForm] = useState<DeviceCreate>(DEFAULT_DEVICE);
   const [featuresRaw, setFeaturesRaw] = useState('{}');
   const [hasEthernet, setHasEthernet] = useState(false);
+  const [hasSsh, setHasSsh] = useState(true);
   const [hasAgent, setHasAgent] = useState(false);
+  const [hasUsb, setHasUsb] = useState(false);
 
   const mut = useMutation({
-    mutationFn: () => createBoard({ ...form, features: JSON.parse(featuresRaw) }, username),
-    onSuccess: (board) => {
+    mutationFn: () => {
+      const payload: DeviceCreate = {
+        ...form,
+        features: (() => { try { return JSON.parse(featuresRaw); } catch { return {}; } })(),
+        device_ip: hasEthernet && hasSsh ? form.device_ip ?? '' : '',
+        ssh_user: hasEthernet && hasSsh ? form.ssh_user : 'root',
+        ssh_port: hasEthernet && hasSsh ? form.ssh_port : 0,
+        host_ip: hasAgent ? form.host_ip : '',
+        jtag_port: hasAgent ? form.jtag_port : 0,
+        uart_tcp_port: hasAgent ? form.uart_tcp_port : 0,
+        power_script: hasAgent ? form.power_script : '',
+        power_args: hasAgent ? form.power_args : {},
+        usb_device: hasUsb ? form.usb_device ?? '' : '',
+      };
+      return createDevice(payload, username);
+    },
+    onSuccess: (device) => {
       setDefaultUser(username);
-      qc.invalidateQueries({ queryKey: ['boards'] });
+      qc.invalidateQueries({ queryKey: ['devices'] });
       onClose();
-      navigate(`/boards/${board.id}`);
+      navigate(`/devices/${device.id}`);
     },
   });
 
@@ -160,23 +166,52 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
               onChange={(e) => setFeaturesRaw(e.target.value)} />
           </Field>
 
-          {/* Ethernet / SSH section */}
+          {/* Ethernet section */}
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
             <input type="checkbox" className="accent-blue-600" checked={hasEthernet}
               onChange={(e) => setHasEthernet(e.target.checked)} />
-            Has Ethernet / SSH
+            Ethernet
           </label>
           {hasEthernet && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-green-200">
-              {FIELD_ETHERNET.map(([label, key]) => (
-                <Field key={key as string} label={label}>
-                  <input type="text" className={inputCls} value={String(form[key] ?? '')}
-                    onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
-                </Field>
-              ))}
-              <Field label="SSH Port">
-                <input type="number" className={inputCls} value={Number(form.ssh_port)}
-                  onChange={(e) => setForm(f => ({ ...f, ssh_port: Number(e.target.value) }))} />
+              {/* SSH sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-green-600" checked={hasSsh}
+                  onChange={(e) => setHasSsh(e.target.checked)} />
+                SSH
+              </label>
+              {hasSsh && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-green-100">
+                  <Field label="Device IP">
+                    <input type="text" className={inputCls} value={form.device_ip ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, device_ip: e.target.value }))} />
+                  </Field>
+                  <Field label="SSH User">
+                    <input type="text" className={inputCls} value={form.ssh_user}
+                      onChange={(e) => setForm(f => ({ ...f, ssh_user: e.target.value }))} />
+                  </Field>
+                  <Field label="SSH Port">
+                    <input type="number" className={inputCls} value={form.ssh_port}
+                      onChange={(e) => setForm(f => ({ ...f, ssh_port: Number(e.target.value) }))} />
+                  </Field>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* USB section */}
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
+            <input type="checkbox" className="accent-blue-600" checked={hasUsb}
+              onChange={(e) => setHasUsb(e.target.checked)} />
+            USB
+          </label>
+          {hasUsb && (
+            <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-200">
+              <Field label="USB device path">
+                <input type="text" className={`${inputCls} font-mono`}
+                  placeholder="ex: /dev/ttyUSB0"
+                  value={form.usb_device ?? ''}
+                  onChange={(e) => setForm(f => ({ ...f, usb_device: e.target.value }))} />
               </Field>
             </div>
           )}
@@ -189,14 +224,14 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
           </label>
           {hasAgent && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-200">
-              {FIELD_AGENT_TEXT.map(([label, key]) => (
-                <Field key={key as string} label={label}>
+              {([['Agent Host IP', 'host_ip'], ['Power Script', 'power_script']] as [string, keyof DeviceCreate][]).map(([label, key]) => (
+                <Field key={key} label={label}>
                   <input type="text" className={inputCls} value={String(form[key] ?? '')}
                     onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
                 </Field>
               ))}
-              {FIELD_AGENT_NUM.map(([label, key]) => (
-                <Field key={key as string} label={label}>
+              {([['JTAG Port', 'jtag_port'], ['UART TCP Port', 'uart_tcp_port']] as [string, keyof DeviceCreate][]).map(([label, key]) => (
+                <Field key={key} label={label}>
                   <input type="number" className={inputCls} value={Number(form[key])}
                     onChange={(e) => setForm(f => ({ ...f, [key]: Number(e.target.value) }))} />
                 </Field>
@@ -225,52 +260,67 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Edit Board Modal
+// Edit Device Modal
 // ─────────────────────────────────────────────────────────────────────────────
 
-function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => void }) {
+function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () => void }) {
   const qc = useQueryClient();
   const [username, setUsernameState] = useState(getDefaultUser());
   const [form, setForm] = useState({
-    name: board.name,
-    serial_number: board.serial_number,
-    revision: board.revision,
-    description: board.description,
-    location: board.location,
-    device_ip: board.device_ip ?? '',
-    host_ip: board.host_ip ?? '',
-    current_notes: board.current_notes,
-    ssh_user: board.ssh_user,
-    ssh_port: board.ssh_port,
-    jtag_port: board.jtag_port,
-    uart_tcp_port: board.uart_tcp_port,
-    power_script: board.power_script,
-    power_args: board.power_args,
-    enabled: board.enabled,
+    name: device.name,
+    serial_number: device.serial_number,
+    revision: device.revision,
+    description: device.description,
+    location: device.location,
+    device_ip: device.device_ip ?? '',
+    host_ip: device.host_ip ?? '',
+    current_notes: device.current_notes,
+    ssh_user: device.ssh_user,
+    ssh_port: device.ssh_port,
+    jtag_port: device.jtag_port,
+    uart_tcp_port: device.uart_tcp_port,
+    power_script: device.power_script,
+    power_args: device.power_args,
+    usb_device: device.usb_device ?? '',
+    enabled: device.enabled,
   });
-  const [featuresRaw, setFeaturesRaw] = useState(JSON.stringify(board.features, null, 2));
-  const [hasEthernet, setHasEthernet] = useState(!!(board.device_ip || board.ssh_port));
-  const [hasAgent, setHasAgent] = useState(!!(board.host_ip || board.jtag_port || board.uart_tcp_port));
+  const [featuresRaw, setFeaturesRaw] = useState(JSON.stringify(device.features, null, 2));
+  const [hasEthernet, setHasEthernet] = useState(!!(device.device_ip || device.ssh_port));
+  const [hasSsh, setHasSsh] = useState(!!(device.device_ip || device.ssh_port));
+  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.uart_tcp_port));
+  const [hasUsb, setHasUsb] = useState(!!device.usb_device);
 
   const updateMut = useMutation({
     mutationFn: () => {
-      let features = board.features;
+      let features = device.features;
       try { features = JSON.parse(featuresRaw); } catch { /* keep old */ }
-      return updateBoard(board.id, { ...form, features }, username);
+      return updateDevice(device.id, {
+        ...form,
+        features,
+        device_ip: hasEthernet && hasSsh ? form.device_ip : '',
+        ssh_user: hasEthernet && hasSsh ? form.ssh_user : 'root',
+        ssh_port: hasEthernet && hasSsh ? form.ssh_port : 0,
+        host_ip: hasAgent ? form.host_ip : '',
+        jtag_port: hasAgent ? form.jtag_port : 0,
+        uart_tcp_port: hasAgent ? form.uart_tcp_port : 0,
+        power_script: hasAgent ? form.power_script : '',
+        power_args: hasAgent ? form.power_args : {},
+        usb_device: hasUsb ? form.usb_device : '',
+      }, username);
     },
-    onSuccess: () => { setDefaultUser(username); qc.invalidateQueries({ queryKey: ['boards'] }); onClose(); },
+    onSuccess: () => { setDefaultUser(username); qc.invalidateQueries({ queryKey: ['devices'] }); onClose(); },
   });
 
   return (
     <Overlay onClose={onClose}>
-      <ModalCard title={`Edit — ${board.name}`} onClose={onClose} wide>
+      <ModalCard title={`Edit — ${device.name}`} onClose={onClose} wide>
         <div className="flex flex-col gap-3">
           <Field label="Your username">
             <input className={inputCls} value={username}
               onChange={(e) => setUsernameState(e.target.value)} placeholder="Required" />
           </Field>
           <Field label="Device ID">
-            <span className="font-mono text-sm text-gray-500 bg-gray-50 border rounded-lg px-3 py-1.5">{board.device_id || '—'}</span>
+            <span className="font-mono text-sm text-gray-500 bg-gray-50 border rounded-lg px-3 py-1.5">{device.device_id || '—'}</span>
           </Field>
           {([['Name', 'name'], ['Serial Number', 'serial_number'], ['Revision', 'revision'], ['Description', 'description'], ['Location', 'location']] as [string, keyof typeof form][]).map(([label, key]) => (
             <Field key={key} label={label}>
@@ -287,23 +337,49 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
               onChange={(e) => setForm(f => ({ ...f, current_notes: e.target.value }))} />
           </Field>
 
-          {/* Ethernet / SSH section */}
+          {/* Ethernet section */}
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
             <input type="checkbox" className="accent-blue-600" checked={hasEthernet}
               onChange={(e) => setHasEthernet(e.target.checked)} />
-            Has Ethernet / SSH
+            Ethernet
           </label>
           {hasEthernet && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-green-200">
-              {([['Device IP', 'device_ip'], ['SSH User', 'ssh_user']] as [string, keyof typeof form][]).map(([label, key]) => (
-                <Field key={key} label={label}>
-                  <input type="text" className={inputCls} value={String(form[key] ?? '')}
-                    onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
-                </Field>
-              ))}
-              <Field label="SSH Port">
-                <input type="number" className={inputCls} value={Number(form.ssh_port)}
-                  onChange={(e) => setForm(f => ({ ...f, ssh_port: Number(e.target.value) }))} />
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-green-600" checked={hasSsh}
+                  onChange={(e) => setHasSsh(e.target.checked)} />
+                SSH
+              </label>
+              {hasSsh && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-green-100">
+                  {([['Device IP', 'device_ip'], ['SSH User', 'ssh_user']] as [string, keyof typeof form][]).map(([label, key]) => (
+                    <Field key={key} label={label}>
+                      <input type="text" className={inputCls} value={String(form[key] ?? '')}
+                        onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
+                    </Field>
+                  ))}
+                  <Field label="SSH Port">
+                    <input type="number" className={inputCls} value={Number(form.ssh_port)}
+                      onChange={(e) => setForm(f => ({ ...f, ssh_port: Number(e.target.value) }))} />
+                  </Field>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* USB section */}
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
+            <input type="checkbox" className="accent-blue-600" checked={hasUsb}
+              onChange={(e) => setHasUsb(e.target.checked)} />
+            USB
+          </label>
+          {hasUsb && (
+            <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-200">
+              <Field label="USB device path">
+                <input type="text" className={`${inputCls} font-mono`}
+                  placeholder="ex: /dev/ttyUSB0"
+                  value={form.usb_device}
+                  onChange={(e) => setForm(f => ({ ...f, usb_device: e.target.value }))} />
               </Field>
             </div>
           )}
@@ -403,7 +479,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
 // Book Modal
 // ─────────────────────────────────────────────────────────────────────────────
 
-function BookModal({ board, onClose }: { board: BoardInfo; onClose: () => void }) {
+function BookModal({ device, onClose }: { device: DeviceInfo; onClose: () => void }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const limit = getBookingLimit();
@@ -414,18 +490,18 @@ function BookModal({ board, onClose }: { board: BoardInfo; onClose: () => void }
   const [comment, setComment] = useState('');
 
   const mut = useMutation({
-    mutationFn: () => bookBoard(board.id, isNever ? 1 : hours, comment, username),
+    mutationFn: () => bookDevice(device.id, isNever ? 1 : hours, comment, username),
     onSuccess: () => {
       setDefaultUser(username);
-      qc.invalidateQueries({ queryKey: ['boards'] });
+      qc.invalidateQueries({ queryKey: ['devices'] });
       onClose();
-      navigate(`/boards/${board.id}`);
+      navigate(`/devices/${device.id}`);
     },
   });
 
   return (
     <Overlay onClose={onClose}>
-      <ModalCard title="Book device" subtitle={board.name} onClose={onClose}>
+      <ModalCard title="Book device" subtitle={device.name} onClose={onClose}>
         <div className="flex flex-col gap-4">
           <Field label="Your username">
             <input className={inputCls} value={username}
@@ -468,23 +544,23 @@ function BookModal({ board, onClose }: { board: BoardInfo; onClose: () => void }
 // Release Modal
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ReleaseModal({ board, onClose }: { board: BoardInfo; onClose: () => void }) {
+function ReleaseModal({ device, onClose }: { device: DeviceInfo; onClose: () => void }) {
   const qc = useQueryClient();
-  const booking = board.active_booking!;
+  const booking = device.active_booking!;
   const [username, setUsernameState] = useState(getDefaultUser());
 
   const mut = useMutation({
     mutationFn: () => releaseBooking(booking.id, username),
     onSuccess: () => {
       setDefaultUser(username);
-      qc.invalidateQueries({ queryKey: ['boards'] });
+      qc.invalidateQueries({ queryKey: ['devices'] });
       onClose();
     },
   });
 
   return (
     <Overlay onClose={onClose}>
-      <ModalCard title={`Release — ${board.name}`} onClose={onClose}>
+      <ModalCard title={`Release — ${device.name}`} onClose={onClose}>
         <div className="flex flex-col gap-4">
           <div className="rounded-lg bg-amber-50 border border-amber-100 px-4 py-3">
             <p className="text-xs text-gray-400 mb-0.5">Currently booked by</p>
@@ -573,34 +649,35 @@ export default function InventoryPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState<Modal>(null);
-  const [editBoard, setEditBoard] = useState<BoardInfo | null>(null);
-  const [bookBoard2, setBookBoard2] = useState<BoardInfo | null>(null);
-  const [releaseBoard, setReleaseBoard] = useState<BoardInfo | null>(null);
+  const [editDevice, setEditDevice] = useState<DeviceInfo | null>(null);
+  const [bookDevice2, setBookDevice2] = useState<DeviceInfo | null>(null);
+  const [releaseDevice, setReleaseDevice] = useState<DeviceInfo | null>(null);
   const [deleteMode, setDeleteMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useStatusSocket();
 
-  const { data: boards = [], isLoading, refetch, isFetching, isError } = useQuery({
-    queryKey: ['boards'],
-    queryFn: listBoards,
+  const { data: devices = [], isLoading, refetch, isFetching, isError } = useQuery({
+    queryKey: ['devices'],
+    queryFn: listDevices,
     refetchInterval: 15_000,
   });
 
   const deleteMut = useMutation({
-    mutationFn: async (ids: string[]) => { for (const id of ids) await deleteBoard(id); },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['boards'] }); setSelected(new Set()); setDeleteMode(false); },
+    mutationFn: async (ids: string[]) => { for (const id of ids) await deleteDevice(id); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['devices'] }); setSelected(new Set()); setDeleteMode(false); },
   });
 
-  const filtered = boards.filter((b) => {
+  const filtered = devices.filter((d) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return (
-      b.name.toLowerCase().includes(q) ||
-      b.device_id.toLowerCase().includes(q) ||
-      b.location.toLowerCase().includes(q) ||
-      b.description.toLowerCase().includes(q) ||
-      (b.active_booking?.username ?? '').toLowerCase().includes(q)
+      d.name.toLowerCase().includes(q) ||
+      d.device_id.toLowerCase().includes(q) ||
+      d.location.toLowerCase().includes(q) ||
+      d.description.toLowerCase().includes(q) ||
+      (d.active_booking?.username ?? '').toLowerCase().includes(q) ||
+      Object.keys(d.features).some(k => k.toLowerCase().includes(q))
     );
   });
 
@@ -616,7 +693,7 @@ export default function InventoryPage() {
 
   function cancelDelete() { setDeleteMode(false); setSelected(new Set()); }
 
-  const isFree = (b: BoardInfo) => b.enabled && !b.active_booking;
+  const isFree = (d: DeviceInfo) => d.enabled && !d.active_booking;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -626,7 +703,7 @@ export default function InventoryPage() {
         <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Device Inventory</h1>
-            <p className="text-sm text-gray-500">{boards.length} devices registered</p>
+            <p className="text-sm text-gray-500">{devices.length} devices registered</p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -653,7 +730,7 @@ export default function InventoryPage() {
               {limitLabel(getBookingLimit())}
             </button>
 
-            {/* Add Board */}
+            {/* Add Device */}
             <button onClick={() => setModal('add')}
               className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
               <Plus size={14} /> Add Device
@@ -722,68 +799,77 @@ export default function InventoryPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filtered.map((b) => (
-                  <tr key={b.id}
-                    className={`transition-colors ${!b.enabled ? 'opacity-50' : ''} ${selected.has(b.id) ? 'bg-red-50' : 'hover:bg-gray-50'}`}
+                {filtered.map((d) => (
+                  <tr key={d.id}
+                    className={`transition-colors ${!d.enabled ? 'opacity-50' : ''} ${selected.has(d.id) ? 'bg-red-50' : 'hover:bg-gray-50'}`}
                   >
                     {deleteMode && (
                       <td className="px-4 py-3">
-                        <input type="checkbox" checked={selected.has(b.id)}
-                          onChange={() => toggleSelect(b.id)} className="w-4 h-4 accent-red-600" />
+                        <input type="checkbox" checked={selected.has(d.id)}
+                          onChange={() => toggleSelect(d.id)} className="w-4 h-4 accent-red-600" />
                       </td>
                     )}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <Link to={`/boards/${b.id}`} className="font-medium text-gray-900 hover:text-blue-600 hover:underline">
-                          {b.name}
+                        <Link to={`/devices/${d.id}`} className="font-medium text-gray-900 hover:text-blue-600 hover:underline">
+                          {d.name}
                         </Link>
-                        {b.device_id && (
+                        {d.device_id && (
                           <span className="font-mono text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border">
-                            {b.device_id}
+                            {d.device_id}
                           </span>
                         )}
                       </div>
-                      {b.description && (
-                        <p className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{b.description}</p>
+                      {d.description && (
+                        <p className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{d.description}</p>
+                      )}
+                      {Object.keys(d.features).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {Object.entries(d.features).map(([k, v]) => (
+                            <span key={k} className="px-1.5 py-0.5 text-xs rounded bg-gray-100 text-gray-500">
+                              {k}: {String(v)}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge agentOnline={b.agent_online} activeBooking={!!b.active_booking} enabled={b.enabled} />
+                      <StatusBadge agentOnline={d.agent_online} activeBooking={!!d.active_booking} enabled={d.enabled} />
                     </td>
                     <td className="px-4 py-3">
-                      {b.active_booking ? (
+                      {d.active_booking ? (
                         <div>
-                          <span className="font-medium text-gray-800">{b.active_booking.username}</span>
-                          {b.active_booking.comment && (
-                            <p className="text-xs text-gray-400 mt-0.5 max-w-[160px] truncate" title={b.active_booking.comment}>
-                              {b.active_booking.comment}
+                          <span className="font-medium text-gray-800">{d.active_booking.username}</span>
+                          {d.active_booking.comment && (
+                            <p className="text-xs text-gray-400 mt-0.5 max-w-[160px] truncate" title={d.active_booking.comment}>
+                              {d.active_booking.comment}
                             </p>
                           )}
                         </div>
                       ) : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3">
-                      {b.location ? (
+                      {d.location ? (
                         <div className="flex items-center gap-1 text-xs text-gray-500">
-                          <MapPin size={11} className="flex-shrink-0" />{b.location}
+                          <MapPin size={11} className="flex-shrink-0" />{d.location}
                         </div>
                       ) : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
-                        {isFree(b) && (
-                          <button onClick={() => setBookBoard2(b)}
+                        {isFree(d) && (
+                          <button onClick={() => setBookDevice2(d)}
                             className="px-3 py-1 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">
                             Book
                           </button>
                         )}
-                        {b.active_booking && (
-                          <button onClick={() => setReleaseBoard(b)}
+                        {d.active_booking && (
+                          <button onClick={() => setReleaseDevice(d)}
                             className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 whitespace-nowrap">
                             <Unlock size={11} /> Release
                           </button>
                         )}
-                        <button onClick={() => setEditBoard(b)}
+                        <button onClick={() => setEditDevice(d)}
                           className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white hover:bg-gray-50 text-gray-600 whitespace-nowrap">
                           <Pencil size={11} /> Modify
                         </button>
@@ -798,12 +884,12 @@ export default function InventoryPage() {
       </div>
 
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
-      {modal === 'add'      && <AddBoardModal onClose={() => setModal(null)} />}
+      {modal === 'add'      && <AddDeviceModal onClose={() => setModal(null)} />}
       {modal === 'settings' && <SettingsModal onClose={() => setModal(null)} />}
       {modal === 'limit'    && <BookingLimitModal onClose={() => setModal(null)} />}
-      {editBoard            && <EditBoardModal board={editBoard} onClose={() => setEditBoard(null)} />}
-      {bookBoard2           && <BookModal board={bookBoard2} onClose={() => setBookBoard2(null)} />}
-      {releaseBoard         && <ReleaseModal board={releaseBoard} onClose={() => setReleaseBoard(null)} />}
+      {editDevice           && <EditDeviceModal device={editDevice} onClose={() => setEditDevice(null)} />}
+      {bookDevice2          && <BookModal device={bookDevice2} onClose={() => setBookDevice2(null)} />}
+      {releaseDevice        && <ReleaseModal device={releaseDevice} onClose={() => setReleaseDevice(null)} />}
     </div>
   );
 }

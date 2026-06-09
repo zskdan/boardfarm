@@ -3,14 +3,14 @@ import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  createBoard,
-  deleteBoard,
+  createDevice,
+  deleteDevice,
   getDefaultUser,
-  listBoards,
+  listDevices,
   setDefaultUser,
-  updateBoard,
+  updateDevice,
 } from '../api/client';
-import type { BoardCreate } from '../api/types';
+import type { DeviceCreate } from '../api/types';
 
 function parseAddr(addr: string, defaultPort: number): { ip: string; port: number } {
   const last = addr.lastIndexOf(':');
@@ -40,7 +40,7 @@ function ServiceSection({
   );
 }
 
-function AddBoardModal({ onClose }: { onClose: () => void }) {
+function AddDeviceModal({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [username, setUsername] = useState(getDefaultUser());
@@ -64,7 +64,7 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
       const uartP = uart.enabled ? parseAddr(uart.addr, 5555) : { ip: '', port: 0 };
       const jtagP = jtag.enabled ? parseAddr(jtag.addr, 3121) : { ip: '', port: 0 };
       const host_ip = sshP.ip || uartP.ip || jtagP.ip || undefined;
-      return createBoard(
+      return createDevice(
         {
           name,
           serial_number: serialNumber,
@@ -85,11 +85,11 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
         username,
       );
     },
-    onSuccess: (board) => {
+    onSuccess: (device) => {
       setDefaultUser(username);
-      qc.invalidateQueries({ queryKey: ['boards'] });
+      qc.invalidateQueries({ queryKey: ['devices'] });
       onClose();
-      navigate(`/boards/${board.id}`);
+      navigate(`/devices/${device.id}`);
     },
   });
 
@@ -255,30 +255,30 @@ export default function AdminPage() {
   const [username, setUsernameState] = useState(getDefaultUser());
   const [editLocation, setEditLocation] = useState<Record<string, string>>({});
 
-  const { data: boards = [] } = useQuery({
-    queryKey: ['boards'],
-    queryFn: listBoards,
+  const { data: devices = [] } = useQuery({
+    queryKey: ['devices'],
+    queryFn: listDevices,
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<BoardCreate> }) =>
-      updateBoard(id, data, username),
+    mutationFn: ({ id, data }: { id: string; data: Partial<DeviceCreate> }) =>
+      updateDevice(id, data, username),
     onSuccess: () => {
       setDefaultUser(username);
-      qc.invalidateQueries({ queryKey: ['boards'] });
+      qc.invalidateQueries({ queryKey: ['devices'] });
     },
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: string) => deleteBoard(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['boards'] }),
+    mutationFn: (id: string) => deleteDevice(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['devices'] }),
   });
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-6">
         <Link
-          to="/boards"
+          to="/devices"
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-4"
         >
           <ArrowLeft size={14} /> Back to inventory
@@ -308,22 +308,22 @@ export default function AdminPage() {
         </div>
 
         <div className="flex flex-col gap-4">
-          {boards.map((board) => (
-            <div key={board.id} className="bg-white rounded-xl border p-4">
+          {devices.map((device) => (
+            <div key={device.id} className="bg-white rounded-xl border p-4">
               <div className="flex items-start justify-between gap-2 mb-3">
                 <div>
                   <Link
-                    to={`/boards/${board.id}`}
+                    to={`/devices/${device.id}`}
                     className="font-semibold text-gray-900 hover:underline"
                   >
-                    {board.name}
+                    {device.name}
                   </Link>
-                  <p className="text-xs text-gray-400 font-mono">{board.id}</p>
+                  <p className="text-xs text-gray-400 font-mono">{device.id}</p>
                 </div>
                 <button
                   onClick={() => {
-                    if (confirm(`Delete device "${board.name}"?`))
-                      deleteMut.mutate(board.id);
+                    if (confirm(`Delete device "${device.name}"?`))
+                      deleteMut.mutate(device.id);
                   }}
                   className="text-red-400 hover:text-red-600"
                 >
@@ -336,16 +336,16 @@ export default function AdminPage() {
                 <input
                   className="border rounded px-2 py-1 text-sm flex-1"
                   placeholder="Location (e.g. Lab A / Rack 2)"
-                  value={editLocation[board.id] ?? board.location}
+                  value={editLocation[device.id] ?? device.location}
                   onChange={(e) =>
-                    setEditLocation((p) => ({ ...p, [board.id]: e.target.value }))
+                    setEditLocation((p) => ({ ...p, [device.id]: e.target.value }))
                   }
                 />
                 <button
                   onClick={() =>
                     updateMut.mutate({
-                      id: board.id,
-                      data: { location: editLocation[board.id] ?? board.location },
+                      id: device.id,
+                      data: { location: editLocation[device.id] ?? device.location },
                     })
                   }
                   disabled={!username}
@@ -359,10 +359,10 @@ export default function AdminPage() {
               <label className="flex items-center gap-2 text-xs text-gray-500">
                 <input
                   type="checkbox"
-                  checked={board.enabled}
+                  checked={device.enabled}
                   onChange={(e) =>
                     updateMut.mutate({
-                      id: board.id,
+                      id: device.id,
                       data: { enabled: e.target.checked },
                     })
                   }
@@ -374,7 +374,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {showAdd && <AddBoardModal onClose={() => setShowAdd(false)} />}
+      {showAdd && <AddDeviceModal onClose={() => setShowAdd(false)} />}
     </div>
   );
 }

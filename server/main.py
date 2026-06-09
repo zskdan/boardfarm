@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .database import init_db
 from .expiry import expiry_loop
-from .routers import activity, agents, boards, bookings, setups
+from .routers import activity, agents, boards, bookings, devices, setups
 from .ws import ws_handler
 
 logging.basicConfig(level=logging.INFO)
@@ -37,7 +37,8 @@ app.add_middleware(
 )
 
 app.include_router(agents.router)
-app.include_router(boards.router)
+app.include_router(devices.router)
+app.include_router(boards.router)   # /boards kept for backward compat
 app.include_router(bookings.router)
 app.include_router(activity.router)
 app.include_router(setups.router)

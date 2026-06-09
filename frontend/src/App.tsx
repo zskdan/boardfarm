@@ -3,7 +3,7 @@ import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-d
 import './index.css';
 import { getUsername } from './api/client';
 import AdminPage from './pages/AdminPage';
-import BoardDetailPage from './pages/BoardDetailPage';
+import DeviceDetailPage from './pages/DeviceDetailPage';
 import DiscoveryPage from './pages/DiscoveryPage';
 import HistoryPage from './pages/HistoryPage';
 import InventoryPage from './pages/InventoryPage';
@@ -27,21 +27,25 @@ export default function App() {
         <Routes>
           <Route path="/" element={<DiscoveryPage />} />
           <Route
-            path="/boards"
+            path="/devices"
             element={
               <RequireAuth>
                 <InventoryPage />
               </RequireAuth>
             }
           />
+          {/* Legacy /boards route redirect */}
+          <Route path="/boards" element={<Navigate to="/devices" replace />} />
           <Route
-            path="/boards/:id"
+            path="/devices/:id"
             element={
               <RequireAuth>
-                <BoardDetailPage />
+                <DeviceDetailPage />
               </RequireAuth>
             }
           />
+          {/* Legacy /boards/:id redirect */}
+          <Route path="/boards/:id" element={<Navigate to="/devices" replace />} />
           <Route
             path="/history"
             element={
@@ -66,7 +70,7 @@ export default function App() {
               </RequireAuth>
             }
           />
-          <Route path="*" element={<Navigate to="/boards" replace />} />
+          <Route path="*" element={<Navigate to="/devices" replace />} />
         </Routes>
       </Router>
     </QueryClientProvider>

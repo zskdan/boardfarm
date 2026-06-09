@@ -1,22 +1,22 @@
+import { Check, Edit2, X } from 'lucide-react';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Edit2, Check, X } from 'lucide-react';
-import { updateBoardNotes } from '../api/client';
+import { updateDeviceNotes } from '../api/client';
 
 interface Props {
-  boardId: string;
+  deviceId: string;
   notes: string;
 }
 
-export default function BoardNotes({ boardId, notes }: Props) {
+export default function DeviceNotes({ deviceId, notes }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(notes);
   const qc = useQueryClient();
 
   const mut = useMutation({
-    mutationFn: () => updateBoardNotes(boardId, draft),
+    mutationFn: () => updateDeviceNotes(deviceId, draft),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['board', boardId] });
+      qc.invalidateQueries({ queryKey: ['device', deviceId] });
       setEditing(false);
     },
   });

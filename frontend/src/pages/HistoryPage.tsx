@@ -65,7 +65,7 @@ export default function HistoryPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-6">
         <Link
-          to="/boards"
+          to="/devices"
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-4"
         >
           <ArrowLeft size={14} /> Back to inventory
@@ -126,7 +126,7 @@ export default function HistoryPage() {
                     <td className="px-4 py-3 font-medium text-gray-800">
                       {entry.board_id ? (
                         <Link
-                          to={`/boards/${entry.board_id}`}
+                          to={`/devices/${entry.board_id}`}
                           className="hover:underline flex flex-col gap-0.5"
                         >
                           <span>{entry.board_name || entry.board_id}</span>
