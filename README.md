@@ -156,9 +156,9 @@ Custom controllers: subclass `power.base.PowerController`.
 |----------|--------------------------|
 | ![Settings modal for server URL and username](screenshots/settings-modal.png) | ![Add setup modal with searchable device picker](screenshots/add-setup-modal.png) |
 
-| Book Setup modal | Add device (with agent) |
-|-----------------|------------------------|
-| ![Book setup modal with duration and comment](screenshots/book-setup-modal.png) | ![Add device modal with agent section expanded](screenshots/add-device-modal-agent.png) |
+| Book Setup modal | Add device (Ethernet + agent expanded) |
+|-----------------|---------------------------------------|
+| ![Book setup modal with duration and comment](screenshots/book-setup-modal.png) | ![Add device modal with Ethernet and agent sections expanded](screenshots/add-device-modal-agent.png) |
 
 ---
 
@@ -178,6 +178,10 @@ Lists every registered device with live status:
 - **Actions** — Book · Release · Modify
 
 The **Filter** box searches by device name, device ID, location, username, or tool type.
+
+**Add Device** form has two optional sections, both collapsed by default:
+- **Has Ethernet / SSH** — reveal Device IP, SSH User, SSH Port
+- **Has hardware agent** — reveal Agent Host IP, JTAG Port, UART TCP Port, Power Script, Power Args
 
 ### Device detail (`/boards/:id`)
 

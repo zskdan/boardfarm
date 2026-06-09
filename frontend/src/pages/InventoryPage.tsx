@@ -48,6 +48,8 @@ const FIELD_BASIC: [string, keyof BoardCreate][] = [
   ['Revision', 'revision'],
   ['Description', 'description'],
   ['Location', 'location'],
+];
+const FIELD_ETHERNET: [string, keyof BoardCreate][] = [
   ['Device IP', 'device_ip'],
   ['SSH User', 'ssh_user'],
 ];
@@ -56,7 +58,6 @@ const FIELD_AGENT_TEXT: [string, keyof BoardCreate][] = [
   ['Power Script', 'power_script'],
 ];
 const FIELD_AGENT_NUM: [string, keyof BoardCreate][] = [
-  ['SSH Port', 'ssh_port'],
   ['JTAG Port', 'jtag_port'],
   ['UART TCP Port', 'uart_tcp_port'],
 ];
@@ -131,6 +132,7 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
   const [username, setUsernameState] = useState(getDefaultUser());
   const [form, setForm] = useState<BoardCreate>(DEFAULT_BOARD);
   const [featuresRaw, setFeaturesRaw] = useState('{}');
+  const [hasEthernet, setHasEthernet] = useState(false);
   const [hasAgent, setHasAgent] = useState(false);
 
   const mut = useMutation({
@@ -157,14 +159,31 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
             </Field>
           ))}
-          <Field label="SSH Port">
-            <input type="number" className={inputCls} value={Number(form.ssh_port)}
-              onChange={(e) => setForm(f => ({ ...f, ssh_port: Number(e.target.value) }))} />
-          </Field>
           <Field label="Features (JSON)">
             <textarea className={`${inputCls} font-mono`} rows={3} value={featuresRaw}
               onChange={(e) => setFeaturesRaw(e.target.value)} />
           </Field>
+
+          {/* Ethernet / SSH section */}
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
+            <input type="checkbox" className="accent-blue-600" checked={hasEthernet}
+              onChange={(e) => setHasEthernet(e.target.checked)} />
+            Has Ethernet / SSH
+          </label>
+          {hasEthernet && (
+            <div className="flex flex-col gap-3 pl-3 border-l-2 border-green-200">
+              {FIELD_ETHERNET.map(([label, key]) => (
+                <Field key={key as string} label={label}>
+                  <input type="text" className={inputCls} value={String(form[key] ?? '')}
+                    onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
+                </Field>
+              ))}
+              <Field label="SSH Port">
+                <input type="number" className={inputCls} value={Number(form.ssh_port)}
+                  onChange={(e) => setForm(f => ({ ...f, ssh_port: Number(e.target.value) }))} />
+              </Field>
+            </div>
+          )}
 
           {/* Agent section */}
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
@@ -180,7 +199,7 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
                     onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
                 </Field>
               ))}
-              {FIELD_AGENT_NUM.filter(([, k]) => k !== 'ssh_port').map(([label, key]) => (
+              {FIELD_AGENT_NUM.map(([label, key]) => (
                 <Field key={key as string} label={label}>
                   <input type="number" className={inputCls} value={Number(form[key])}
                     onChange={(e) => setForm(f => ({ ...f, [key]: Number(e.target.value) }))} />
@@ -234,6 +253,7 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
     enabled: board.enabled,
   });
   const [featuresRaw, setFeaturesRaw] = useState(JSON.stringify(board.features, null, 2));
+  const [hasEthernet, setHasEthernet] = useState(!!(board.device_ip || board.ssh_port));
   const [hasAgent, setHasAgent] = useState(!!(board.host_ip || board.jtag_port || board.uart_tcp_port));
   const [newTool, setNewTool] = useState<ToolCreate>({ type: 'logic_analyzer', model: '', connection: 'usb', connection_detail: '', notes: '' });
   const [addingTool, setAddingTool] = useState(false);
@@ -270,16 +290,12 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
           <Field label="Device ID">
             <span className="font-mono text-sm text-gray-500 bg-gray-50 border rounded-lg px-3 py-1.5">{board.device_id || '—'}</span>
           </Field>
-          {([['Name', 'name'], ['Serial Number', 'serial_number'], ['Revision', 'revision'], ['Description', 'description'], ['Location', 'location'], ['Device IP', 'device_ip'], ['SSH User', 'ssh_user']] as [string, keyof typeof form][]).map(([label, key]) => (
+          {([['Name', 'name'], ['Serial Number', 'serial_number'], ['Revision', 'revision'], ['Description', 'description'], ['Location', 'location']] as [string, keyof typeof form][]).map(([label, key]) => (
             <Field key={key} label={label}>
               <input type="text" className={inputCls} value={String(form[key] ?? '')}
                 onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
             </Field>
           ))}
-          <Field label="SSH Port">
-            <input type="number" className={inputCls} value={Number(form.ssh_port)}
-              onChange={(e) => setForm(f => ({ ...f, ssh_port: Number(e.target.value) }))} />
-          </Field>
           <Field label="Features (JSON)">
             <textarea className={`${inputCls} font-mono`} rows={3} value={featuresRaw}
               onChange={(e) => setFeaturesRaw(e.target.value)} />
@@ -288,6 +304,27 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
             <textarea className={inputCls} rows={2} value={form.current_notes}
               onChange={(e) => setForm(f => ({ ...f, current_notes: e.target.value }))} />
           </Field>
+
+          {/* Ethernet / SSH section */}
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
+            <input type="checkbox" className="accent-blue-600" checked={hasEthernet}
+              onChange={(e) => setHasEthernet(e.target.checked)} />
+            Has Ethernet / SSH
+          </label>
+          {hasEthernet && (
+            <div className="flex flex-col gap-3 pl-3 border-l-2 border-green-200">
+              {([['Device IP', 'device_ip'], ['SSH User', 'ssh_user']] as [string, keyof typeof form][]).map(([label, key]) => (
+                <Field key={key} label={label}>
+                  <input type="text" className={inputCls} value={String(form[key] ?? '')}
+                    onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
+                </Field>
+              ))}
+              <Field label="SSH Port">
+                <input type="number" className={inputCls} value={Number(form.ssh_port)}
+                  onChange={(e) => setForm(f => ({ ...f, ssh_port: Number(e.target.value) }))} />
+              </Field>
+            </div>
+          )}
 
           {/* Agent section */}
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
