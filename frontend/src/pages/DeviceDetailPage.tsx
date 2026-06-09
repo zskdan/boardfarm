@@ -125,6 +125,7 @@ export default function DeviceDetailPage() {
               agentOnline={device.agent_online}
               activeBooking={!!device.active_booking}
               enabled={device.enabled}
+              hasAgent={!!device.host_ip}
             />
           </div>
 

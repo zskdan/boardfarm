@@ -934,7 +934,7 @@ export default function InventoryPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge agentOnline={d.agent_online} activeBooking={!!d.active_booking} enabled={d.enabled} />
+                      <StatusBadge agentOnline={d.agent_online} activeBooking={!!d.active_booking} enabled={d.enabled} hasAgent={!!d.host_ip} />
                     </td>
                     <td className="px-4 py-3">
                       {d.active_booking ? (

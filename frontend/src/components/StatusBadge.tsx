@@ -2,9 +2,10 @@ interface Props {
   agentOnline: boolean;
   activeBooking: boolean;
   enabled: boolean;
+  hasAgent?: boolean;
 }
 
-export default function StatusBadge({ agentOnline, activeBooking, enabled }: Props) {
+export default function StatusBadge({ agentOnline, activeBooking, enabled, hasAgent = false }: Props) {
   if (!enabled) {
     return (
       <span className="px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-600">
@@ -12,7 +13,7 @@ export default function StatusBadge({ agentOnline, activeBooking, enabled }: Pro
       </span>
     );
   }
-  if (!agentOnline) {
+  if (hasAgent && !agentOnline) {
     return (
       <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">
         Offline

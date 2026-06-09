@@ -9,7 +9,7 @@ export default function DeviceCard({ device }: { device: DeviceInfo }) {
     <Link
       to={`/devices/${device.id}`}
       className={`block rounded-xl border p-4 hover:shadow-md transition-shadow ${
-        !device.agent_online && device.enabled ? 'opacity-60' : ''
+        device.host_ip && !device.agent_online && device.enabled ? 'opacity-60' : ''
       } ${!device.enabled ? 'opacity-40' : ''}`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -20,6 +20,7 @@ export default function DeviceCard({ device }: { device: DeviceInfo }) {
           agentOnline={device.agent_online}
           activeBooking={!!device.active_booking}
           enabled={device.enabled}
+          hasAgent={!!device.host_ip}
         />
       </div>
 
