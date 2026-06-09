@@ -45,7 +45,6 @@ class ToolOut(ToolIn):
 
 class BoardIn(BaseModel):
     name: str
-    device_id: str = ""
     serial_number: str = ""
     revision: str = ""
     description: str = ""
@@ -64,7 +63,6 @@ class BoardIn(BaseModel):
 
 class BoardUpdate(BaseModel):
     name: str | None = None
-    device_id: str | None = None
     serial_number: str | None = None
     revision: str | None = None
     description: str | None = None

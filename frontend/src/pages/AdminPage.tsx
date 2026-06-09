@@ -48,7 +48,6 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const [username, setUsername] = useState(getDefaultUser());
   const [name, setName] = useState('');
-  const [deviceId, setDeviceId] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [revision, setRevision] = useState('');
   const [description, setDescription] = useState('');
@@ -71,7 +70,6 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
       return createBoard(
         {
           name,
-          device_id: deviceId,
           serial_number: serialNumber,
           revision,
           description,
@@ -129,16 +127,6 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
               />
             </label>
           ))}
-
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-gray-600">Device ID <span className="font-normal text-gray-400">(unique, e.g. ZYNQ-001)</span></span>
-            <input
-              className="border rounded-lg px-3 py-1.5 text-sm font-mono"
-              value={deviceId}
-              onChange={(e) => setDeviceId(e.target.value)}
-              placeholder="e.g. ZYNQ-001"
-            />
-          </label>
 
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-gray-600">Serial Number</span>

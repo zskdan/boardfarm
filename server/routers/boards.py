@@ -1,4 +1,5 @@
 import json
+import secrets
 import uuid
 from datetime import datetime, timezone
 
@@ -124,7 +125,7 @@ async def create_board(
 ):
     board = Board(
         id=str(uuid.uuid4()),
-        device_id=body.device_id,
+        device_id="DEV-" + secrets.token_hex(3).upper(),
         serial_number=body.serial_number,
         revision=body.revision,
         name=body.name,

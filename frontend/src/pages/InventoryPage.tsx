@@ -43,7 +43,6 @@ import { useStatusSocket } from '../hooks/useStatusSocket';
 
 const FIELD_TEXT: [string, keyof BoardCreate, string][] = [
   ['Name', 'name', 'text'],
-  ['Device ID', 'device_id', 'text'],
   ['Serial Number', 'serial_number', 'text'],
   ['Revision', 'revision', 'text'],
   ['Description', 'description', 'text'],
@@ -57,7 +56,7 @@ const FIELD_NUM: [string, keyof BoardCreate][] = [
   ['SSH Port', 'ssh_port'],
 ];
 const DEFAULT_BOARD: BoardCreate = {
-  name: '', device_id: '', serial_number: '', revision: '', description: '',
+  name: '', serial_number: '', revision: '', description: '',
   location: '', features: {}, jtag_port: 3121, uart_tcp_port: 5555,
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
   enabled: true, current_notes: '',
