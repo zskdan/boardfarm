@@ -142,6 +142,22 @@ Custom controllers: subclass `power.base.PowerController`.
 
 ---
 
+## Screenshots
+
+| Inventory | Setups |
+|-----------|--------|
+| ![Inventory page showing device list with status badges](screenshots/inventory.png) | ![Setups page with atomic booking cards](screenshots/setups.png) |
+
+| Device detail (shell commands) | Booking history |
+|-------------------------------|----------------|
+| ![Board detail with SSH/UART/JTAG shell commands](screenshots/board-detail.png) | ![History page with audit log](screenshots/history.png) |
+
+| Settings | Add Setup (device picker) |
+|----------|--------------------------|
+| ![Settings modal for server URL and username](screenshots/settings-modal.png) | ![Add setup modal with searchable device picker](screenshots/add-setup-modal.png) |
+
+---
+
 ## Using the UI
 
 > **No login required.** You supply your username when performing an action (book, release, add). A default username is stored locally in the browser and pre-filled in every form.
