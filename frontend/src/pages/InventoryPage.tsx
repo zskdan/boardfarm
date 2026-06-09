@@ -58,6 +58,14 @@ function tagColor(key: string): string {
   return TAG_COLORS[hash % TAG_COLORS.length];
 }
 
+function formatTag(k: string, v: unknown): string {
+  if (v === true || v === 'true') return k;
+  if (v === false || v === 'false') return `${k}: false`;
+  const s = String(v);
+  if (/^-?\d+(\.\d+)?$/.test(s)) return `${k}: ${s}`;
+  return s; // plain string value — show value only
+}
+
 const FIELD_BASIC: [string, keyof DeviceCreate][] = [
   ['Name', 'name'],
   ['Serial Number', 'serial_number'],
@@ -929,7 +937,7 @@ export default function InventoryPage() {
                       <div className="flex flex-wrap gap-1">
                         {Object.entries(d.features).map(([k, v]) => (
                           <span key={k} className={`px-1.5 py-0.5 text-xs rounded font-medium ${tagColor(k)}`}>
-                            {v === true || v === 'true' ? k : `${k}: ${String(v)}`}
+                            {formatTag(k, v)}
                           </span>
                         ))}
                       </div>
