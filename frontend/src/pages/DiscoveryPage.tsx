@@ -52,27 +52,34 @@ export default function DiscoveryPage() {
 
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Username
+              Your name
             </label>
             <input
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={user}
               onChange={(e) => setUser(e.target.value)}
-              placeholder="your-name"
+              placeholder="alice"
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Used to identify you when booking or modifying boards. No password needed.
+            </p>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Token
+              Token{' '}
+              <span className="font-normal text-gray-400">(optional)</span>
             </label>
             <input
               type="password"
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={token}
               onChange={(e) => setTokenState(e.target.value)}
-              placeholder="pre-shared token"
+              placeholder="Leave blank if no token is configured"
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Only required if the server was configured with a token.
+            </p>
           </div>
 
           {status === 'fail' && (
@@ -83,10 +90,10 @@ export default function DiscoveryPage() {
 
           <button
             onClick={connect}
-            disabled={status === 'checking' || !url || !user || !token}
+            disabled={status === 'checking' || !url || !user}
             className="w-full py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            {status === 'checking' ? 'Connecting…' : 'Connect'}
+            {status === 'checking' ? 'Connecting…' : 'Connect →'}
           </button>
         </div>
       </div>
