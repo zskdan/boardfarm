@@ -117,10 +117,9 @@ agent:
 
 boards:
   - id: "paste-device-uuid-here"
-    uart_device: "/dev/ttyUSB0"
-    uart_baud: 115200
-    jtag_port: 3121
-    uart_tcp_port: 5555
+    usb_device: "/dev/bus/usb/001/002"  # raw USB device (optional)
+    uart_device: "/dev/ttyUSB0"         # UART serial device (optional)
+    jtag_port: 3121                     # hw_server port (optional)
     power_script: "../power/usb_relay.py"
     power_args:
       relay_id: 1
@@ -156,9 +155,9 @@ Custom controllers: subclass `power.base.PowerController`.
 |----------|--------------------------|
 | ![Settings modal for server URL and username](screenshots/settings-modal.png) | ![Add setup modal with searchable device picker](screenshots/add-setup-modal.png) |
 
-| Book Setup modal | Add device (Ethernet + agent expanded) |
-|-----------------|---------------------------------------|
-| ![Book setup modal with duration and comment](screenshots/book-setup-modal.png) | ![Add device modal with Ethernet and agent sections expanded](screenshots/add-device-modal-agent.png) |
+| Book Setup modal | Add device (agent section expanded) |
+|-----------------|-------------------------------------|
+| ![Book setup modal with duration and comment](screenshots/book-setup-modal.png) | ![Add device modal with agent section expanded showing USB, UART, JTAG and Power Control](screenshots/add-device-modal-agent.png) |
 
 ---
 
@@ -179,12 +178,15 @@ Lists every registered device with live status:
 
 The **Filter** box searches by device name, device ID, location, username, or feature key.
 
-**Add Device** form has three optional sections, all collapsed by default:
+**Add Device** form sections, all collapsed by default:
 
-- **Ethernet** — reveal SSH connectivity:
-  - **SSH** *(sub-checkbox, on by default)* — reveal Device IP, SSH User, SSH Port
-- **USB** — reveal USB device path (e.g. `/dev/ttyUSB0`)
-- **Has hardware agent** — reveal Agent Host IP, JTAG Port, UART TCP Port, Power Script, Power Args
+- **Ethernet** — reveals Device IP, then SSH sub-checkbox (on by default):
+  - **SSH** — reveals SSH User, SSH Port
+- **Has hardware agent** — reveals Agent Host IP and capability sub-checkboxes (all off by default):
+  - **USB** — reveals USB device path (e.g. `/dev/bus/usb/001/002`)
+  - **UART** — reveals UART device path (e.g. `/dev/ttyUSB0`)
+  - **JTAG** — reveals JTAG Port
+  - **Power Control** — reveals Power Script, Power Script Args
 
 ### Device detail (`/devices/:id`)
 
@@ -196,9 +198,9 @@ Each device has a detail page with:
 
   | Service | Command |
   |---------|---------|
-  | SSH | `$ ssh root@<ip> -p <port>` |
-  | UART | `$ telnet <ip> <uart_port>` |
-  | JTAG | `$ connect_hw_server -url tcp:<ip>:<jtag_port>` |
+  | SSH | `$ ssh root@<device_ip> -p <port>` |
+  | UART | `$ sudo socat pty,link=/dev/ttyDEV-XXXX,rawer EXEC:"ssh vivado@<agent_ip> socat - /dev/ttyUSB0,rawer"` |
+  | JTAG | `$ connect_hw_server -url tcp:<agent_ip>:<jtag_port>` |
   | Power | `$ python3 <power_script> --action on` |
 
 - **Notes** — freeform notes, editable inline
@@ -301,8 +303,8 @@ Filter by user or action category (Bookings / Device changes).
 | `device_ip` | string | Device's own IP address (SSH target) |
 | `host_ip` | string | IP of the agent's host PC (JTAG / UART / power) |
 | `ssh_user` / `ssh_port` | string / int | SSH access (shown when Ethernet + SSH enabled) |
-| `usb_device` | string | USB device path on agent host (e.g. `/dev/ttyUSB0`) |
-| `uart_tcp_port` | int | TCP port for UART proxy |
+| `usb_device` | string | Raw USB device path on agent host (e.g. `/dev/bus/usb/001/002`) |
+| `uart_device` | string | UART serial device path on agent host (e.g. `/dev/ttyUSB0`) |
 | `jtag_port` | int | hw_server port |
 | `power_script` | string | Path to power control script |
 | `features` | JSON | Arbitrary key/value capability map |
