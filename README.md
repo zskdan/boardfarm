@@ -126,6 +126,72 @@ Custom controllers: subclass `power.base.PowerController` and call `run_controll
 
 ---
 
+## Using the Frontend
+
+### Connect to a server
+
+Open `http://localhost:5173`, enter the server URL, your username, and the shared token, then click **Connect**.
+
+![Discovery – connect screen](screenshots/v2-discovery.png)
+
+---
+
+### Browse the inventory
+
+The main page lists every registered board in a table. Each row shows:
+
+- **Status** — Free (green), Booked (amber), Offline/Disabled (grey)
+- **Booked by** — current holder's username + booking comment
+- **Location** — physical rack/bench location
+- **Tools** — colour-coded badges for attached hardware (logic analyzer, power supply, …)
+- **Actions** — **Book** button for free boards, **Modify** to edit any board
+
+![Inventory table](screenshots/v2-inventory.png)
+
+Use the **Filter** box in the header to search by board name, location, user, or tool type. Results update instantly.
+
+---
+
+### Book a board
+
+Click **Book** on any free board's row. A modal opens where you set the duration (1–24 hours) and an optional comment describing your intended use. Click **Book for Nh** to confirm.
+
+![Book modal](screenshots/v2-book-modal.png)
+
+Once booked, navigate to the board's detail page to get the connection commands (JTAG, UART, SSH).
+
+![Board detail with connection commands](screenshots/v2-board-detail.png)
+
+---
+
+### Manage boards
+
+Click **Modify** on any row to open the edit modal. You can update the board's name, location, ports, features JSON, notes, and attached tools (add or remove) — all without leaving the inventory page.
+
+![Edit board modal](screenshots/v2-edit-modal.png)
+
+To add a new board, click **Add Board** in the header. A compact form overlays the current view.
+
+![Add board modal](screenshots/v2-add-modal.png)
+
+---
+
+### Delete boards
+
+Click **Delete** in the header to enter delete mode. Checkboxes appear on each row — select the boards you want to remove, then click **Delete (N)** to confirm. Click **Cancel** to exit without deleting.
+
+![Delete mode with checkboxes](screenshots/v2-delete-mode.png)
+
+---
+
+### Booking history
+
+Click **History** to navigate to the history page. You can filter by board name, username, or active-only bookings. Each row shows the start/end time, release reason, and the booking comment.
+
+![Booking history](screenshots/v2-history.png)
+
+---
+
 ## API Reference
 
 ### Server (`http://server:8765`)
