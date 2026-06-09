@@ -51,7 +51,7 @@ const DEFAULT_DEVICE: DeviceCreate = {
   name: '', serial_number: '', revision: '', description: '',
   location: '', device_ip: '', host_ip: '', features: {}, jtag_port: 3121, uart_tcp_port: 5555,
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
-  usb_device: '', enabled: true, current_notes: '',
+  usb_device: '', uart_device: '', enabled: true, current_notes: '',
 };
 
 function limitLabel(l: BookingLimit): string {
@@ -121,7 +121,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
   const [hasSsh, setHasSsh] = useState(true);
   const [hasAgent, setHasAgent] = useState(false);
   const [hasUsb, setHasUsb] = useState(false);
-  const [hasUart, setHasUart] = useState(true);
+  const [hasUart, setHasUart] = useState(false);
   const [hasJtag, setHasJtag] = useState(false);
   const [hasPower, setHasPower] = useState(false);
 
@@ -138,7 +138,8 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
         uart_tcp_port: 0,
         power_script: hasAgent && hasPower ? form.power_script : '',
         power_args: hasAgent && hasPower ? form.power_args : {},
-        usb_device: hasUsb && hasUart ? form.usb_device ?? '' : '',
+        usb_device: hasAgent && hasUsb ? form.usb_device ?? '' : '',
+        uart_device: hasAgent && hasUart ? form.uart_device ?? '' : '',
       };
       return createDevice(payload, username);
     },
@@ -202,32 +203,6 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {/* USB section */}
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
-            <input type="checkbox" className="accent-blue-600" checked={hasUsb}
-              onChange={(e) => setHasUsb(e.target.checked)} />
-            USB
-          </label>
-          {hasUsb && (
-            <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-200">
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                <input type="checkbox" className="accent-purple-600" checked={hasUart}
-                  onChange={(e) => setHasUart(e.target.checked)} />
-                UART
-              </label>
-              {hasUart && (
-                <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-100">
-                  <Field label="UART device">
-                    <input type="text" className={`${inputCls} font-mono`}
-                      placeholder="ex: /dev/ttyUSB0"
-                      value={form.usb_device ?? ''}
-                      onChange={(e) => setForm(f => ({ ...f, usb_device: e.target.value }))} />
-                  </Field>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Agent section */}
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
             <input type="checkbox" className="accent-blue-600" checked={hasAgent}
@@ -240,6 +215,38 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
                 <input type="text" className={inputCls} value={form.host_ip ?? ''}
                   onChange={(e) => setForm(f => ({ ...f, host_ip: e.target.value }))} />
               </Field>
+              {/* USB sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-purple-600" checked={hasUsb}
+                  onChange={(e) => setHasUsb(e.target.checked)} />
+                USB
+              </label>
+              {hasUsb && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-100">
+                  <Field label="USB device">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /dev/bus/usb/001/002"
+                      value={form.usb_device ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, usb_device: e.target.value }))} />
+                  </Field>
+                </div>
+              )}
+              {/* UART sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-purple-500" checked={hasUart}
+                  onChange={(e) => setHasUart(e.target.checked)} />
+                UART
+              </label>
+              {hasUart && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-100">
+                  <Field label="UART device">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /dev/ttyUSB0"
+                      value={form.uart_device ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, uart_device: e.target.value }))} />
+                  </Field>
+                </div>
+              )}
               {/* JTAG sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-blue-500" checked={hasJtag}
@@ -314,14 +321,15 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
     power_script: device.power_script,
     power_args: device.power_args,
     usb_device: device.usb_device ?? '',
+    uart_device: device.uart_device ?? '',
     enabled: device.enabled,
   });
   const [featuresRaw, setFeaturesRaw] = useState(JSON.stringify(device.features, null, 2));
   const [hasEthernet, setHasEthernet] = useState(!!(device.device_ip || device.ssh_port));
   const [hasSsh, setHasSsh] = useState(!!device.ssh_port);
-  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.power_script));
+  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.power_script || device.usb_device || device.uart_device));
   const [hasUsb, setHasUsb] = useState(!!device.usb_device);
-  const [hasUart, setHasUart] = useState(!!device.usb_device);
+  const [hasUart, setHasUart] = useState(!!device.uart_device);
   const [hasJtag, setHasJtag] = useState(!!device.jtag_port);
   const [hasPower, setHasPower] = useState(!!device.power_script);
 
@@ -340,7 +348,8 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
         uart_tcp_port: 0,
         power_script: hasAgent && hasPower ? form.power_script : '',
         power_args: hasAgent && hasPower ? form.power_args : {},
-        usb_device: hasUsb && hasUart ? form.usb_device : '',
+        usb_device: hasAgent && hasUsb ? form.usb_device : '',
+        uart_device: hasAgent && hasUart ? form.uart_device : '',
       }, username);
     },
     onSuccess: () => { setDefaultUser(username); qc.invalidateQueries({ queryKey: ['devices'] }); onClose(); },
@@ -404,32 +413,6 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
             </div>
           )}
 
-          {/* USB section */}
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
-            <input type="checkbox" className="accent-blue-600" checked={hasUsb}
-              onChange={(e) => setHasUsb(e.target.checked)} />
-            USB
-          </label>
-          {hasUsb && (
-            <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-200">
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                <input type="checkbox" className="accent-purple-600" checked={hasUart}
-                  onChange={(e) => setHasUart(e.target.checked)} />
-                UART
-              </label>
-              {hasUart && (
-                <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-100">
-                  <Field label="UART device">
-                    <input type="text" className={`${inputCls} font-mono`}
-                      placeholder="ex: /dev/ttyUSB0"
-                      value={form.usb_device}
-                      onChange={(e) => setForm(f => ({ ...f, usb_device: e.target.value }))} />
-                  </Field>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Agent section */}
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
             <input type="checkbox" className="accent-blue-600" checked={hasAgent}
@@ -442,6 +425,38 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
                 <input type="text" className={inputCls} value={form.host_ip ?? ''}
                   onChange={(e) => setForm(f => ({ ...f, host_ip: e.target.value }))} />
               </Field>
+              {/* USB sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-purple-600" checked={hasUsb}
+                  onChange={(e) => setHasUsb(e.target.checked)} />
+                USB
+              </label>
+              {hasUsb && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-100">
+                  <Field label="USB device">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /dev/bus/usb/001/002"
+                      value={form.usb_device}
+                      onChange={(e) => setForm(f => ({ ...f, usb_device: e.target.value }))} />
+                  </Field>
+                </div>
+              )}
+              {/* UART sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-purple-500" checked={hasUart}
+                  onChange={(e) => setHasUart(e.target.checked)} />
+                UART
+              </label>
+              {hasUart && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-100">
+                  <Field label="UART device">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /dev/ttyUSB0"
+                      value={form.uart_device}
+                      onChange={(e) => setForm(f => ({ ...f, uart_device: e.target.value }))} />
+                  </Field>
+                </div>
+              )}
               {/* JTAG sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-blue-500" checked={hasJtag}

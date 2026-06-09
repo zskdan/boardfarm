@@ -74,6 +74,7 @@ export interface DeviceInfo {
   power_script: string;
   power_args: Record<string, unknown>;
   usb_device: string;
+  uart_device: string;
   enabled: boolean;
   agent_online: boolean;
   active_booking: BookingInfo | null;
@@ -99,6 +100,7 @@ export interface DeviceCreate {
   power_script: string;
   power_args: Record<string, unknown>;
   usb_device?: string;
+  uart_device?: string;
   enabled: boolean;
   current_notes: string;
 }
