@@ -39,6 +39,25 @@ import { useStatusSocket } from '../hooks/useStatusSocket';
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+const TAG_COLORS = [
+  'bg-blue-100 text-blue-700',
+  'bg-green-100 text-green-700',
+  'bg-purple-100 text-purple-700',
+  'bg-orange-100 text-orange-700',
+  'bg-pink-100 text-pink-700',
+  'bg-teal-100 text-teal-700',
+  'bg-yellow-100 text-yellow-700',
+  'bg-indigo-100 text-indigo-700',
+  'bg-cyan-100 text-cyan-700',
+  'bg-rose-100 text-rose-700',
+];
+
+function tagColor(key: string): string {
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  return TAG_COLORS[hash % TAG_COLORS.length];
+}
+
 const FIELD_BASIC: [string, keyof DeviceCreate][] = [
   ['Name', 'name'],
   ['Serial Number', 'serial_number'],
@@ -907,7 +926,7 @@ export default function InventoryPage() {
                       {Object.keys(d.features).length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {Object.entries(d.features).map(([k, v]) => (
-                            <span key={k} className="px-1.5 py-0.5 text-xs rounded bg-gray-100 text-gray-500">
+                            <span key={k} className={`px-1.5 py-0.5 text-xs rounded font-medium ${tagColor(k)}`}>
                               {k}: {String(v)}
                             </span>
                           ))}
