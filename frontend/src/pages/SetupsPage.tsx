@@ -64,6 +64,7 @@ function AddSetupModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState('');
 
   const { data: boards = [] } = useQuery({ queryKey: ['boards'], queryFn: listBoards });
 
@@ -84,6 +85,18 @@ function AddSetupModal({ onClose }: { onClose: () => void }) {
       return n;
     });
   }
+
+  const q = search.toLowerCase();
+  const filtered = boards.filter(
+    (b) =>
+      !selectedIds.has(b.id) && (
+        !q ||
+        b.name.toLowerCase().includes(q) ||
+        b.device_id.toLowerCase().includes(q) ||
+        b.location.toLowerCase().includes(q)
+      ),
+  );
+  const selected = boards.filter((b) => selectedIds.has(b.id));
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
@@ -110,16 +123,59 @@ function AddSetupModal({ onClose }: { onClose: () => void }) {
               value={description} onChange={(e) => setDescription(e.target.value)} />
           </label>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-2">
             <span className="text-xs font-medium text-gray-600">Devices</span>
-            <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
+
+            {/* Selected chips */}
+            {selected.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                {selected.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => toggle(b.id)}
+                    className="flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-200 rounded-full text-xs text-blue-700 hover:bg-red-50 hover:border-red-200 hover:text-red-600 group"
+                  >
+                    {b.device_id && <span className="font-mono">{b.device_id}</span>}
+                    <span>{b.name}</span>
+                    <X size={10} className="opacity-50 group-hover:opacity-100" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Search */}
+            <div className="flex items-center gap-2 border rounded-lg px-3 py-1.5 bg-white focus-within:ring-2 focus-within:ring-blue-500">
+              <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+              </svg>
+              <input
+                className="text-sm flex-1 focus:outline-none bg-transparent"
+                placeholder="Search by name, ID, location…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="text-gray-400 hover:text-gray-600">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Filtered list */}
+            <div className="border rounded-lg divide-y max-h-52 overflow-y-auto">
               {boards.length === 0 && (
                 <p className="text-xs text-gray-400 px-3 py-2">No devices in inventory</p>
               )}
-              {boards.map((b) => (
+              {boards.length > 0 && filtered.length === 0 && (
+                <p className="text-xs text-gray-400 px-3 py-2">
+                  {search ? 'No devices match your search' : 'All devices already selected'}
+                </p>
+              )}
+              {filtered.map((b) => (
                 <label key={b.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer">
                   <input type="checkbox" className="accent-blue-600"
-                    checked={selectedIds.has(b.id)} onChange={() => toggle(b.id)} />
+                    checked={false} onChange={() => toggle(b.id)} />
                   <div className="flex items-center gap-2 min-w-0">
                     {b.device_id && (
                       <span className="font-mono text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border flex-shrink-0">{b.device_id}</span>
@@ -130,7 +186,12 @@ function AddSetupModal({ onClose }: { onClose: () => void }) {
                 </label>
               ))}
             </div>
-            <p className="text-xs text-gray-400">{selectedIds.size} device{selectedIds.size !== 1 ? 's' : ''} selected</p>
+
+            <p className="text-xs text-gray-400">
+              {selectedIds.size > 0
+                ? `${selectedIds.size} device${selectedIds.size !== 1 ? 's' : ''} selected`
+                : 'No devices selected'}
+            </p>
           </div>
 
           {mut.error && <p className="text-xs text-red-600">{(mut.error as Error).message}</p>}
