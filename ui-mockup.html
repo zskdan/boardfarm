@@ -226,8 +226,10 @@ img{display:block;max-width:100%}
 .hover\:bg-red-700:hover{background-color:#b91c1c}
 .hover\:text-blue-600:hover{color:#2563eb}
 .hover\:text-gray-600:hover{color:#4b5563}
+.hover\:bg-amber-50:hover{background-color:#fffbeb}
 .hover\:text-red-500:hover{color:#ef4444}
 .hover\:underline:hover{text-decoration:underline}
+.border-amber-300{border-color:#fcd34d}
 
 /* ── Tab active state ────────────────────────────────────── */
 .tab-btn{border-radius:.25rem;font-size:.875rem;font-weight:500;white-space:nowrap;color:#374151;transition:background .1s}
@@ -310,6 +312,13 @@ img{display:block;max-width:100%}
           </svg>
           Add Board
         </button>
+        <!-- Booking Limit -->
+        <button onclick="openLimitModal()" class="flex items-center gap-1.5 px-3 py-2 border bg-white text-sm rounded-lg hover:bg-gray-50 text-gray-600">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Max 24h
+        </button>
         <!-- Settings -->
         <button onclick="openSettingsModal()" class="flex items-center gap-1.5 px-3 py-2 border bg-white text-sm rounded-lg hover:bg-gray-50">
           <svg class="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -377,6 +386,10 @@ img{display:block;max-width:100%}
             </td>
             <td class="px-4 py-3">
               <div class="flex items-center justify-end gap-2">
+                <button onclick="openReleaseModal('zynq-dev-1','alice')" class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 whitespace-nowrap">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                  Release
+                </button>
                 <button onclick="openEditModal('zynq-dev-1')" class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white hover:bg-gray-50 text-gray-600 whitespace-nowrap">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                   Modify
@@ -483,6 +496,10 @@ img{display:block;max-width:100%}
             </td>
             <td class="px-4 py-3">
               <div class="flex items-center justify-end gap-2">
+                <button onclick="openReleaseModal('zynq-ultra-1','bob')" class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 whitespace-nowrap">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                  Release
+                </button>
                 <button onclick="openEditModal('zynq-ultra-1')" class="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white hover:bg-gray-50 text-gray-600 whitespace-nowrap">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                   Modify
@@ -823,6 +840,10 @@ img{display:block;max-width:100%}
     </div>
     <div class="flex flex-col gap-4">
       <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-gray-600">Your username <span class="text-red-500">*</span></span>
+        <input class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" value="alice" placeholder="Required" />
+      </label>
+      <label class="flex flex-col gap-1">
         <span class="text-xs font-medium text-gray-600">Duration (hours)</span>
         <input type="number" min="1" max="24" value="4" class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" />
         <span class="text-xs text-gray-400">Maximum 24 h · extendable once</span>
@@ -849,6 +870,7 @@ img{display:block;max-width:100%}
       </button>
     </div>
     <div class="flex flex-col gap-3">
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Your username <span class="text-red-500">*</span></span><input class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" value="alice" placeholder="Required" /></label>
       <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Name</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="zynq-dev-3" /></label>
       <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Description</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Xilinx …" /></label>
       <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Location</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Lab A / Rack 2 / Slot 3" /></label>
@@ -878,24 +900,17 @@ img{display:block;max-width:100%}
     </div>
     <div class="flex flex-col gap-3">
       <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Server URL</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="http://192.168.1.100:8765" /></label>
-      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Username</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="alice" /></label>
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-gray-600">Default username</span>
+        <input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="alice" />
+        <span class="text-xs text-gray-400">Pre-filled in action forms (can be overridden per action)</span>
+      </label>
       <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Token</span><input type="password" class="border rounded-lg px-3 py-1.5 text-sm w-full" value="changeme" /></label>
-      <!-- Booking limit -->
-      <div class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-gray-600">Booking limit</span>
-        <select id="limit-kind" class="border rounded-lg px-3 py-1.5 text-sm w-full" onchange="updateLimitUI()">
-          <option value="hours" selected>Limited (hours)</option>
-          <option value="unlimited">Unlimited</option>
-          <option value="never">Never expires</option>
-        </select>
-        <input id="limit-hours" type="number" min="1" value="24" class="border rounded-lg px-3 py-1.5 text-sm w-full mt-1" />
-        <span id="limit-hint" class="text-xs text-gray-400 mt-0.5">Max 24 h per booking</span>
-      </div>
       <div class="flex gap-2 justify-end mt-2">
         <button onclick="closeAllOverlays()" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
         <button class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save</button>
       </div>
-      <button class="text-xs text-red-500 hover:underline text-center mt-1">Disconnect (return to login)</button>
+      <button class="text-xs text-red-500 hover:underline text-center mt-1">Disconnect (return to server config)</button>
     </div>
   </div>
 </div>
@@ -910,6 +925,7 @@ img{display:block;max-width:100%}
       </button>
     </div>
     <div class="flex flex-col gap-3">
+      <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Your username <span class="text-red-500">*</span></span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="alice" placeholder="Required" /></label>
       <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Name</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="zynq-dev-1" /></label>
       <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Description</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="Xilinx Zynq-7020 SoC dev board" /></label>
       <label class="flex flex-col gap-1"><span class="text-xs font-medium text-gray-600">Location</span><input class="border rounded-lg px-3 py-1.5 text-sm w-full" value="Lab A / Rack 1 / Slot 2" /></label>
@@ -947,16 +963,84 @@ img{display:block;max-width:100%}
   </div>
 </div>
 
+<!-- ════════════════════════════════════════════════════ MODAL: Booking Limit -->
+<div id="overlay-limit" class="overlay" onclick="if(event.target===this)closeAllOverlays()">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h2 class="text-lg font-bold text-gray-900">Booking Limit</h2>
+        <p class="text-sm text-gray-500 mt-0.5">Max duration per booking</p>
+      </div>
+      <button onclick="closeAllOverlays()" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-gray-600">Limit mode</span>
+        <select id="limit-kind" class="border rounded-lg px-3 py-1.5 text-sm w-full" onchange="updateLimitUI()">
+          <option value="hours" selected>Limited (hours)</option>
+          <option value="unlimited">Unlimited</option>
+          <option value="never">Never expires</option>
+        </select>
+      </div>
+      <div id="limit-hours-row" class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-gray-600">Max hours</span>
+        <input id="limit-hours" type="number" min="1" value="24" class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <p id="limit-hint" class="text-xs text-gray-400">Max 24 h per booking · extendable once</p>
+      <div class="flex gap-2 justify-end">
+        <button onclick="closeAllOverlays()" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
+        <button class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ MODAL: Release -->
+<div id="overlay-release" class="overlay" onclick="if(event.target===this)closeAllOverlays()">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h2 class="text-lg font-bold text-gray-900">Release board</h2>
+        <p class="text-sm text-gray-500 mt-0.5" id="release-board-name">zynq-dev-1</p>
+      </div>
+      <button onclick="closeAllOverlays()" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="flex flex-col gap-4">
+      <!-- Current booking info -->
+      <div class="bg-amber-100 rounded-xl p-3 text-sm">
+        <p class="text-xs font-medium text-amber-700 mb-1">Currently booked by</p>
+        <p class="font-semibold text-amber-900" id="release-booker-name">alice</p>
+        <p class="text-xs text-amber-700 mt-0.5">Testing new bitstream for DSP pipeline</p>
+      </div>
+      <!-- Releasing user -->
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-gray-600">Your username <span class="text-red-500">*</span></span>
+        <input class="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" value="alice" placeholder="Required" />
+        <span class="text-xs text-gray-400">Who is releasing this board</span>
+      </label>
+      <div class="flex gap-2 justify-end">
+        <button onclick="closeAllOverlays()" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
+        <button class="px-4 py-2 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700">Release board</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const tabs = document.querySelectorAll('.tab-btn');
 function updateLimitUI() {
   const kind = document.getElementById('limit-kind').value;
+  const hoursRow = document.getElementById('limit-hours-row');
   const hoursInput = document.getElementById('limit-hours');
   const hint = document.getElementById('limit-hint');
-  hoursInput.style.display = kind === 'hours' ? '' : 'none';
-  if (kind === 'hours') hint.textContent = 'Max ' + hoursInput.value + ' h per booking';
-  if (kind === 'unlimited') hint.textContent = 'User chooses any duration';
-  if (kind === 'never') hint.textContent = 'Bookings do not auto-expire';
+  hoursRow.style.display = kind === 'hours' ? '' : 'none';
+  if (kind === 'hours') hint.textContent = 'Max ' + hoursInput.value + ' h per booking · extendable once';
+  if (kind === 'unlimited') hint.textContent = 'User chooses any duration when booking';
+  if (kind === 'never') hint.textContent = 'Bookings do not auto-expire (permanent until released)';
 }
 function show(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -984,6 +1068,14 @@ function openSettingsModal() {
 function openEditModal(name) {
   document.getElementById('edit-board-name').textContent = name;
   document.getElementById('overlay-edit').classList.add('open');
+}
+function openLimitModal() {
+  document.getElementById('overlay-limit').classList.add('open');
+}
+function openReleaseModal(boardName, bookerName) {
+  document.getElementById('release-board-name').textContent = boardName;
+  document.getElementById('release-booker-name').textContent = bookerName;
+  document.getElementById('overlay-release').classList.add('open');
 }
 show('inventory');
 </script>
