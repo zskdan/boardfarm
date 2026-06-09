@@ -7,7 +7,9 @@ import {
   createBoard,
   deleteBoard,
   deleteTool,
+  getDefaultUser,
   listBoards,
+  setDefaultUser,
   updateBoard,
 } from '../api/client';
 import type { BoardCreate, ToolCreate } from '../api/types';
@@ -33,11 +35,13 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const [form, setForm] = useState<BoardCreate>(DEFAULT_BOARD);
   const [featuresRaw, setFeaturesRaw] = useState('{}');
+  const [username, setUsername] = useState(getDefaultUser());
 
   const mut = useMutation({
     mutationFn: () =>
-      createBoard({ ...form, features: JSON.parse(featuresRaw) }),
+      createBoard({ ...form, features: JSON.parse(featuresRaw) }, username),
     onSuccess: (board) => {
+      setDefaultUser(username);
       qc.invalidateQueries({ queryKey: ['boards'] });
       onClose();
       navigate(`/boards/${board.id}`);
@@ -49,6 +53,17 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
       <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-bold mb-4">Add Board</h2>
         <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-gray-600">
+              Your username <span className="text-red-500">*</span>
+            </span>
+            <input
+              className="border rounded-lg px-3 py-1.5 text-sm"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Required"
+            />
+          </label>
           {[
             ['Name', 'name', 'text'],
             ['Description', 'description', 'text'],
@@ -116,7 +131,7 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
             </button>
             <button
               onClick={() => mut.mutate()}
-              disabled={mut.isPending || !form.name}
+              disabled={mut.isPending || !form.name || !username}
               className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
             >
               {mut.isPending ? 'Creating…' : 'Create'}
@@ -131,6 +146,7 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
 export default function AdminPage() {
   const qc = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
+  const [username, setUsernameState] = useState(getDefaultUser());
   const [editLocation, setEditLocation] = useState<Record<string, string>>({});
   const [addingTool, setAddingTool] = useState<string | null>(null);
   const [newTool, setNewTool] = useState<ToolCreate>({
@@ -148,27 +164,34 @@ export default function AdminPage() {
 
   const updateMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<BoardCreate> }) =>
-      updateBoard(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['boards'] }),
+      updateBoard(id, data, username),
+    onSuccess: () => {
+      setDefaultUser(username);
+      qc.invalidateQueries({ queryKey: ['boards'] });
+    },
   });
 
   const deleteMut = useMutation({
-    mutationFn: deleteBoard,
+    mutationFn: (id: string) => deleteBoard(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['boards'] }),
   });
 
   const addToolMut = useMutation({
     mutationFn: ({ boardId, tool }: { boardId: string; tool: ToolCreate }) =>
-      addTool(boardId, tool),
+      addTool(boardId, tool, username),
     onSuccess: () => {
+      setDefaultUser(username);
       qc.invalidateQueries({ queryKey: ['boards'] });
       setAddingTool(null);
     },
   });
 
   const deleteToolMut = useMutation({
-    mutationFn: deleteTool,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['boards'] }),
+    mutationFn: (id: string) => deleteTool(id, username),
+    onSuccess: () => {
+      setDefaultUser(username);
+      qc.invalidateQueries({ queryKey: ['boards'] });
+    },
   });
 
   return (
@@ -180,7 +203,7 @@ export default function AdminPage() {
         >
           <ArrowLeft size={14} /> Back to inventory
         </Link>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-gray-900">Admin</h1>
           <button
             onClick={() => setShowAdd(true)}
@@ -188,6 +211,20 @@ export default function AdminPage() {
           >
             <Plus size={14} /> Add Board
           </button>
+        </div>
+
+        {/* Acting-as username — used for all inline operations */}
+        <div className="bg-white rounded-xl border px-4 py-3 mb-6 flex items-center gap-3">
+          <span className="text-xs font-medium text-gray-500 whitespace-nowrap">Acting as</span>
+          <input
+            className="border rounded-lg px-3 py-1.5 text-sm flex-1 max-w-xs"
+            value={username}
+            onChange={(e) => {
+              setUsernameState(e.target.value);
+              setDefaultUser(e.target.value);
+            }}
+            placeholder="Your username (required for writes)"
+          />
         </div>
 
         <div className="flex flex-col gap-4">
@@ -231,7 +268,8 @@ export default function AdminPage() {
                       data: { location: editLocation[board.id] ?? board.location },
                     })
                   }
-                  className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+                  disabled={!username}
+                  className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-40"
                 >
                   Save
                 </button>
@@ -244,7 +282,8 @@ export default function AdminPage() {
                     <ToolBadge tool={t} />
                     <button
                       onClick={() => deleteToolMut.mutate(t.id)}
-                      className="text-gray-300 hover:text-red-500"
+                      disabled={!username}
+                      className="text-gray-300 hover:text-red-500 disabled:opacity-40"
                     >
                       <Trash2 size={10} />
                     </button>
@@ -291,7 +330,8 @@ export default function AdminPage() {
                       onClick={() =>
                         addToolMut.mutate({ boardId: board.id, tool: newTool })
                       }
-                      className="text-xs px-2 py-0.5 bg-blue-600 text-white rounded"
+                      disabled={!username}
+                      className="text-xs px-2 py-0.5 bg-blue-600 text-white rounded disabled:opacity-40"
                     >
                       Add
                     </button>

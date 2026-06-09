@@ -43,12 +43,12 @@ export default function BoardDetailPage() {
   };
 
   const bookMut = useMutation({
-    mutationFn: () => bookBoard(id!, duration),
+    mutationFn: () => bookBoard(id!, duration, '', me),
     onSuccess: invalidate,
   });
 
   const releaseMut = useMutation({
-    mutationFn: () => releaseBooking(myBooking!.id),
+    mutationFn: () => releaseBooking(myBooking!.id, me),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['commands', myBooking?.id] });
       invalidate();
