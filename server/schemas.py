@@ -28,21 +28,6 @@ class AgentOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ToolIn(BaseModel):
-    type: str
-    model: str = ""
-    connection: str = "usb"
-    connection_detail: str = ""
-    notes: str = ""
-
-
-class ToolOut(ToolIn):
-    id: str
-    board_id: str
-
-    model_config = {"from_attributes": True}
-
-
 class BoardIn(BaseModel):
     name: str
     serial_number: str = ""
@@ -128,7 +113,6 @@ class BoardOut(BaseModel):
     enabled: bool
     agent_online: bool = False
     active_booking: BookingOut | None = None
-    tools: list[ToolOut] = []
 
     @field_validator("features", "power_args", mode="before")
     @classmethod

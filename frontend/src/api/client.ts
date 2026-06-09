@@ -8,8 +8,6 @@ import type {
   CommandsInfo,
   SetupCreate,
   SetupInfo,
-  ToolCreate,
-  ToolInfo,
 } from './types';
 
 // ── localStorage keys ─────────────────────────────────────────────────────────
@@ -143,26 +141,6 @@ export async function deleteBoard(id: string): Promise<void> {
 export async function updateBoardNotes(id: string, notes: string): Promise<BoardInfo> {
   const { data } = await api().patch<BoardInfo>(`/boards/${id}`, { current_notes: notes });
   return data;
-}
-
-// ── Tools ─────────────────────────────────────────────────────────────────────
-
-export async function listTools(boardId: string): Promise<ToolInfo[]> {
-  const { data } = await api().get<ToolInfo[]>(`/boards/${boardId}/tools`);
-  return data;
-}
-
-export async function addTool(
-  boardId: string,
-  body: ToolCreate,
-  username: string,
-): Promise<ToolInfo> {
-  const { data } = await apiAs(username).post<ToolInfo>(`/boards/${boardId}/tools`, body);
-  return data;
-}
-
-export async function deleteTool(toolId: string, username: string): Promise<void> {
-  await apiAs(username).delete(`/tools/${toolId}`);
 }
 
 // ── Bookings ──────────────────────────────────────────────────────────────────

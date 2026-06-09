@@ -3,17 +3,14 @@ import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  addTool,
   createBoard,
   deleteBoard,
-  deleteTool,
   getDefaultUser,
   listBoards,
   setDefaultUser,
   updateBoard,
 } from '../api/client';
-import type { BoardCreate, ToolCreate } from '../api/types';
-import ToolBadge from '../components/ToolBadge';
+import type { BoardCreate } from '../api/types';
 
 function parseAddr(addr: string, defaultPort: number): { ip: string; port: number } {
   const last = addr.lastIndexOf(':');
@@ -257,14 +254,6 @@ export default function AdminPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [username, setUsernameState] = useState(getDefaultUser());
   const [editLocation, setEditLocation] = useState<Record<string, string>>({});
-  const [addingTool, setAddingTool] = useState<string | null>(null);
-  const [newTool, setNewTool] = useState<ToolCreate>({
-    type: 'logic_analyzer',
-    model: '',
-    connection: 'usb',
-    connection_detail: '',
-    notes: '',
-  });
 
   const { data: boards = [] } = useQuery({
     queryKey: ['boards'],
@@ -283,24 +272,6 @@ export default function AdminPage() {
   const deleteMut = useMutation({
     mutationFn: (id: string) => deleteBoard(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['boards'] }),
-  });
-
-  const addToolMut = useMutation({
-    mutationFn: ({ boardId, tool }: { boardId: string; tool: ToolCreate }) =>
-      addTool(boardId, tool, username),
-    onSuccess: () => {
-      setDefaultUser(username);
-      qc.invalidateQueries({ queryKey: ['boards'] });
-      setAddingTool(null);
-    },
-  });
-
-  const deleteToolMut = useMutation({
-    mutationFn: (id: string) => deleteTool(id, username),
-    onSuccess: () => {
-      setDefaultUser(username);
-      qc.invalidateQueries({ queryKey: ['boards'] });
-    },
   });
 
   return (
@@ -382,83 +353,6 @@ export default function AdminPage() {
                 >
                   Save
                 </button>
-              </div>
-
-              {/* Tools */}
-              <div className="flex flex-wrap gap-1 mb-2">
-                {board.tools.map((t) => (
-                  <div key={t.id} className="flex items-center gap-1">
-                    <ToolBadge tool={t} />
-                    <button
-                      onClick={() => deleteToolMut.mutate(t.id)}
-                      disabled={!username}
-                      className="text-gray-300 hover:text-red-500 disabled:opacity-40"
-                    >
-                      <Trash2 size={10} />
-                    </button>
-                  </div>
-                ))}
-                {addingTool === board.id ? (
-                  <div className="flex gap-1 items-center flex-wrap">
-                    <select
-                      className="border rounded px-1 py-0.5 text-xs"
-                      value={newTool.type}
-                      onChange={(e) =>
-                        setNewTool((t) => ({ ...t, type: e.target.value }))
-                      }
-                    >
-                      {[
-                        'logic_analyzer',
-                        'power_supply',
-                        'oscilloscope',
-                        'debugger',
-                        'other',
-                      ].map((o) => (
-                        <option key={o} value={o}>
-                          {o}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      className="border rounded px-1 py-0.5 text-xs w-24"
-                      placeholder="Model"
-                      value={newTool.model}
-                      onChange={(e) =>
-                        setNewTool((t) => ({ ...t, model: e.target.value }))
-                      }
-                    />
-                    <input
-                      className="border rounded px-1 py-0.5 text-xs w-28"
-                      placeholder="/dev/ttyUSB1"
-                      value={newTool.connection_detail}
-                      onChange={(e) =>
-                        setNewTool((t) => ({ ...t, connection_detail: e.target.value }))
-                      }
-                    />
-                    <button
-                      onClick={() =>
-                        addToolMut.mutate({ boardId: board.id, tool: newTool })
-                      }
-                      disabled={!username}
-                      className="text-xs px-2 py-0.5 bg-blue-600 text-white rounded disabled:opacity-40"
-                    >
-                      Add
-                    </button>
-                    <button
-                      onClick={() => setAddingTool(null)}
-                      className="text-xs text-gray-400 hover:text-gray-600"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setAddingTool(board.id)}
-                    className="flex items-center gap-0.5 text-xs text-gray-400 hover:text-blue-600"
-                  >
-                    <Plus size={11} /> tool
-                  </button>
-                )}
               </div>
 
               {/* Toggle enabled */}

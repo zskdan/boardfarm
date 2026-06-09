@@ -2,7 +2,6 @@ import { MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { BoardInfo } from '../api/types';
 import StatusBadge from './StatusBadge';
-import ToolBadge from './ToolBadge';
 
 export default function BoardCard({ board }: { board: BoardInfo }) {
   return (
@@ -37,14 +36,6 @@ export default function BoardCard({ board }: { board: BoardInfo }) {
       {board.active_booking && (
         <div className="text-xs text-red-600 mb-2">
           Booked by <strong>{board.active_booking.username}</strong>
-        </div>
-      )}
-
-      {board.tools.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-1">
-          {board.tools.map((t) => (
-            <ToolBadge key={t.id} tool={t} />
-          ))}
         </div>
       )}
     </Link>

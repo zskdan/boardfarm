@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { listActivity } from '../api/client';
 import type { ActivityEntry } from '../api/types';
 
-type ActionGroup = 'all' | 'bookings' | 'board_changes' | 'tools';
+type ActionGroup = 'all' | 'bookings' | 'board_changes';
 
 const ACTION_BADGE: Record<string, { label: string; cls: string }> = {
   booked:        { label: 'Booked',         cls: 'bg-blue-100 text-blue-700' },
@@ -22,7 +22,6 @@ const GROUP_ACTIONS: Record<ActionGroup, string[]> = {
   all: [],
   bookings: ['booked', 'released', 'extended'],
   board_changes: ['board_created', 'board_updated', 'board_deleted'],
-  tools: ['tool_added', 'tool_deleted'],
 };
 
 function ActionBadge({ action }: { action: string }) {
@@ -60,7 +59,6 @@ export default function HistoryPage() {
     { label: 'All', value: 'all' },
     { label: 'Bookings', value: 'bookings' },
     { label: 'Device changes', value: 'board_changes' },
-    { label: 'Tools', value: 'tools' },
   ];
 
   return (

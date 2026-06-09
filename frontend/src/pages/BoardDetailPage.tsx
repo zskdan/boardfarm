@@ -14,7 +14,6 @@ import BoardNotes from '../components/BoardNotes';
 import BookingTimer from '../components/BookingTimer';
 import ConnectionCommands from '../components/ConnectionCommands';
 import StatusBadge from '../components/StatusBadge';
-import ToolBadge from '../components/ToolBadge';
 
 function ShellLine({ label, cmd }: { label: string; cmd: string }) {
   const [copied, setCopied] = useState(false);
@@ -176,13 +175,6 @@ export default function BoardDetailPage() {
             )}
           </div>
 
-          {board.tools.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-3">
-              {board.tools.map((t) => (
-                <ToolBadge key={t.id} tool={t} />
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Features */}

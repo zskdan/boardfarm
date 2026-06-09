@@ -8,24 +8,6 @@ export interface AgentInfo {
   self?: boolean;
 }
 
-export interface ToolInfo {
-  id: string;
-  board_id: string;
-  type: string;
-  model: string;
-  connection: string;
-  connection_detail: string;
-  notes: string;
-}
-
-export interface ToolCreate {
-  type: string;
-  model: string;
-  connection: string;
-  connection_detail: string;
-  notes: string;
-}
-
 export interface BookingInfo {
   id: string;
   board_id: string;
@@ -94,7 +76,6 @@ export interface BoardInfo {
   enabled: boolean;
   agent_online: boolean;
   active_booking: BookingInfo | null;
-  tools: ToolInfo[];
   current_notes: string;
 }
 

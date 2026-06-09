@@ -79,26 +79,7 @@ class Board(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
     agent: Mapped["Agent | None"] = relationship("Agent", back_populates="boards")
-    tools: Mapped[list["Tool"]] = relationship(
-        "Tool", back_populates="board", cascade="all, delete-orphan"
-    )
     bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="board")
-
-
-class Tool(Base):
-    __tablename__ = "tools"
-
-    id: Mapped[str] = mapped_column(String, primary_key=True)
-    board_id: Mapped[str] = mapped_column(
-        String, ForeignKey("boards.id", ondelete="CASCADE"), nullable=False
-    )
-    type: Mapped[str] = mapped_column(String, nullable=False)
-    model: Mapped[str] = mapped_column(String, default="")
-    connection: Mapped[str] = mapped_column(String, default="usb")
-    connection_detail: Mapped[str] = mapped_column(String, default="")
-    notes: Mapped[str] = mapped_column(String, default="")
-
-    board: Mapped["Board"] = relationship("Board", back_populates="tools")
 
 
 class Booking(Base):

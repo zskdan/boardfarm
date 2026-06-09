@@ -15,11 +15,9 @@ import {
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  addTool,
   bookBoard,
   createBoard,
   deleteBoard,
-  deleteTool,
   getBookingLimit,
   getDefaultUser,
   getServerUrl,
@@ -33,9 +31,8 @@ import {
   updateBoard,
 } from '../api/client';
 import type { BookingLimit } from '../api/client';
-import type { BoardCreate, BoardInfo, ToolCreate } from '../api/types';
+import type { BoardCreate, BoardInfo } from '../api/types';
 import StatusBadge from '../components/StatusBadge';
-import ToolBadge from '../components/ToolBadge';
 import { useStatusSocket } from '../hooks/useStatusSocket';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,7 +64,6 @@ const DEFAULT_BOARD: BoardCreate = {
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
   enabled: true, current_notes: '',
 };
-const TOOL_TYPES = ['logic_analyzer', 'power_supply', 'oscilloscope', 'debugger', 'other'];
 
 function limitLabel(l: BookingLimit): string {
   if (l === 'unlimited') return 'Unlimited';
@@ -255,8 +251,6 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
   const [featuresRaw, setFeaturesRaw] = useState(JSON.stringify(board.features, null, 2));
   const [hasEthernet, setHasEthernet] = useState(!!(board.device_ip || board.ssh_port));
   const [hasAgent, setHasAgent] = useState(!!(board.host_ip || board.jtag_port || board.uart_tcp_port));
-  const [newTool, setNewTool] = useState<ToolCreate>({ type: 'logic_analyzer', model: '', connection: 'usb', connection_detail: '', notes: '' });
-  const [addingTool, setAddingTool] = useState(false);
 
   const updateMut = useMutation({
     mutationFn: () => {
@@ -265,18 +259,6 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
       return updateBoard(board.id, { ...form, features }, username);
     },
     onSuccess: () => { setDefaultUser(username); qc.invalidateQueries({ queryKey: ['boards'] }); onClose(); },
-  });
-  const addToolMut = useMutation({
-    mutationFn: () => addTool(board.id, newTool, username),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['boards'] });
-      setAddingTool(false);
-      setNewTool({ type: 'logic_analyzer', model: '', connection: 'usb', connection_detail: '', notes: '' });
-    },
-  });
-  const deleteToolMut = useMutation({
-    mutationFn: (toolId: string) => deleteTool(toolId, username),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['boards'] }),
   });
 
   return (
@@ -359,41 +341,6 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
               onChange={(e) => setForm(f => ({ ...f, enabled: e.target.checked }))} />
             Enabled
           </label>
-
-          {/* Tools */}
-          <div className="pt-1 border-t">
-            <p className="text-xs font-medium text-gray-600 mb-2">Attached Tools</p>
-            <div className="flex flex-wrap gap-1 mb-2">
-              {board.tools.map((t) => (
-                <div key={t.id} className="flex items-center gap-1">
-                  <ToolBadge tool={t} />
-                  <button onClick={() => deleteToolMut.mutate(t.id)}
-                    className="text-gray-300 hover:text-red-500"><X size={11} /></button>
-                </div>
-              ))}
-            </div>
-            {addingTool ? (
-              <div className="flex flex-wrap gap-1 items-center">
-                <select className="border rounded px-1.5 py-1 text-xs" value={newTool.type}
-                  onChange={(e) => setNewTool(t => ({ ...t, type: e.target.value }))}>
-                  {TOOL_TYPES.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-                <input className="border rounded px-1.5 py-1 text-xs w-24" placeholder="Model"
-                  value={newTool.model} onChange={(e) => setNewTool(t => ({ ...t, model: e.target.value }))} />
-                <input className="border rounded px-1.5 py-1 text-xs w-28" placeholder="/dev/ttyUSB1"
-                  value={newTool.connection_detail} onChange={(e) => setNewTool(t => ({ ...t, connection_detail: e.target.value }))} />
-                <button onClick={() => addToolMut.mutate()}
-                  className="px-2 py-1 text-xs bg-blue-600 text-white rounded">Add</button>
-                <button onClick={() => setAddingTool(false)}
-                  className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
-              </div>
-            ) : (
-              <button onClick={() => setAddingTool(true)}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600">
-                <Plus size={11} /> Add tool
-              </button>
-            )}
-          </div>
 
           {updateMut.error && <p className="text-xs text-red-600">{(updateMut.error as Error).message}</p>}
           <ModalActions onCancel={onClose} onConfirm={() => updateMut.mutate()}
@@ -653,8 +600,7 @@ export default function InventoryPage() {
       b.device_id.toLowerCase().includes(q) ||
       b.location.toLowerCase().includes(q) ||
       b.description.toLowerCase().includes(q) ||
-      (b.active_booking?.username ?? '').toLowerCase().includes(q) ||
-      b.tools.some(t => t.type.includes(q) || t.model.toLowerCase().includes(q))
+      (b.active_booking?.username ?? '').toLowerCase().includes(q)
     );
   });
 
@@ -772,7 +718,6 @@ export default function InventoryPage() {
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Booked by</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Location</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Tools</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
@@ -823,12 +768,6 @@ export default function InventoryPage() {
                           <MapPin size={11} className="flex-shrink-0" />{b.location}
                         </div>
                       ) : <span className="text-gray-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {b.tools.map((t) => <ToolBadge key={t.id} tool={t} />)}
-                        {b.tools.length === 0 && <span className="text-gray-300">—</span>}
-                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">

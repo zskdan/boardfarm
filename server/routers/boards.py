@@ -13,7 +13,7 @@ from ..audit import log_action
 from ..auth import require_user
 from ..database import get_db
 from ..models import Agent, Board, Booking
-from ..schemas import BoardIn, BoardOut, BoardUpdate, BookingOut, ToolOut
+from ..schemas import BoardIn, BoardOut, BoardUpdate, BookingOut
 
 router = APIRouter(prefix="/boards", tags=["boards"])
 
@@ -50,8 +50,6 @@ async def _build_board_out(board: Board, db: AsyncSession) -> BoardOut:
             )
             break
 
-    tools = [ToolOut.model_validate(t) for t in board.tools]
-
     return BoardOut(
         id=board.id,
         device_id=board.device_id,
@@ -74,7 +72,6 @@ async def _build_board_out(board: Board, db: AsyncSession) -> BoardOut:
         enabled=board.enabled,
         agent_online=agent_online,
         active_booking=active_booking,
-        tools=tools,
     )
 
 
@@ -84,7 +81,6 @@ async def _load_board(board_id: str, db: AsyncSession) -> Board:
         .where(Board.id == board_id)
         .options(
             selectinload(Board.agent),
-            selectinload(Board.tools),
             selectinload(Board.bookings),
         )
     )
@@ -101,7 +97,6 @@ async def list_boards(
     result = await db.execute(
         select(Board).options(
             selectinload(Board.agent),
-            selectinload(Board.tools),
             selectinload(Board.bookings),
         )
     )
