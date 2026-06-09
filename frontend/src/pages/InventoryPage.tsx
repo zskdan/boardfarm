@@ -122,6 +122,8 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
   const [hasAgent, setHasAgent] = useState(false);
   const [hasUsb, setHasUsb] = useState(false);
   const [hasUart, setHasUart] = useState(true);
+  const [hasJtag, setHasJtag] = useState(false);
+  const [hasPower, setHasPower] = useState(false);
 
   const mut = useMutation({
     mutationFn: () => {
@@ -132,10 +134,10 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
         ssh_user: hasEthernet && hasSsh ? form.ssh_user : 'root',
         ssh_port: hasEthernet && hasSsh ? form.ssh_port : 0,
         host_ip: hasAgent ? form.host_ip : '',
-        jtag_port: hasAgent ? form.jtag_port : 0,
-        uart_tcp_port: hasAgent ? form.uart_tcp_port : 0,
-        power_script: hasAgent ? form.power_script : '',
-        power_args: hasAgent ? form.power_args : {},
+        jtag_port: hasAgent && hasJtag ? form.jtag_port : 0,
+        uart_tcp_port: 0,
+        power_script: hasAgent && hasPower ? form.power_script : '',
+        power_args: hasAgent && hasPower ? form.power_args : {},
         usb_device: hasUsb && hasUart ? form.usb_device ?? '' : '',
       };
       return createDevice(payload, username);
@@ -230,27 +232,47 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
             <input type="checkbox" className="accent-blue-600" checked={hasAgent}
               onChange={(e) => setHasAgent(e.target.checked)} />
-            Has hardware agent (JTAG · UART · power control)
+            Has hardware agent
           </label>
           {hasAgent && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-200">
-              {([['Agent Host IP', 'host_ip'], ['Power Script', 'power_script']] as [string, keyof DeviceCreate][]).map(([label, key]) => (
-                <Field key={key} label={label}>
-                  <input type="text" className={inputCls} value={String(form[key] ?? '')}
-                    onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
-                </Field>
-              ))}
-              {([['JTAG Port', 'jtag_port'], ['UART TCP Port', 'uart_tcp_port']] as [string, keyof DeviceCreate][]).map(([label, key]) => (
-                <Field key={key} label={label}>
-                  <input type="number" className={inputCls} value={Number(form[key])}
-                    onChange={(e) => setForm(f => ({ ...f, [key]: Number(e.target.value) }))} />
-                </Field>
-              ))}
-              <Field label="Power Script Args (JSON)">
-                <textarea className={`${inputCls} font-mono`} rows={2}
-                  value={JSON.stringify(form.power_args ?? {})}
-                  onChange={(e) => { try { setForm(f => ({ ...f, power_args: JSON.parse(e.target.value) })); } catch { /* ignore */ } }} />
+              <Field label="Agent Host IP">
+                <input type="text" className={inputCls} value={form.host_ip ?? ''}
+                  onChange={(e) => setForm(f => ({ ...f, host_ip: e.target.value }))} />
               </Field>
+              {/* JTAG sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-blue-500" checked={hasJtag}
+                  onChange={(e) => setHasJtag(e.target.checked)} />
+                JTAG
+              </label>
+              {hasJtag && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-100">
+                  <Field label="JTAG Port">
+                    <input type="number" className={inputCls} value={form.jtag_port}
+                      onChange={(e) => setForm(f => ({ ...f, jtag_port: Number(e.target.value) }))} />
+                  </Field>
+                </div>
+              )}
+              {/* Power Control sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-orange-500" checked={hasPower}
+                  onChange={(e) => setHasPower(e.target.checked)} />
+                Power Control
+              </label>
+              {hasPower && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-orange-100">
+                  <Field label="Power Script">
+                    <input type="text" className={inputCls} value={form.power_script ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, power_script: e.target.value }))} />
+                  </Field>
+                  <Field label="Power Script Args (JSON)">
+                    <textarea className={`${inputCls} font-mono`} rows={2}
+                      value={JSON.stringify(form.power_args ?? {})}
+                      onChange={(e) => { try { setForm(f => ({ ...f, power_args: JSON.parse(e.target.value) })); } catch { /* ignore */ } }} />
+                  </Field>
+                </div>
+              )}
             </div>
           )}
 
@@ -297,9 +319,11 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
   const [featuresRaw, setFeaturesRaw] = useState(JSON.stringify(device.features, null, 2));
   const [hasEthernet, setHasEthernet] = useState(!!(device.device_ip || device.ssh_port));
   const [hasSsh, setHasSsh] = useState(!!(device.device_ip || device.ssh_port));
-  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.uart_tcp_port));
+  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.power_script));
   const [hasUsb, setHasUsb] = useState(!!device.usb_device);
   const [hasUart, setHasUart] = useState(!!device.usb_device);
+  const [hasJtag, setHasJtag] = useState(!!device.jtag_port);
+  const [hasPower, setHasPower] = useState(!!device.power_script);
 
   const updateMut = useMutation({
     mutationFn: () => {
@@ -312,10 +336,10 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
         ssh_user: hasEthernet && hasSsh ? form.ssh_user : 'root',
         ssh_port: hasEthernet && hasSsh ? form.ssh_port : 0,
         host_ip: hasAgent ? form.host_ip : '',
-        jtag_port: hasAgent ? form.jtag_port : 0,
-        uart_tcp_port: hasAgent ? form.uart_tcp_port : 0,
-        power_script: hasAgent ? form.power_script : '',
-        power_args: hasAgent ? form.power_args : {},
+        jtag_port: hasAgent && hasJtag ? form.jtag_port : 0,
+        uart_tcp_port: 0,
+        power_script: hasAgent && hasPower ? form.power_script : '',
+        power_args: hasAgent && hasPower ? form.power_args : {},
         usb_device: hasUsb && hasUart ? form.usb_device : '',
       }, username);
     },
@@ -408,27 +432,47 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
             <input type="checkbox" className="accent-blue-600" checked={hasAgent}
               onChange={(e) => setHasAgent(e.target.checked)} />
-            Has hardware agent (JTAG · UART · power control)
+            Has hardware agent
           </label>
           {hasAgent && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-200">
-              {([['Agent Host IP', 'host_ip'], ['Power Script', 'power_script']] as [string, keyof typeof form][]).map(([label, key]) => (
-                <Field key={key} label={label}>
-                  <input type="text" className={inputCls} value={String(form[key] ?? '')}
-                    onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
-                </Field>
-              ))}
-              {([['JTAG Port', 'jtag_port'], ['UART TCP Port', 'uart_tcp_port']] as [string, keyof typeof form][]).map(([label, key]) => (
-                <Field key={key} label={label}>
-                  <input type="number" className={inputCls} value={Number(form[key])}
-                    onChange={(e) => setForm(f => ({ ...f, [key]: Number(e.target.value) }))} />
-                </Field>
-              ))}
-              <Field label="Power Script Args (JSON)">
-                <textarea className={`${inputCls} font-mono`} rows={2}
-                  value={JSON.stringify(form.power_args ?? {})}
-                  onChange={(e) => { try { setForm(f => ({ ...f, power_args: JSON.parse(e.target.value) })); } catch { /* ignore */ } }} />
+              <Field label="Agent Host IP">
+                <input type="text" className={inputCls} value={form.host_ip ?? ''}
+                  onChange={(e) => setForm(f => ({ ...f, host_ip: e.target.value }))} />
               </Field>
+              {/* JTAG sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-blue-500" checked={hasJtag}
+                  onChange={(e) => setHasJtag(e.target.checked)} />
+                JTAG
+              </label>
+              {hasJtag && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-100">
+                  <Field label="JTAG Port">
+                    <input type="number" className={inputCls} value={Number(form.jtag_port)}
+                      onChange={(e) => setForm(f => ({ ...f, jtag_port: Number(e.target.value) }))} />
+                  </Field>
+                </div>
+              )}
+              {/* Power Control sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-orange-500" checked={hasPower}
+                  onChange={(e) => setHasPower(e.target.checked)} />
+                Power Control
+              </label>
+              {hasPower && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-orange-100">
+                  <Field label="Power Script">
+                    <input type="text" className={inputCls} value={form.power_script ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, power_script: e.target.value }))} />
+                  </Field>
+                  <Field label="Power Script Args (JSON)">
+                    <textarea className={`${inputCls} font-mono`} rows={2}
+                      value={JSON.stringify(form.power_args ?? {})}
+                      onChange={(e) => { try { setForm(f => ({ ...f, power_args: JSON.parse(e.target.value) })); } catch { /* ignore */ } }} />
+                  </Field>
+                </div>
+              )}
             </div>
           )}
 
