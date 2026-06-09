@@ -140,14 +140,28 @@ export default function BoardDetailPage() {
                 {board.location}
               </div>
             )}
-            <div className="flex items-center gap-1">
-              {board.agent_online ? (
-                <Wifi size={13} className="text-green-500" />
-              ) : (
-                <WifiOff size={13} className="text-gray-400" />
-              )}
-              {board.host_ip ?? 'No agent'}
-            </div>
+            {board.device_ip && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-semibold text-gray-400 uppercase">IP</span>
+                <span className="font-mono">{board.device_ip}</span>
+              </div>
+            )}
+            {board.host_ip && (
+              <div className="flex items-center gap-1">
+                {board.agent_online ? (
+                  <Wifi size={13} className="text-green-500" />
+                ) : (
+                  <WifiOff size={13} className="text-gray-400" />
+                )}
+                <span className="text-xs">Agent: {board.host_ip}</span>
+              </div>
+            )}
+            {!board.device_ip && !board.host_ip && (
+              <div className="flex items-center gap-1 text-gray-400">
+                <WifiOff size={13} />
+                No IP configured
+              </div>
+            )}
             {board.serial_number && (
               <div className="flex items-center gap-1">
                 <span className="text-xs font-semibold text-gray-400 uppercase">S/N</span>
@@ -196,7 +210,7 @@ export default function BoardDetailPage() {
               {board.ssh_port > 0 && (
                 <ShellLine
                   label="SSH"
-                  cmd={`ssh ${board.ssh_user}@${board.host_ip ?? 'AGENT_IP'} -p ${board.ssh_port}`}
+                  cmd={`ssh ${board.ssh_user}@${board.device_ip || board.host_ip || 'DEVICE_IP'} -p ${board.ssh_port}`}
                 />
               )}
               {board.uart_tcp_port > 0 && (

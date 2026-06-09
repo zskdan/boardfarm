@@ -50,6 +50,7 @@ class BoardIn(BaseModel):
     description: str = ""
     location: str = ""
     current_notes: str = ""
+    device_ip: str = ""
     host_ip: str | None = None
     features: dict = {}
     jtag_port: int = 0
@@ -68,6 +69,7 @@ class BoardUpdate(BaseModel):
     description: str | None = None
     location: str | None = None
     current_notes: str | None = None
+    device_ip: str | None = None
     host_ip: str | None = None
     features: dict | None = None
     jtag_port: int | None = None
@@ -113,6 +115,7 @@ class BoardOut(BaseModel):
     description: str
     location: str
     current_notes: str = ""
+    device_ip: str = ""
     agent_id: str | None
     host_ip: str | None
     features: dict

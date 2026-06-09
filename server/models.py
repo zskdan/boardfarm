@@ -67,6 +67,7 @@ class Board(Base):
     agent_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("agents.id", ondelete="SET NULL"), nullable=True
     )
+    device_ip: Mapped[str] = mapped_column(String, default="")
     host_ip: Mapped[str | None] = mapped_column(String, nullable=True)
     features: Mapped[str] = mapped_column(String, default="{}")  # JSON
     jtag_port: Mapped[int] = mapped_column(Integer, default=3121)

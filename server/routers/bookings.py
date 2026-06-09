@@ -242,13 +242,14 @@ async def get_commands(
         raise HTTPException(status_code=409, detail="Booking is not active")
 
     board = booking.board
-    ip = board.host_ip or "AGENT_IP"
+    agent_ip = board.host_ip or "AGENT_IP"
+    ssh_ip = board.device_ip or board.host_ip or "DEVICE_IP"
 
     return CommandsOut(
-        jtag_connect=f"connect_hw_server -url tcp:{ip}:{board.jtag_port}",
-        vivado_tcl=f"connect_hw_server -url tcp:{ip}:{board.jtag_port}\nopen_hw_target",
-        uart=f"telnet {ip} {board.uart_tcp_port}",
-        ssh=f"ssh {board.ssh_user}@{ip} -p {board.ssh_port}",
+        jtag_connect=f"connect_hw_server -url tcp:{agent_ip}:{board.jtag_port}" if board.jtag_port else "",
+        vivado_tcl=f"connect_hw_server -url tcp:{agent_ip}:{board.jtag_port}\nopen_hw_target" if board.jtag_port else "",
+        uart=f"telnet {agent_ip} {board.uart_tcp_port}" if board.uart_tcp_port else "",
+        ssh=f"ssh {board.ssh_user}@{ssh_ip} -p {board.ssh_port}" if board.ssh_port else "",
         power_on=f"# Use the boardfarm UI or API: POST /boards/{board.id}/power {{\"action\":\"on\"}}",
     )
 

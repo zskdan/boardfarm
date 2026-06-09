@@ -156,9 +156,9 @@ Custom controllers: subclass `power.base.PowerController`.
 |----------|--------------------------|
 | ![Settings modal for server URL and username](screenshots/settings-modal.png) | ![Add setup modal with searchable device picker](screenshots/add-setup-modal.png) |
 
-| Book Setup modal | Add device modal |
-|-----------------|-----------------|
-| ![Book setup modal with duration and comment](screenshots/book-setup-modal.png) | ![Add device modal with fields for name, location, connectivity](screenshots/add-device-modal.png) |
+| Book Setup modal | Add device (with agent) |
+|-----------------|------------------------|
+| ![Book setup modal with duration and comment](screenshots/book-setup-modal.png) | ![Add device modal with agent section expanded](screenshots/add-device-modal-agent.png) |
 
 ---
 

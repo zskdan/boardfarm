@@ -42,24 +42,27 @@ import { useStatusSocket } from '../hooks/useStatusSocket';
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const FIELD_TEXT: [string, keyof BoardCreate, string][] = [
-  ['Name', 'name', 'text'],
-  ['Serial Number', 'serial_number', 'text'],
-  ['Revision', 'revision', 'text'],
-  ['Description', 'description', 'text'],
-  ['Location', 'location', 'text'],
-  ['Agent Host IP', 'host_ip', 'text'],
-  ['SSH User', 'ssh_user', 'text'],
-  ['Power Script', 'power_script', 'text'],
+const FIELD_BASIC: [string, keyof BoardCreate][] = [
+  ['Name', 'name'],
+  ['Serial Number', 'serial_number'],
+  ['Revision', 'revision'],
+  ['Description', 'description'],
+  ['Location', 'location'],
+  ['Device IP', 'device_ip'],
+  ['SSH User', 'ssh_user'],
 ];
-const FIELD_NUM: [string, keyof BoardCreate][] = [
+const FIELD_AGENT_TEXT: [string, keyof BoardCreate][] = [
+  ['Agent Host IP', 'host_ip'],
+  ['Power Script', 'power_script'],
+];
+const FIELD_AGENT_NUM: [string, keyof BoardCreate][] = [
+  ['SSH Port', 'ssh_port'],
   ['JTAG Port', 'jtag_port'],
   ['UART TCP Port', 'uart_tcp_port'],
-  ['SSH Port', 'ssh_port'],
 ];
 const DEFAULT_BOARD: BoardCreate = {
   name: '', serial_number: '', revision: '', description: '',
-  location: '', host_ip: '', features: {}, jtag_port: 3121, uart_tcp_port: 5555,
+  location: '', device_ip: '', host_ip: '', features: {}, jtag_port: 3121, uart_tcp_port: 5555,
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
   enabled: true, current_notes: '',
 };
@@ -128,6 +131,7 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
   const [username, setUsernameState] = useState(getDefaultUser());
   const [form, setForm] = useState<BoardCreate>(DEFAULT_BOARD);
   const [featuresRaw, setFeaturesRaw] = useState('{}');
+  const [hasAgent, setHasAgent] = useState(false);
 
   const mut = useMutation({
     mutationFn: () => createBoard({ ...form, features: JSON.parse(featuresRaw) }, username),
@@ -147,23 +151,50 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
             <input className={inputCls} value={username}
               onChange={(e) => setUsernameState(e.target.value)} placeholder="Required" />
           </Field>
-          {FIELD_TEXT.map(([label, key]) => (
+          {FIELD_BASIC.map(([label, key]) => (
             <Field key={key as string} label={label}>
               <input type="text" className={inputCls} value={String(form[key] ?? '')}
                 onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
             </Field>
           ))}
-          {FIELD_NUM.map(([label, key]) => (
-            <Field key={key as string} label={label}>
-              <input type="number" className={inputCls} value={Number(form[key])}
-                onChange={(e) => setForm(f => ({ ...f, [key]: Number(e.target.value) }))} />
-            </Field>
-          ))}
+          <Field label="SSH Port">
+            <input type="number" className={inputCls} value={Number(form.ssh_port)}
+              onChange={(e) => setForm(f => ({ ...f, ssh_port: Number(e.target.value) }))} />
+          </Field>
           <Field label="Features (JSON)">
             <textarea className={`${inputCls} font-mono`} rows={3} value={featuresRaw}
               onChange={(e) => setFeaturesRaw(e.target.value)} />
           </Field>
-          <label className="flex items-center gap-2 text-sm">
+
+          {/* Agent section */}
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
+            <input type="checkbox" className="accent-blue-600" checked={hasAgent}
+              onChange={(e) => setHasAgent(e.target.checked)} />
+            Has hardware agent (JTAG · UART · power control)
+          </label>
+          {hasAgent && (
+            <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-200">
+              {FIELD_AGENT_TEXT.map(([label, key]) => (
+                <Field key={key as string} label={label}>
+                  <input type="text" className={inputCls} value={String(form[key] ?? '')}
+                    onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
+                </Field>
+              ))}
+              {FIELD_AGENT_NUM.filter(([, k]) => k !== 'ssh_port').map(([label, key]) => (
+                <Field key={key as string} label={label}>
+                  <input type="number" className={inputCls} value={Number(form[key])}
+                    onChange={(e) => setForm(f => ({ ...f, [key]: Number(e.target.value) }))} />
+                </Field>
+              ))}
+              <Field label="Power Script Args (JSON)">
+                <textarea className={`${inputCls} font-mono`} rows={2}
+                  value={JSON.stringify(form.power_args ?? {})}
+                  onChange={(e) => { try { setForm(f => ({ ...f, power_args: JSON.parse(e.target.value) })); } catch { /* ignore */ } }} />
+              </Field>
+            </div>
+          )}
+
+          <label className="flex items-center gap-2 text-sm border-t pt-3">
             <input type="checkbox" checked={form.enabled}
               onChange={(e) => setForm(f => ({ ...f, enabled: e.target.checked }))} />
             Enabled
@@ -191,6 +222,7 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
     revision: board.revision,
     description: board.description,
     location: board.location,
+    device_ip: board.device_ip ?? '',
     host_ip: board.host_ip ?? '',
     current_notes: board.current_notes,
     ssh_user: board.ssh_user,
@@ -198,9 +230,11 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
     jtag_port: board.jtag_port,
     uart_tcp_port: board.uart_tcp_port,
     power_script: board.power_script,
+    power_args: board.power_args,
     enabled: board.enabled,
   });
   const [featuresRaw, setFeaturesRaw] = useState(JSON.stringify(board.features, null, 2));
+  const [hasAgent, setHasAgent] = useState(!!(board.host_ip || board.jtag_port || board.uart_tcp_port));
   const [newTool, setNewTool] = useState<ToolCreate>({ type: 'logic_analyzer', model: '', connection: 'usb', connection_detail: '', notes: '' });
   const [addingTool, setAddingTool] = useState(false);
 
@@ -236,18 +270,16 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
           <Field label="Device ID">
             <span className="font-mono text-sm text-gray-500 bg-gray-50 border rounded-lg px-3 py-1.5">{board.device_id || '—'}</span>
           </Field>
-          {([['Name', 'name'], ['Serial Number', 'serial_number'], ['Revision', 'revision'], ['Description', 'description'], ['Location', 'location'], ['Agent Host IP', 'host_ip'], ['SSH User', 'ssh_user'], ['Power Script', 'power_script']] as [string, keyof typeof form][]).map(([label, key]) => (
+          {([['Name', 'name'], ['Serial Number', 'serial_number'], ['Revision', 'revision'], ['Description', 'description'], ['Location', 'location'], ['Device IP', 'device_ip'], ['SSH User', 'ssh_user']] as [string, keyof typeof form][]).map(([label, key]) => (
             <Field key={key} label={label}>
               <input type="text" className={inputCls} value={String(form[key] ?? '')}
                 onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
             </Field>
           ))}
-          {([['JTAG Port', 'jtag_port'], ['UART TCP Port', 'uart_tcp_port'], ['SSH Port', 'ssh_port']] as [string, keyof typeof form][]).map(([label, key]) => (
-            <Field key={key} label={label}>
-              <input type="number" className={inputCls} value={Number(form[key])}
-                onChange={(e) => setForm(f => ({ ...f, [key]: Number(e.target.value) }))} />
-            </Field>
-          ))}
+          <Field label="SSH Port">
+            <input type="number" className={inputCls} value={Number(form.ssh_port)}
+              onChange={(e) => setForm(f => ({ ...f, ssh_port: Number(e.target.value) }))} />
+          </Field>
           <Field label="Features (JSON)">
             <textarea className={`${inputCls} font-mono`} rows={3} value={featuresRaw}
               onChange={(e) => setFeaturesRaw(e.target.value)} />
@@ -256,7 +288,36 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
             <textarea className={inputCls} rows={2} value={form.current_notes}
               onChange={(e) => setForm(f => ({ ...f, current_notes: e.target.value }))} />
           </Field>
-          <label className="flex items-center gap-2 text-sm">
+
+          {/* Agent section */}
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
+            <input type="checkbox" className="accent-blue-600" checked={hasAgent}
+              onChange={(e) => setHasAgent(e.target.checked)} />
+            Has hardware agent (JTAG · UART · power control)
+          </label>
+          {hasAgent && (
+            <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-200">
+              {([['Agent Host IP', 'host_ip'], ['Power Script', 'power_script']] as [string, keyof typeof form][]).map(([label, key]) => (
+                <Field key={key} label={label}>
+                  <input type="text" className={inputCls} value={String(form[key] ?? '')}
+                    onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
+                </Field>
+              ))}
+              {([['JTAG Port', 'jtag_port'], ['UART TCP Port', 'uart_tcp_port']] as [string, keyof typeof form][]).map(([label, key]) => (
+                <Field key={key} label={label}>
+                  <input type="number" className={inputCls} value={Number(form[key])}
+                    onChange={(e) => setForm(f => ({ ...f, [key]: Number(e.target.value) }))} />
+                </Field>
+              ))}
+              <Field label="Power Script Args (JSON)">
+                <textarea className={`${inputCls} font-mono`} rows={2}
+                  value={JSON.stringify(form.power_args ?? {})}
+                  onChange={(e) => { try { setForm(f => ({ ...f, power_args: JSON.parse(e.target.value) })); } catch { /* ignore */ } }} />
+              </Field>
+            </div>
+          )}
+
+          <label className="flex items-center gap-2 text-sm border-t pt-3">
             <input type="checkbox" checked={form.enabled}
               onChange={(e) => setForm(f => ({ ...f, enabled: e.target.checked }))} />
             Enabled

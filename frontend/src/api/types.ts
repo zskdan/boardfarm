@@ -81,6 +81,7 @@ export interface BoardInfo {
   name: string;
   description: string;
   location: string;
+  device_ip: string;
   agent_id: string | null;
   host_ip: string | null;
   features: Record<string, unknown>;
@@ -103,6 +104,7 @@ export interface BoardCreate {
   revision: string;
   description: string;
   location: string;
+  device_ip?: string;
   host_ip?: string | null;
   features: Record<string, unknown>;
   jtag_port: number;
