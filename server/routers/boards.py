@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -14,6 +15,12 @@ from ..models import Agent, Board, Booking
 from ..schemas import BoardIn, BoardOut, BoardUpdate, BookingOut, ToolOut
 
 router = APIRouter(prefix="/boards", tags=["boards"])
+
+
+def _raise_uniqueness_error(exc_str: str) -> None:
+    if "boards.device_id" in exc_str or "uq_device_id" in exc_str:
+        raise HTTPException(status_code=422, detail="Device ID is already in use by another device")
+    raise HTTPException(status_code=422, detail="Device name is already in use")
 
 
 def _now_utc():
@@ -46,6 +53,7 @@ async def _build_board_out(board: Board, db: AsyncSession) -> BoardOut:
 
     return BoardOut(
         id=board.id,
+        device_id=board.device_id,
         name=board.name,
         description=board.description,
         location=board.location,
@@ -130,7 +138,11 @@ async def create_board(
         enabled=body.enabled,
     )
     db.add(board)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        _raise_uniqueness_error(str(exc))
     board = await _load_board(board.id, db)
     await log_action(db, "board_created", user, board.id, board.name, f"location='{body.location}'")
     await db.commit()
@@ -151,7 +163,11 @@ async def update_board(
         else:
             setattr(board, field, value)
     detail = ", ".join(f"{k}='{v}'" for k, v in body.model_dump(exclude_none=True).items())
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        _raise_uniqueness_error(str(exc))
     board = await _load_board(board_id, db)
     await log_action(db, "board_updated", user, board_id, board.name, detail)
     await db.commit()

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -32,6 +32,9 @@ class Agent(Base):
 
 class Board(Base):
     __tablename__ = "boards"
+    __table_args__ = (
+        Index("uq_device_id", "device_id", unique=True, sqlite_where=text("device_id != ''")),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     device_id: Mapped[str] = mapped_column(String, default="")
