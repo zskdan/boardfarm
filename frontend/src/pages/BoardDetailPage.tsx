@@ -25,15 +25,19 @@ function ShellLine({ label, cmd }: { label: string; cmd: string }) {
     });
   }
   return (
-    <div className="group">
-      <div className="flex items-center justify-between px-4 pt-3 pb-1">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
-        <button onClick={copy} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white" title="Copy">
-          {copied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
+    <div className="bg-gray-900 rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between px-4 pt-2.5 pb-1.5 border-b border-gray-800">
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</span>
+        <button
+          onClick={copy}
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-0.5 rounded hover:bg-gray-700"
+          title="Copy"
+        >
+          {copied ? <><Check size={12} className="text-green-400" /><span className="text-green-400">Copied</span></> : <><Copy size={12} /><span>Copy</span></>}
         </button>
       </div>
-      <div className="flex items-start gap-2 px-4 pb-3">
-        <span className="text-gray-500 select-none font-mono text-sm mt-0.5">$</span>
+      <div className="flex items-start gap-2 px-4 py-3">
+        <span className="text-gray-600 select-none font-mono text-sm mt-0.5">$</span>
         <pre className="text-green-400 font-mono text-sm whitespace-pre-wrap break-all flex-1">{cmd}</pre>
       </div>
     </div>
@@ -188,7 +192,7 @@ export default function BoardDetailPage() {
         {(board.ssh_port > 0 || board.uart_tcp_port > 0 || board.jtag_port > 0 || board.power_script) && (
           <div className="bg-white rounded-xl border p-5 mb-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Connectivity</h2>
-            <div className="bg-gray-900 rounded-xl overflow-hidden divide-y divide-gray-800">
+            <div className="flex flex-col gap-2">
               {board.ssh_port > 0 && (
                 <ShellLine
                   label="SSH"

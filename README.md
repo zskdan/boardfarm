@@ -1,6 +1,6 @@
 # Boardfarm
 
-A development board booking system for shared hardware labs.
+A development board booking and inventory system for shared hardware labs. Teams register physical boards (FPGAs, microcontrollers, SoCs) in a central server, book them by username, and get ready-to-run shell commands for SSH, UART, JTAG, and power control.
 
 ## Architecture
 
@@ -9,6 +9,7 @@ A development board booking system for shared hardware labs.
 │  Frontend   │ ─────────────────> │  Server (central)         │
 │ (React SPA) │                    │  - Board inventory        │
 └─────────────┘                    │  - Booking history        │
+                                   │  - Setup groups           │
                                    │  - Agent registry         │
                                    └───────────┬───────────────┘
                                                │ REST/HTTP
@@ -21,7 +22,7 @@ A development board booking system for shared hardware labs.
                                     └─────────────────────┘
 ```
 
-## Components
+## Repository layout
 
 | Directory | Description |
 |-----------|-------------|
@@ -36,90 +37,37 @@ A development board booking system for shared hardware labs.
 
 ### Docker Compose (recommended)
 
-The fastest way to run the server and frontend together — no Node.js or Python required on the host:
-
-**1. Configure the server**
-
 ```bash
 cp server/config.example.yaml server/config.yaml
-# For internal deployments the defaults are fine — no token required out of the box.
-# Set token: "secret" in config.yaml if you want to restrict write access.
-```
-
-**2. Start the stack**
-
-```bash
 docker compose up --build
 ```
-
-Docker builds both images from source and starts two containers:
 
 | Container  | Port | Description |
 |------------|------|-------------|
 | `server`   | 8765 | FastAPI booking API |
-| `frontend` | 80   | Nginx serving the React SPA (built inside Docker) |
+| `frontend` | 80   | Nginx serving the React SPA |
 
-The SQLite database is stored in a named volume (`boardfarm_data`) so it persists across restarts.
+Open `http://localhost` and enter `http://localhost:8765` as the server URL.
 
-**3. Open the UI**
-
-```
-http://localhost
-```
-
-Enter `http://localhost:8765` as the server URL. No token needed by default.
-
-**Useful commands**
+The SQLite database is stored in a named volume (`boardfarm_data`) and persists across restarts.
 
 ```bash
-# Run in background
-docker compose up -d --build
-
-# View logs
-docker compose logs -f server
-docker compose logs -f frontend
-
-# Stop
-docker compose down
-
-# Destroy everything including the database volume
-docker compose down -v
+docker compose up -d --build      # background
+docker compose logs -f server     # follow server logs
+docker compose down               # stop
+docker compose down -v            # stop + delete DB
 ```
 
 ---
 
-### Running the agent separately
+### Manual setup
 
-The agent runs on the **host PC that is physically wired to the boards** — not in Docker (it needs direct access to USB/serial devices and optionally Xilinx `hw_server`). Run it natively on that machine:
-
-```bash
-cd agent
-pip install -r requirements.txt
-cp config.example.yaml config.yaml
-# Edit config.yaml: set server_url, server_token, host_ip, and board IDs
-uvicorn agent.main:app --port 8766
-```
-
-If you do want to containerise the agent, the `agent/Dockerfile` is provided. Pass the device into the container with `--device`:
-
-```bash
-docker build -t boardfarm-agent -f agent/Dockerfile .
-docker run --device /dev/ttyUSB0 \
-  -v ./agent/config.yaml:/app/config.yaml:ro \
-  -p 8766:8766 boardfarm-agent
-```
-
----
-
-### Manual Quick Start (without Docker)
-
-#### 1. Server
+#### Server
 
 ```bash
 cd server
 pip install -r requirements.txt
 cp config.example.yaml config.yaml
-# Defaults work out of the box. Optionally set token, max_booking_hours, default_user.
 uvicorn server.main:app --port 8765
 ```
 
@@ -127,49 +75,26 @@ Key `config.yaml` options:
 
 ```yaml
 server:
-  token: ""              # leave empty for internal deployments (no token required)
-                         # set a secret string to require a token on all writes
-  max_booking_hours: 24  # booking cap: N=hours, null=unlimited, 0=never expires
-  default_user: null     # username pre-filled in the UI (null = no default)
-  admin_users:           # users who can release any booking and delete boards
+  token: ""              # empty = no token required (fine for internal labs)
+  max_booking_hours: 24  # N = cap in hours, null = unlimited, 0 = never expires
+  default_user: null     # username pre-filled in every form (null = none)
+  admin_users:           # can release any booking and delete any board
     - "admin"
 ```
 
-#### 2. Add boards to inventory
+#### Agent (on the host PC wired to boards)
 
-```bash
-curl -X POST http://localhost:8765/boards \
-  -H "X-User: admin" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "zynq-dev-1",
-    "description": "Xilinx Zynq 7020",
-    "location": "Lab A / Rack 3 / Slot 1",
-    "features": {"jtag": true, "uart": "/dev/ttyUSB0", "network": "eth0"},
-    "jtag_port": 3121,
-    "uart_tcp_port": 5555,
-    "ssh_user": "root",
-    "ssh_port": 22
-  }'
-# Note the returned board "id"
-# Add -H "X-Token: <token>" if you configured a token in config.yaml
-```
-
-#### 3. Agent (on the host PC connected to boards)
+The agent needs direct access to USB/serial devices — run it natively, not in Docker.
 
 ```bash
 cd agent
 pip install -r requirements.txt
 cp config.example.yaml config.yaml
-# Edit config.yaml:
-#   - Set server_url to your server address
-#   - Set server_token to match the server token
-#   - Set host_ip to this machine's LAN IP
-#   - Set board IDs to match what you registered in the server
+# Edit: server_url, server_token, host_ip, board IDs
 uvicorn agent.main:app --port 8766
 ```
 
-#### 4. Frontend (dev server)
+#### Frontend (dev server)
 
 ```bash
 cd frontend
@@ -180,14 +105,14 @@ npm run dev
 
 ---
 
-## Agent Config (`agent/config.yaml`)
+## Agent config (`agent/config.yaml`)
 
 ```yaml
 agent:
   name: "lab-host-1"
   port: 8766
   server_url: "http://192.168.1.100:8765"
-  server_token: ""          # match the token in server/config.yaml (empty = no token)
+  server_token: ""          # match server/config.yaml token
   host_ip: "192.168.1.5"   # this machine's LAN IP
 
 boards:
@@ -203,157 +128,162 @@ boards:
 
 ---
 
-## Power Control Scripts
+## Power control scripts
 
-Scripts in `power/` follow a common CLI: `python3 script.py --action on|off|reset`.
+Scripts in `power/` share a CLI: `python3 script.py --action on|off|reset`.
 
 | Script | Hardware |
 |--------|----------|
-| `dummy.py` | No-op (testing) |
+| `dummy.py` | No-op (for testing) |
 | `usb_relay.py` | USB HID relay board (`--relay-id N`) |
 | `gpio.py` | Raspberry Pi GPIO (`--gpio-pin N`) |
 
-Custom controllers: subclass `power.base.PowerController` and call `run_controller()`.
+Custom controllers: subclass `power.base.PowerController`.
 
 ---
 
-## Using the Frontend
+## Using the UI
 
-> **No login required.** Boardfarm does not have user accounts or sessions. You supply your username when you perform an action (book, release, modify, add). A default username is stored locally and pre-filled in every form so you only type it once.
+> **No login required.** You supply your username when performing an action (book, release, add). A default username is stored locally in the browser and pre-filled in every form.
 
-### Connect to a server
+### Inventory (`/boards`)
 
-Open `http://localhost:5173` and enter the server URL. If a token is configured on the server, enter it too — otherwise leave it blank. The URL is stored in your browser for subsequent visits.
+Lists every registered device with live status:
 
-![Discovery – connect screen](screenshots/v2-discovery.png)
-
----
-
-### Browse the inventory
-
-The main page lists every registered board in a table. Each row shows:
-
-- **Status** — Free (green), Booked (amber), Offline/Disabled (grey)
-- **Booked by** — current holder's username + booking comment
+- **Status badge** — Free (green), Booked (amber/blue), Offline/Disabled (grey)
+- **Device ID** — server-assigned unique identifier (e.g. `DEV-A3F9C1`), shown as a monospace badge next to the device name
+- **Booked by** — current holder's username and booking comment
 - **Location** — physical rack/bench location
 - **Tools** — colour-coded badges for attached hardware (logic analyzer, power supply, …)
-- **Actions** — **Book** (free boards) · **Release** (booked boards) · **Modify** (any board)
+- **Actions** — Book · Release · Modify
 
-![Inventory table](screenshots/v3-inventory.png)
+The **Filter** box searches by device name, device ID, location, username, or tool type.
 
-Use the **Filter** box in the header to search by board name, location, user, or tool type.
+### Device detail (`/boards/:id`)
 
----
+Each device has a detail page with:
 
-### Book a board
+- **Hardware info** — device ID, serial number, PCB revision, location, agent status
+- **Features** — arbitrary key/value capability map (e.g. `jtag: true`)
+- **Connectivity** — ready-to-run shell commands, each in its own terminal block with a **Copy** button:
 
-Click **Book** on any free board's row. A modal opens — enter your username (pre-filled from the stored default), set the duration, and add an optional comment.
+  | Service | Command |
+  |---------|---------|
+  | SSH | `$ ssh root@<ip> -p <port>` |
+  | UART | `$ telnet <ip> <uart_port>` |
+  | JTAG | `$ connect_hw_server -url tcp:<ip>:<jtag_port>` |
+  | Power | `$ python3 <power_script> --action on` |
 
-![Book modal](screenshots/v3-book-modal.png)
+- **Notes** — freeform notes, editable inline
+- **Booking** — book / extend / release with a live countdown timer
 
-Once booked, navigate to the board's detail page to get the connection commands (JTAG, UART, SSH).
+When you have an active booking, a **Connection Commands** section appears at the bottom with the full command set for that booking (including Vivado TCL).
 
-![Board detail with connection commands](screenshots/v2-board-detail.png)
+### Setups (`/setups`)
 
----
+Groups of devices that are always used together (e.g. "FPGA + test host + oscilloscope").
 
-### Release a board
+- **Book atomically** — all devices in a setup are reserved in a single transaction. If any device is already taken the whole booking fails, with a message listing which devices are blocked and by whom.
+- **Release atomically** — releases all devices in the setup at once.
+- **Device picker** — searchable by name, device ID, or location. Selected devices appear as removable chips so the list stays short at scale.
+- Each setup card shows a per-device availability dot: green = free and online, red = booked, grey = offline.
 
-Click **Release** on any booked board's row. The modal shows who currently has the board and asks for the username of whoever is releasing it (usually the same person, but admins can release any board).
+### Booking history (`/history`)
 
-![Release modal](screenshots/v3-release-modal.png)
+Full audit log of all actions: bookings, releases, extensions, device creates/updates/deletes, tool changes. Each entry records the device name and its auto-assigned device ID, so records stay meaningful after renames.
 
----
-
-### Booking limit
-
-The **Max Nh** button in the header controls how long bookings can last. Click it to change the mode:
-
-| Mode | Behaviour |
-|------|-----------|
-| **Limited (hours)** | Users choose 1–N hours at booking time (server default: 24 h) |
-| **Unlimited** | Users choose any duration |
-| **Never expires** | Bookings do not auto-expire; must be released manually |
-
-The server sets the initial value via `max_booking_hours` in `config.yaml`. You can override it locally in the browser.
-
-![Booking Limit modal](screenshots/v3-limit-modal.png)
+Filter by user or action category (Bookings / Device changes / Tools).
 
 ---
 
-### Settings
+## API reference
 
-Click **Settings** in the header to update the server URL, default username, and token. The **Default username** is pre-filled in every action form — change it here to switch users without re-typing each time.
+### Authentication
 
-![Settings modal](screenshots/v3-settings-modal.png)
+| Request | `X-User` | `X-Token` |
+|---------|----------|-----------|
+| `GET` (read) | not required | not required |
+| `POST` / `PATCH` / `DELETE` (write) | **required** | required only if `token` is set in config |
 
----
+### Server endpoints (`http://server:8765`)
 
-### Manage boards
-
-Click **Modify** on any row to open the edit modal. Supply your username, then update the board's name, location, ports, features JSON, notes, and attached tools.
-
-To add a new board, click **Add Board** in the header.
-
-![Add board modal](screenshots/v3-add-modal.png)
-
----
-
-### Delete boards
-
-Click **Delete** in the header to enter delete mode. Checkboxes appear on each row — select the boards you want to remove, then click **Delete (N)** to confirm.
-
-![Delete mode with checkboxes](screenshots/v2-delete-mode.png)
-
----
-
-### Booking history
-
-Click **History** to navigate to the history page. Filter by board name, username, or active-only bookings. Each row shows the start/end time, release reason, and booking comment.
-
-![Booking history](screenshots/v2-history.png)
-
----
-
-## API Reference
-
-### Server (`http://server:8765`)
-
-**Authentication rules:**
-
-| Request type | `X-User` header | `X-Token` header |
-|---|---|---|
-| Read (`GET`) | Not required | Not required |
-| Write (`POST` / `PATCH` / `DELETE`) | **Required** — recorded in history | Required only if `token` is set in `config.yaml` |
-
-For internal deployments with `token: ""` in config, writes only need `X-User`.
-
-**Endpoints:**
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/health` | none | Liveness check + server config |
-| GET | `/boards` | none | List all boards with status |
-| POST | `/boards` | user | Add board to inventory |
-| PATCH | `/boards/{id}` | user | Update board metadata |
-| DELETE | `/boards/{id}` | user | Remove board |
-| GET | `/boards/{id}/tools` | none | List tools attached to board |
-| POST | `/boards/{id}/tools` | user | Add tool |
-| PATCH | `/tools/{id}` | user | Update tool |
-| DELETE | `/tools/{id}` | user | Remove tool |
-| POST | `/boards/{id}/book` | user | Book board |
-| DELETE | `/bookings/{id}` | user | Release booking (admin can release any) |
-| PATCH | `/bookings/{id}/extend` | user | Extend booking |
-| GET | `/bookings/{id}/commands` | none | Get JTAG / UART / SSH connection strings |
-| GET | `/bookings` | none | Booking history |
-| GET | `/agents` | none | List registered agents |
-
-### Agent (`http://agent:8766`)
+**Boards**
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/health` | Liveness + board list |
-| GET | `/agents` | Self + mDNS-discovered peers |
+| GET | `/boards` | List all boards with live status |
+| GET | `/boards/{id}` | Board detail + tools + active booking |
+| POST | `/boards` | Add board (`device_id` is auto-assigned by server) |
+| PATCH | `/boards/{id}` | Update board metadata |
+| DELETE | `/boards/{id}` | Remove board (fails if actively booked) |
+
+**Tools**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/boards/{id}/tools` | List tools attached to a board |
+| POST | `/boards/{id}/tools` | Add tool |
+| PATCH | `/tools/{id}` | Update tool |
+| DELETE | `/tools/{id}` | Remove tool |
+
+**Bookings**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/boards/{id}/book` | Book a single board `{duration_hours, comment}` |
+| DELETE | `/bookings/{id}` | Release booking (admin can release any) |
+| PATCH | `/bookings/{id}/extend` | Extend by N hours (once per booking) |
+| GET | `/bookings/{id}/commands` | SSH / UART / JTAG / power command strings |
+| GET | `/bookings` | Booking history (`board_id`, `username`, `active`, `limit`) |
+
+**Setups**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/setups` | List all setups with device availability |
+| POST | `/setups` | Create setup `{name, description, board_ids}` |
+| PATCH | `/setups/{id}` | Update name / description / device list |
+| DELETE | `/setups/{id}` | Delete setup (fails if actively booked) |
+| POST | `/setups/{id}/book` | Book all devices atomically `{duration_hours, comment}` |
+| DELETE | `/setups/{id}/booking` | Release all devices in the setup |
+
+**Agents & activity**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/agents` | List registered agents (online / offline) |
+| POST | `/agents/register` | Agent startup registration |
+| POST | `/agents/heartbeat` | Agent keep-alive (every 30 s) |
+| GET | `/activity` | Audit log (`board_id`, `username`, `action`, `limit`) |
+| GET | `/health` | Liveness check + server config |
+
+### Agent endpoints (`http://agent:8766`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Liveness + version |
+| GET | `/boards` | Boards managed by this agent |
 | POST | `/boards/{id}/services/start` | Start hw_server + UART proxy |
 | POST | `/boards/{id}/services/stop` | Stop services |
-| POST | `/boards/{id}/power` | Power action |
+| POST | `/boards/{id}/power` | Power action `{action: on\|off\|reset}` |
+
+---
+
+## Device fields
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `id` | UUID | Stable across agent changes |
+| `device_id` | string | Auto-assigned by server on creation (e.g. `DEV-A3F9C1`) |
+| `name` | string | Human-readable name, unique |
+| `serial_number` | string | Hardware serial (optional) |
+| `revision` | string | PCB revision (optional) |
+| `description` | string | Free text |
+| `location` | string | Physical location (e.g. `Lab A / Rack 3 / Slot 1`) |
+| `host_ip` | string | IP of the agent's host PC |
+| `ssh_user` / `ssh_port` | string / int | SSH access |
+| `uart_tcp_port` | int | TCP port for UART proxy |
+| `jtag_port` | int | hw_server port |
+| `power_script` | string | Path to power control script |
+| `features` | JSON | Arbitrary key/value capability map |
+| `enabled` | bool | Disabled devices cannot be booked |
