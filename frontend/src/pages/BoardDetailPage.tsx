@@ -249,7 +249,7 @@ export default function BoardDetailPage() {
               )}
             </div>
           ) : (
-            <p className="text-sm text-gray-400">Board unavailable for booking</p>
+            <p className="text-sm text-gray-400">Device unavailable for booking</p>
           )}
         </div>
 

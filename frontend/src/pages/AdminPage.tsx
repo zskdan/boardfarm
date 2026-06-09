@@ -95,7 +95,7 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg font-bold mb-4">Add Board</h2>
+        <h2 className="text-lg font-bold mb-4">Add Device</h2>
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-gray-600">
@@ -294,7 +294,7 @@ export default function AdminPage() {
             onClick={() => setShowAdd(true)}
             className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
           >
-            <Plus size={14} /> Add Board
+            <Plus size={14} /> Add Device
           </button>
         </div>
 
@@ -327,7 +327,7 @@ export default function AdminPage() {
                 </div>
                 <button
                   onClick={() => {
-                    if (confirm(`Delete board "${board.name}"?`))
+                    if (confirm(`Delete device "${board.name}"?`))
                       deleteMut.mutate(board.id);
                   }}
                   className="text-red-400 hover:text-red-600"

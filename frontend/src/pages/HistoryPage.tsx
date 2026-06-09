@@ -11,9 +11,9 @@ const ACTION_BADGE: Record<string, { label: string; cls: string }> = {
   booked:        { label: 'Booked',         cls: 'bg-blue-100 text-blue-700' },
   released:      { label: 'Released',        cls: 'bg-green-100 text-green-700' },
   extended:      { label: 'Extended',        cls: 'bg-teal-100 text-teal-700' },
-  board_created: { label: 'Board created',   cls: 'bg-purple-100 text-purple-700' },
-  board_updated: { label: 'Board updated',   cls: 'bg-gray-100 text-gray-600' },
-  board_deleted: { label: 'Board deleted',   cls: 'bg-red-100 text-red-700' },
+  board_created: { label: 'Device created',  cls: 'bg-purple-100 text-purple-700' },
+  board_updated: { label: 'Device updated',  cls: 'bg-gray-100 text-gray-600' },
+  board_deleted: { label: 'Device deleted',  cls: 'bg-red-100 text-red-700' },
   tool_added:    { label: 'Tool added',      cls: 'bg-orange-100 text-orange-700' },
   tool_deleted:  { label: 'Tool deleted',    cls: 'bg-red-100 text-red-700' },
 };
@@ -59,7 +59,7 @@ export default function HistoryPage() {
   const groups: { label: string; value: ActionGroup }[] = [
     { label: 'All', value: 'all' },
     { label: 'Bookings', value: 'bookings' },
-    { label: 'Board changes', value: 'board_changes' },
+    { label: 'Device changes', value: 'board_changes' },
     { label: 'Tools', value: 'tools' },
   ];
 
@@ -106,7 +106,7 @@ export default function HistoryPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  {['Time', 'Action', 'Board', 'User', 'Detail'].map((h) => (
+                  {['Time', 'Action', 'Device', 'User', 'Detail'].map((h) => (
                     <th
                       key={h}
                       className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase"

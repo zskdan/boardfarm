@@ -86,7 +86,7 @@ function BookingLimitModal({ onClose }: { onClose: () => void }) {
     <Overlay onClose={onClose}>
       <ModalCard title="Booking limit" onClose={onClose}>
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-gray-500">Maximum duration a board can be reserved at once.</p>
+          <p className="text-xs text-gray-500">Maximum duration a device can be reserved at once.</p>
           <Field label="Mode">
             <select className={inputCls} value={kind}
               onChange={(e) => setKind(e.target.value as typeof kind)}>
@@ -136,7 +136,7 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
 
   return (
     <Overlay onClose={onClose}>
-      <ModalCard title="Add Board" onClose={onClose}>
+      <ModalCard title="Add Device" onClose={onClose}>
         <div className="flex flex-col gap-3">
           <Field label="Your username">
             <input className={inputCls} value={username}
@@ -369,7 +369,7 @@ function BookModal({ board, onClose }: { board: BoardInfo; onClose: () => void }
 
   return (
     <Overlay onClose={onClose}>
-      <ModalCard title="Book board" subtitle={board.name} onClose={onClose}>
+      <ModalCard title="Book device" subtitle={board.name} onClose={onClose}>
         <div className="flex flex-col gap-4">
           <Field label="Your username">
             <input className={inputCls} value={username}
@@ -395,7 +395,7 @@ function BookModal({ board, onClose }: { board: BoardInfo; onClose: () => void }
           )}
           <Field label={<>Comment <span className="font-normal text-gray-400">(optional)</span></>}>
             <textarea rows={3} maxLength={500} className={`${inputCls} resize-none`}
-              placeholder="What are you using this board for?"
+              placeholder="What are you using this device for?"
               value={comment} onChange={(e) => setComment(e.target.value)} />
           </Field>
           {mut.error && <p className="text-xs text-red-600">{(mut.error as Error).message}</p>}
@@ -444,7 +444,7 @@ function ReleaseModal({ board, onClose }: { board: BoardInfo; onClose: () => voi
           </Field>
           {mut.error && <p className="text-xs text-red-600">{(mut.error as Error).message}</p>}
           <ModalActions onCancel={onClose} onConfirm={() => mut.mutate()}
-            confirmLabel={mut.isPending ? 'Releasing…' : 'Release board'}
+            confirmLabel={mut.isPending ? 'Releasing…' : 'Release device'}
             confirmDisabled={mut.isPending || !username} />
         </div>
       </ModalCard>
@@ -554,7 +554,7 @@ export default function InventoryPage() {
 
   function confirmDelete() {
     if (selected.size === 0) return;
-    if (!confirm(`Delete ${selected.size} board(s)? This cannot be undone.`)) return;
+    if (!confirm(`Delete ${selected.size} device(s)? This cannot be undone.`)) return;
     deleteMut.mutate(Array.from(selected));
   }
 
@@ -569,8 +569,8 @@ export default function InventoryPage() {
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Board Inventory</h1>
-            <p className="text-sm text-gray-500">{boards.length} boards registered</p>
+            <h1 className="text-2xl font-bold text-gray-900">Device Inventory</h1>
+            <p className="text-sm text-gray-500">{boards.length} devices registered</p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -579,7 +579,7 @@ export default function InventoryPage() {
               <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
               </svg>
-              <input className="text-sm focus:outline-none w-36 bg-transparent" placeholder="Filter boards…"
+              <input className="text-sm focus:outline-none w-36 bg-transparent" placeholder="Filter devices…"
                 value={search} onChange={(e) => setSearch(e.target.value)} />
               {search && (
                 <button onClick={() => setSearch('')} className="text-gray-400 hover:text-gray-600"><X size={13} /></button>
@@ -600,7 +600,7 @@ export default function InventoryPage() {
             {/* Add Board */}
             <button onClick={() => setModal('add')}
               className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
-              <Plus size={14} /> Add Board
+              <Plus size={14} /> Add Device
             </button>
 
             {/* Settings */}
@@ -645,14 +645,14 @@ export default function InventoryPage() {
         {isLoading ? (
           <div className="text-center text-gray-400 py-20">Loading…</div>
         ) : filtered.length === 0 ? (
-          <div className="text-center text-gray-400 py-20">No boards found</div>
+          <div className="text-center text-gray-400 py-20">No devices found</div>
         ) : (
           <div className="bg-white rounded-xl border overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
                   {deleteMode && <th className="w-10 px-4 py-3"></th>}
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Board</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Device</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Booked by</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Location</th>
