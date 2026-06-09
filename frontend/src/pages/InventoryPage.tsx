@@ -130,7 +130,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
       const payload: DeviceCreate = {
         ...form,
         features: (() => { try { return JSON.parse(featuresRaw); } catch { return {}; } })(),
-        device_ip: hasEthernet && hasSsh ? form.device_ip ?? '' : '',
+        device_ip: hasEthernet ? form.device_ip ?? '' : '',
         ssh_user: hasEthernet && hasSsh ? form.ssh_user : 'root',
         ssh_port: hasEthernet && hasSsh ? form.ssh_port : 0,
         host_ip: hasAgent ? form.host_ip : '',
@@ -177,6 +177,10 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           </label>
           {hasEthernet && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-green-200">
+              <Field label="Device IP">
+                <input type="text" className={inputCls} value={form.device_ip ?? ''}
+                  onChange={(e) => setForm(f => ({ ...f, device_ip: e.target.value }))} />
+              </Field>
               {/* SSH sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-green-600" checked={hasSsh}
@@ -185,10 +189,6 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
               </label>
               {hasSsh && (
                 <div className="flex flex-col gap-3 pl-3 border-l-2 border-green-100">
-                  <Field label="Device IP">
-                    <input type="text" className={inputCls} value={form.device_ip ?? ''}
-                      onChange={(e) => setForm(f => ({ ...f, device_ip: e.target.value }))} />
-                  </Field>
                   <Field label="SSH User">
                     <input type="text" className={inputCls} value={form.ssh_user}
                       onChange={(e) => setForm(f => ({ ...f, ssh_user: e.target.value }))} />
@@ -318,7 +318,7 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
   });
   const [featuresRaw, setFeaturesRaw] = useState(JSON.stringify(device.features, null, 2));
   const [hasEthernet, setHasEthernet] = useState(!!(device.device_ip || device.ssh_port));
-  const [hasSsh, setHasSsh] = useState(!!(device.device_ip || device.ssh_port));
+  const [hasSsh, setHasSsh] = useState(!!device.ssh_port);
   const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.power_script));
   const [hasUsb, setHasUsb] = useState(!!device.usb_device);
   const [hasUart, setHasUart] = useState(!!device.usb_device);
@@ -332,7 +332,7 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
       return updateDevice(device.id, {
         ...form,
         features,
-        device_ip: hasEthernet && hasSsh ? form.device_ip : '',
+        device_ip: hasEthernet ? form.device_ip : '',
         ssh_user: hasEthernet && hasSsh ? form.ssh_user : 'root',
         ssh_port: hasEthernet && hasSsh ? form.ssh_port : 0,
         host_ip: hasAgent ? form.host_ip : '',
@@ -380,6 +380,10 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
           </label>
           {hasEthernet && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-green-200">
+              <Field label="Device IP">
+                <input type="text" className={inputCls} value={form.device_ip ?? ''}
+                  onChange={(e) => setForm(f => ({ ...f, device_ip: e.target.value }))} />
+              </Field>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-green-600" checked={hasSsh}
                   onChange={(e) => setHasSsh(e.target.checked)} />
@@ -387,12 +391,10 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
               </label>
               {hasSsh && (
                 <div className="flex flex-col gap-3 pl-3 border-l-2 border-green-100">
-                  {([['Device IP', 'device_ip'], ['SSH User', 'ssh_user']] as [string, keyof typeof form][]).map(([label, key]) => (
-                    <Field key={key} label={label}>
-                      <input type="text" className={inputCls} value={String(form[key] ?? '')}
-                        onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
-                    </Field>
-                  ))}
+                  <Field label="SSH User">
+                    <input type="text" className={inputCls} value={form.ssh_user ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, ssh_user: e.target.value }))} />
+                  </Field>
                   <Field label="SSH Port">
                     <input type="number" className={inputCls} value={Number(form.ssh_port)}
                       onChange={(e) => setForm(f => ({ ...f, ssh_port: Number(e.target.value) }))} />
