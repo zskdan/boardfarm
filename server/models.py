@@ -34,6 +34,7 @@ class Board(Base):
     __tablename__ = "boards"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
+    device_id: Mapped[str] = mapped_column(String, default="")
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[str] = mapped_column(String, default="")
     location: Mapped[str] = mapped_column(String, default="")

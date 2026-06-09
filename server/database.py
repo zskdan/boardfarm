@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -18,6 +19,11 @@ Base = declarative_base()
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Migrate existing databases — ignore if column already exists
+        try:
+            await conn.execute(text("ALTER TABLE boards ADD COLUMN device_id TEXT NOT NULL DEFAULT ''"))
+        except Exception:
+            pass
 
 
 async def get_db():

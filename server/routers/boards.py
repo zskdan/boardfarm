@@ -114,6 +114,7 @@ async def create_board(
 ):
     board = Board(
         id=str(uuid.uuid4()),
+        device_id=body.device_id,
         name=body.name,
         description=body.description,
         location=body.location,

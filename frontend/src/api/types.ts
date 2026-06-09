@@ -41,6 +41,7 @@ export interface BookingInfo {
 
 export interface BoardInfo {
   id: string;
+  device_id: string;
   name: string;
   description: string;
   location: string;
@@ -62,6 +63,7 @@ export interface BoardInfo {
 
 export interface BoardCreate {
   name: string;
+  device_id: string;
   description: string;
   location: string;
   host_ip?: string | null;

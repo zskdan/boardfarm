@@ -104,7 +104,14 @@ export default function BoardDetailPage() {
         {/* Board header */}
         <div className="bg-white rounded-xl border p-5 mb-4">
           <div className="flex items-start justify-between gap-3 mb-3">
-            <h1 className="text-xl font-bold text-gray-900">{board.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-bold text-gray-900">{board.name}</h1>
+              {board.device_id && (
+                <span className="font-mono text-sm bg-gray-100 text-gray-600 px-2 py-0.5 rounded border">
+                  {board.device_id}
+                </span>
+              )}
+            </div>
             <StatusBadge
               agentOnline={board.agent_online}
               activeBooking={!!board.active_booking}

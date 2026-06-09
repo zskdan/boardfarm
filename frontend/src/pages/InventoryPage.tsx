@@ -43,6 +43,7 @@ import { useStatusSocket } from '../hooks/useStatusSocket';
 
 const FIELD_TEXT: [string, keyof BoardCreate, string][] = [
   ['Name', 'name', 'text'],
+  ['Device ID', 'device_id', 'text'],
   ['Description', 'description', 'text'],
   ['Location', 'location', 'text'],
   ['SSH User', 'ssh_user', 'text'],
@@ -54,7 +55,7 @@ const FIELD_NUM: [string, keyof BoardCreate][] = [
   ['SSH Port', 'ssh_port'],
 ];
 const DEFAULT_BOARD: BoardCreate = {
-  name: '', description: '', location: '', features: {},
+  name: '', device_id: '', description: '', location: '', features: {},
   jtag_port: 3121, uart_tcp_port: 5555, ssh_user: 'root', ssh_port: 22,
   power_script: '', power_args: {}, enabled: true, current_notes: '',
 };
@@ -182,6 +183,7 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
   const [username, setUsernameState] = useState(getDefaultUser());
   const [form, setForm] = useState({
     name: board.name,
+    device_id: board.device_id,
     description: board.description,
     location: board.location,
     current_notes: board.current_notes,
@@ -225,7 +227,7 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
             <input className={inputCls} value={username}
               onChange={(e) => setUsernameState(e.target.value)} placeholder="Required" />
           </Field>
-          {([['Name', 'name'], ['Description', 'description'], ['Location', 'location'], ['SSH User', 'ssh_user'], ['Power Script', 'power_script']] as [string, keyof typeof form][]).map(([label, key]) => (
+          {([['Name', 'name'], ['Device ID', 'device_id'], ['Description', 'description'], ['Location', 'location'], ['SSH User', 'ssh_user'], ['Power Script', 'power_script']] as [string, keyof typeof form][]).map(([label, key]) => (
             <Field key={key} label={label}>
               <input type="text" className={inputCls} value={String(form[key] ?? '')}
                 onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
@@ -672,9 +674,16 @@ export default function InventoryPage() {
                       </td>
                     )}
                     <td className="px-4 py-3">
-                      <Link to={`/boards/${b.id}`} className="font-medium text-gray-900 hover:text-blue-600 hover:underline">
-                        {b.name}
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link to={`/boards/${b.id}`} className="font-medium text-gray-900 hover:text-blue-600 hover:underline">
+                          {b.name}
+                        </Link>
+                        {b.device_id && (
+                          <span className="font-mono text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border">
+                            {b.device_id}
+                          </span>
+                        )}
+                      </div>
                       {b.description && (
                         <p className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{b.description}</p>
                       )}
