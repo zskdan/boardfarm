@@ -82,3 +82,13 @@ export interface CommandsInfo {
   ssh: string;
   power_on: string;
 }
+
+export interface ActivityEntry {
+  id: string;
+  timestamp: string;
+  action: string;
+  username: string;
+  board_id: string | null;
+  board_name: string;
+  detail: string;
+}

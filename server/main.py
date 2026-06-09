@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .database import init_db
 from .expiry import expiry_loop
-from .routers import agents, boards, bookings, tools
+from .routers import activity, agents, boards, bookings, tools
 from .ws import ws_handler
 
 logging.basicConfig(level=logging.INFO)
@@ -40,6 +40,7 @@ app.include_router(agents.router)
 app.include_router(boards.router)
 app.include_router(tools.router)
 app.include_router(bookings.router)
+app.include_router(activity.router)
 
 
 @app.websocket("/ws/status")

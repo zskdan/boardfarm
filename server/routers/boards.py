@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from ..audit import log_action
 from ..auth import require_user
 from ..database import get_db
 from ..models import Agent, Board, Booking
@@ -129,6 +130,8 @@ async def create_board(
     db.add(board)
     await db.commit()
     board = await _load_board(board.id, db)
+    await log_action(db, "board_created", user, board.id, board.name, f"location='{body.location}'")
+    await db.commit()
     return await _build_board_out(board, db)
 
 
@@ -145,8 +148,11 @@ async def update_board(
             setattr(board, field, json.dumps(value))
         else:
             setattr(board, field, value)
+    detail = ", ".join(f"{k}='{v}'" for k, v in body.model_dump(exclude_none=True).items())
     await db.commit()
     board = await _load_board(board_id, db)
+    await log_action(db, "board_updated", user, board_id, board.name, detail)
+    await db.commit()
     return await _build_board_out(board, db)
 
 
@@ -162,5 +168,6 @@ async def delete_board(
             raise HTTPException(
                 status_code=409, detail="Board has an active booking; release it first"
             )
+    await log_action(db, "board_deleted", user, board.id, board.name, "")
     await db.delete(board)
     await db.commit()

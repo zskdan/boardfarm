@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from ..audit import log_action
 from ..auth import require_user, require_user_or_admin
 from ..config import settings
 from ..database import get_db
@@ -154,6 +155,8 @@ async def book_board(
             .options(selectinload(Booking.board).selectinload(Board.agent))
         )
         booking = result.scalar_one()
+        await log_action(db, "booked", user, board_id, booking.board.name if booking.board else "", f"{effective_hours}h — {comment}")
+        await db.commit()
 
     asyncio.create_task(broadcast({"type": "booking_changed", "board_id": board_id}))
     return _booking_out(booking)
@@ -178,6 +181,7 @@ async def release_booking(
 
     booking.active = False
     booking.release_reason = "admin" if is_admin and booking.username != user else "manual"
+    await log_action(db, "released", user, booking.board_id, booking.board.name if booking.board else "", f"reason: {booking.release_reason}")
     await db.commit()
 
     board = booking.board
@@ -221,6 +225,7 @@ async def extend_booking(
 
     booking.end_time = new_end
     booking.extended = True
+    await log_action(db, "extended", user, booking.board_id, booking.board.name if booking.board else "", f"+{hours}h")
     await db.commit()
     await db.refresh(booking)
     return _booking_out(booking)

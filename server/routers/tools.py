@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..audit import log_action
 from ..auth import require_user
 from ..database import get_db
 from ..models import Board, Tool
@@ -28,12 +29,14 @@ async def add_tool(
     db: AsyncSession = Depends(get_db),
     user: str = Depends(require_user),
 ):
-    result = await db.execute(select(Board).where(Board.id == board_id))
-    if result.scalar_one_or_none() is None:
+    board_result = await db.execute(select(Board).where(Board.id == board_id))
+    board = board_result.scalar_one_or_none()
+    if board is None:
         raise HTTPException(status_code=404, detail="Board not found")
 
     tool = Tool(id=str(uuid.uuid4()), board_id=board_id, **body.model_dump())
     db.add(tool)
+    await log_action(db, "tool_added", user, board_id, board.name, f"{body.type} · {body.model}")
     await db.commit()
     await db.refresh(tool)
     return ToolOut.model_validate(tool)
@@ -67,5 +70,9 @@ async def delete_tool(
     tool = result.scalar_one_or_none()
     if tool is None:
         raise HTTPException(status_code=404, detail="Tool not found")
+    board_result = await db.execute(select(Board).where(Board.id == tool.board_id))
+    board = board_result.scalar_one_or_none()
+    board_name = board.name if board else ""
+    await log_action(db, "tool_deleted", user, tool.board_id, board_name, f"{tool.type} · {tool.model}")
     await db.delete(tool)
     await db.commit()

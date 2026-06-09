@@ -6,6 +6,18 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
 
+class AuditLog(Base):
+    __tablename__ = "audit_log"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    action: Mapped[str] = mapped_column(String, nullable=False)
+    username: Mapped[str] = mapped_column(String, default="")
+    board_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    board_name: Mapped[str] = mapped_column(String, default="")
+    detail: Mapped[str] = mapped_column(String, default="")
+
+
 class Agent(Base):
     __tablename__ = "agents"
 

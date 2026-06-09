@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type {
+  ActivityEntry,
   AgentInfo,
   BoardCreate,
   BoardInfo,
@@ -200,5 +201,16 @@ export async function listBookings(params?: {
   limit?: number;
 }): Promise<BookingInfo[]> {
   const { data } = await api().get<BookingInfo[]>('/bookings', { params });
+  return data;
+}
+
+export async function listActivity(params?: {
+  board_id?: string;
+  username?: string;
+  action?: string;
+  skip?: number;
+  limit?: number;
+}): Promise<ActivityEntry[]> {
+  const { data } = await api().get<ActivityEntry[]>('/activity', { params });
   return data;
 }

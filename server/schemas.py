@@ -132,3 +132,19 @@ class CommandsOut(BaseModel):
     uart: str
     ssh: str
     power_on: str
+
+
+class AuditLogOut(BaseModel):
+    id: str
+    timestamp: datetime
+    action: str
+    username: str
+    board_id: str | None
+    board_name: str
+    detail: str
+
+    @field_serializer("timestamp")
+    def _ts(self, v: datetime) -> str:
+        return v.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+
+    model_config = {"from_attributes": True}
