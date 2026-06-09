@@ -34,7 +34,95 @@ A development board booking system for shared hardware labs.
 
 ## Quick Start
 
-### 1. Server
+### Docker Compose (recommended)
+
+The fastest way to run the server and frontend together:
+
+**1. Configure the server**
+
+```bash
+cp server/config.example.yaml server/config.yaml
+# Edit server/config.yaml — at minimum change the token:
+#   token: "your-strong-secret"
+```
+
+**2. Build the frontend**
+
+```bash
+cd frontend
+npm install
+npm run build   # produces frontend/dist/
+cd ..
+```
+
+**3. Start the stack**
+
+```bash
+docker compose up --build
+```
+
+This starts two containers:
+
+| Container | Port | Description |
+|-----------|------|-------------|
+| `server`  | 8765 | FastAPI booking API |
+| `frontend`| 80   | Nginx serving the React SPA + proxying `/api/` to the server |
+
+The SQLite database is stored in a named volume (`boardfarm_data`) so it persists across restarts.
+
+**4. Open the UI**
+
+```
+http://localhost
+```
+
+Enter `http://localhost:8765` as the server URL (or `http://localhost/api` if going through the Nginx proxy), the shared token from your config, and you're in.
+
+**Useful commands**
+
+```bash
+# Run in background
+docker compose up -d --build
+
+# View logs
+docker compose logs -f server
+docker compose logs -f frontend
+
+# Stop
+docker compose down
+
+# Destroy everything including the database volume
+docker compose down -v
+```
+
+---
+
+### Running the agent separately
+
+The agent runs on the **host PC that is physically wired to the boards** — not in Docker (it needs direct access to USB/serial devices and optionally Xilinx `hw_server`). Run it natively on that machine:
+
+```bash
+cd agent
+pip install -r requirements.txt
+cp config.example.yaml config.yaml
+# Edit config.yaml: set server_url, server_token, host_ip, and board IDs
+uvicorn agent.main:app --port 8766
+```
+
+If you do want to containerise the agent, the `agent/Dockerfile` is provided. Pass the device into the container with `--device`:
+
+```bash
+docker build -t boardfarm-agent -f agent/Dockerfile .
+docker run --device /dev/ttyUSB0 \
+  -v ./agent/config.yaml:/app/config.yaml:ro \
+  -p 8766:8766 boardfarm-agent
+```
+
+---
+
+### Manual Quick Start (without Docker)
+
+#### 1. Server
 
 ```bash
 cd server
@@ -54,7 +142,7 @@ server:
   admin_users: ["admin"]     # users allowed to modify/delete boards
 ```
 
-### 2. Add boards to inventory
+#### 2. Add boards to inventory
 
 ```bash
 curl -X POST http://localhost:8765/boards \
@@ -73,7 +161,7 @@ curl -X POST http://localhost:8765/boards \
 # Note the returned board "id"
 ```
 
-### 3. Agent (on the host PC connected to boards)
+#### 3. Agent (on the host PC connected to boards)
 
 ```bash
 cd agent
@@ -87,7 +175,7 @@ cp config.example.yaml config.yaml
 uvicorn agent.main:app --port 8766
 ```
 
-### 4. Frontend
+#### 4. Frontend
 
 ```bash
 cd frontend
