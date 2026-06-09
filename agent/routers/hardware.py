@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from ..auth import require_agent_auth
 from ..config import config
-from ..services import hw_server, power, uart_proxy
+from ..services import hw_server, power
 
 router = APIRouter(tags=["hardware"])
 
@@ -21,17 +21,13 @@ def _get_board(board_id: str):
 async def start_services(board_id: str, _: None = Depends(require_agent_auth)):
     board = _get_board(board_id)
     jtag_ok = await hw_server.start(board_id, board.jtag_port)
-    uart_ok = await uart_proxy.start(
-        board_id, board.uart_device, board.uart_baud, board.uart_tcp_port
-    )
-    return {"jtag_started": jtag_ok, "uart_started": uart_ok}
+    return {"jtag_started": jtag_ok}
 
 
 @router.post("/boards/{board_id}/services/stop")
 async def stop_services(board_id: str, _: None = Depends(require_agent_auth)):
     _get_board(board_id)
     await hw_server.stop(board_id)
-    await uart_proxy.stop(board_id)
     return {"stopped": True}
 
 

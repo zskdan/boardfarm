@@ -39,7 +39,6 @@ class DeviceIn(BaseModel):
     host_ip: str | None = None
     features: dict = {}
     jtag_port: int = 0
-    uart_tcp_port: int = 0
     ssh_user: str = "root"
     ssh_port: int = 0
     power_script: str = ""
@@ -60,7 +59,6 @@ class DeviceUpdate(BaseModel):
     host_ip: str | None = None
     features: dict | None = None
     jtag_port: int | None = None
-    uart_tcp_port: int | None = None
     ssh_user: str | None = None
     ssh_port: int | None = None
     power_script: str | None = None
@@ -109,7 +107,6 @@ class DeviceOut(BaseModel):
     host_ip: str | None
     features: dict
     jtag_port: int
-    uart_tcp_port: int
     ssh_user: str
     ssh_port: int
     power_script: str

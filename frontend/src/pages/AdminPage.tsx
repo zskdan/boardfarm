@@ -77,7 +77,6 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           enabled,
           ssh_user: ssh.enabled ? ssh.user || 'root' : 'root',
           ssh_port: sshP.port,
-          uart_tcp_port: uartP.port,
           jtag_port: jtagP.port,
           power_script: power.enabled ? power.script : '',
           power_args: power.enabled ? JSON.parse(power.args || '{}') : {},

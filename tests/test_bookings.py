@@ -17,7 +17,6 @@ async def create_test_board(client) -> dict:
             "location": "Test Lab",
             "features": {"jtag": True},
             "jtag_port": 3121,
-            "uart_tcp_port": 5555,
             "ssh_user": "root",
             "ssh_port": 22,
             "power_script": "",

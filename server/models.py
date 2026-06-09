@@ -71,7 +71,6 @@ class Board(Base):
     host_ip: Mapped[str | None] = mapped_column(String, nullable=True)
     features: Mapped[str] = mapped_column(String, default="{}")  # JSON
     jtag_port: Mapped[int] = mapped_column(Integer, default=3121)
-    uart_tcp_port: Mapped[int] = mapped_column(Integer, default=5555)
     ssh_user: Mapped[str] = mapped_column(String, default="root")
     ssh_port: Mapped[int] = mapped_column(Integer, default=22)
     power_script: Mapped[str] = mapped_column(String, default="")

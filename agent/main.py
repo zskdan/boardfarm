@@ -10,7 +10,7 @@ from .config import config
 from .heartbeat import heartbeat_loop
 from .routers import boards, hardware
 from .services import health as health_svc
-from .services import hw_server, mdns, uart_proxy
+from .services import hw_server, mdns
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -51,7 +51,6 @@ async def _recover_active_bookings() -> None:
                 b = board_map[bid]
                 logger.info("Recovering services for board %s (active booking: %s)", bid, booking["id"])
                 await hw_server.start(bid, b.jtag_port)
-                await uart_proxy.start(bid, b.uart_device, b.uart_baud, b.uart_tcp_port)
     except Exception:
         logger.exception("Error during booking recovery")
 
@@ -78,7 +77,6 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
     await hw_server.stop_all()
-    await uart_proxy.stop_all()
     await mdns.stop()
 
 

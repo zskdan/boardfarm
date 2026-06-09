@@ -35,7 +35,6 @@ def upgrade() -> None:
         sa.Column('host_ip', sa.String(), nullable=True),
         sa.Column('features', sa.String(), nullable=False, server_default='{}'),
         sa.Column('jtag_port', sa.Integer(), nullable=False, server_default='3121'),
-        sa.Column('uart_tcp_port', sa.Integer(), nullable=False, server_default='5555'),
         sa.Column('ssh_user', sa.String(), nullable=False, server_default='root'),
         sa.Column('ssh_port', sa.Integer(), nullable=False, server_default='22'),
         sa.Column('power_script', sa.String(), nullable=False, server_default=''),

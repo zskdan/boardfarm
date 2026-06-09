@@ -13,7 +13,6 @@ async def list_boards():
             "id": b.id,
             "uart_device": b.uart_device,
             "jtag_port": b.jtag_port,
-            "uart_tcp_port": b.uart_tcp_port,
             "healthy": get_health(b.id),
         }
         for b in config.boards

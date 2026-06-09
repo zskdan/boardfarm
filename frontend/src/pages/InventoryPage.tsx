@@ -76,7 +76,7 @@ const FIELD_BASIC: [string, keyof DeviceCreate][] = [
 
 const DEFAULT_DEVICE: DeviceCreate = {
   name: '', serial_number: '', revision: '', description: '',
-  location: '', device_ip: '', host_ip: '', features: {}, jtag_port: 3121, uart_tcp_port: 0,
+  location: '', device_ip: '', host_ip: '', features: {}, jtag_port: 3121,
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
   usb_device: '', uart_device: '', enabled: true, current_notes: '',
 };
@@ -162,7 +162,6 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
         ssh_port: hasEthernet && hasSsh ? form.ssh_port : 0,
         host_ip: hasAgent ? form.host_ip : '',
         jtag_port: hasAgent && hasJtag ? form.jtag_port : 0,
-        uart_tcp_port: 0,
         power_script: hasAgent && hasPower ? form.power_script : '',
         power_args: hasAgent && hasPower ? form.power_args : {},
         usb_device: hasAgent && hasUsb ? form.usb_device ?? '' : '',
@@ -344,7 +343,6 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
     ssh_user: device.ssh_user,
     ssh_port: device.ssh_port,
     jtag_port: device.jtag_port,
-    uart_tcp_port: device.uart_tcp_port,
     power_script: device.power_script,
     power_args: device.power_args,
     usb_device: device.usb_device ?? '',
@@ -372,7 +370,6 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
         ssh_port: hasEthernet && hasSsh ? form.ssh_port : 0,
         host_ip: hasAgent ? form.host_ip : '',
         jtag_port: hasAgent && hasJtag ? form.jtag_port : 0,
-        uart_tcp_port: 0,
         power_script: hasAgent && hasPower ? form.power_script : '',
         power_args: hasAgent && hasPower ? form.power_args : {},
         usb_device: hasAgent && hasUsb ? form.usb_device : '',

@@ -68,7 +68,6 @@ export interface DeviceInfo {
   host_ip: string | null;
   features: Record<string, unknown>;
   jtag_port: number;
-  uart_tcp_port: number;
   ssh_user: string;
   ssh_port: number;
   power_script: string;
@@ -94,7 +93,6 @@ export interface DeviceCreate {
   host_ip?: string | null;
   features: Record<string, unknown>;
   jtag_port: number;
-  uart_tcp_port: number;
   ssh_user: string;
   ssh_port: number;
   power_script: string;
