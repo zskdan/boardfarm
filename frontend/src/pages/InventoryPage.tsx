@@ -929,7 +929,7 @@ export default function InventoryPage() {
                       <div className="flex flex-wrap gap-1">
                         {Object.entries(d.features).map(([k, v]) => (
                           <span key={k} className={`px-1.5 py-0.5 text-xs rounded font-medium ${tagColor(k)}`}>
-                            {k}: {String(v)}
+                            {v === true || v === 'true' ? k : `${k}: ${String(v)}`}
                           </span>
                         ))}
                       </div>
