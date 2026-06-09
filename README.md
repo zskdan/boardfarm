@@ -42,8 +42,8 @@ The fastest way to run the server and frontend together — no Node.js or Python
 
 ```bash
 cp server/config.example.yaml server/config.yaml
-# Edit server/config.yaml — at minimum change the token:
-#   token: "your-strong-secret"
+# For internal deployments the defaults are fine — no token required out of the box.
+# Set token: "secret" in config.yaml if you want to restrict write access.
 ```
 
 **2. Start the stack**
@@ -119,7 +119,7 @@ docker run --device /dev/ttyUSB0 \
 cd server
 pip install -r requirements.txt
 cp config.example.yaml config.yaml
-# Edit config.yaml: set a strong token, adjust max_booking_hours if needed
+# Defaults work out of the box. Optionally set token, max_booking_hours, default_user.
 uvicorn server.main:app --port 8765
 ```
 
@@ -139,7 +139,7 @@ server:
 
 ```bash
 curl -X POST http://localhost:8765/boards \
-  -H "X-Token: changeme" -H "X-User: admin" \
+  -H "X-User: admin" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "zynq-dev-1",
@@ -152,6 +152,7 @@ curl -X POST http://localhost:8765/boards \
     "ssh_port": 22
   }'
 # Note the returned board "id"
+# Add -H "X-Token: <token>" if you configured a token in config.yaml
 ```
 
 #### 3. Agent (on the host PC connected to boards)
@@ -174,7 +175,7 @@ uvicorn agent.main:app --port 8766
 cd frontend
 npm install
 npm run dev
-# Open http://localhost:5173 and enter the server URL and token
+# Open http://localhost:5173 and enter the server URL
 ```
 
 ---
@@ -186,7 +187,7 @@ agent:
   name: "lab-host-1"
   port: 8766
   server_url: "http://192.168.1.100:8765"
-  server_token: "changeme"
+  server_token: ""          # match the token in server/config.yaml (empty = no token)
   host_ip: "192.168.1.5"   # this machine's LAN IP
 
 boards:
@@ -318,26 +319,34 @@ Click **History** to navigate to the history page. Filter by board name, usernam
 
 ### Server (`http://server:8765`)
 
-All endpoints (except `/health`) require headers:
-- `X-Token: <token>`
-- `X-User: <username>`
+**Authentication rules:**
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Liveness check |
-| GET | `/boards` | List all boards |
-| POST | `/boards` | Add board to inventory |
-| PATCH | `/boards/{id}` | Update board |
-| DELETE | `/boards/{id}` | Remove board |
-| GET | `/boards/{id}/tools` | List tools |
-| POST | `/boards/{id}/tools` | Add tool |
-| DELETE | `/tools/{id}` | Remove tool |
-| POST | `/boards/{id}/book` | Book board |
-| DELETE | `/bookings/{id}` | Release booking |
-| PATCH | `/bookings/{id}/extend` | Extend booking |
-| GET | `/bookings/{id}/commands` | Get connection commands |
-| GET | `/bookings` | Booking history |
-| GET | `/agents` | List registered agents |
+| Request type | `X-User` header | `X-Token` header |
+|---|---|---|
+| Read (`GET`) | Not required | Not required |
+| Write (`POST` / `PATCH` / `DELETE`) | **Required** — recorded in history | Required only if `token` is set in `config.yaml` |
+
+For internal deployments with `token: ""` in config, writes only need `X-User`.
+
+**Endpoints:**
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/health` | none | Liveness check + server config |
+| GET | `/boards` | none | List all boards with status |
+| POST | `/boards` | user | Add board to inventory |
+| PATCH | `/boards/{id}` | user | Update board metadata |
+| DELETE | `/boards/{id}` | user | Remove board |
+| GET | `/boards/{id}/tools` | none | List tools attached to board |
+| POST | `/boards/{id}/tools` | user | Add tool |
+| PATCH | `/tools/{id}` | user | Update tool |
+| DELETE | `/tools/{id}` | user | Remove tool |
+| POST | `/boards/{id}/book` | user | Book board |
+| DELETE | `/bookings/{id}` | user | Release booking (admin can release any) |
+| PATCH | `/bookings/{id}/extend` | user | Extend booking |
+| GET | `/bookings/{id}/commands` | none | Get JTAG / UART / SSH connection strings |
+| GET | `/bookings` | none | Booking history |
+| GET | `/agents` | none | List registered agents |
 
 ### Agent (`http://agent:8766`)
 
