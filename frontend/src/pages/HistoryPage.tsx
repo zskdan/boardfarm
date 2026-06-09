@@ -129,9 +129,14 @@ export default function HistoryPage() {
                       {entry.board_id ? (
                         <Link
                           to={`/boards/${entry.board_id}`}
-                          className="hover:underline"
+                          className="hover:underline flex flex-col gap-0.5"
                         >
-                          {entry.board_name || entry.board_id}
+                          <span>{entry.board_name || entry.board_id}</span>
+                          {entry.device_id && (
+                            <span className="font-mono text-xs font-normal text-gray-400">
+                              {entry.device_id}
+                            </span>
+                          )}
                         </Link>
                       ) : (
                         <span className="text-gray-400">—</span>

@@ -36,7 +36,7 @@ async def add_tool(
 
     tool = Tool(id=str(uuid.uuid4()), board_id=board_id, **body.model_dump())
     db.add(tool)
-    await log_action(db, "tool_added", user, board_id, board.name, f"{body.type} · {body.model}")
+    await log_action(db, "tool_added", user, board_id, board.name, f"{body.type} · {body.model}", device_id=board.device_id)
     await db.commit()
     await db.refresh(tool)
     return ToolOut.model_validate(tool)
@@ -73,6 +73,7 @@ async def delete_tool(
     board_result = await db.execute(select(Board).where(Board.id == tool.board_id))
     board = board_result.scalar_one_or_none()
     board_name = board.name if board else ""
-    await log_action(db, "tool_deleted", user, tool.board_id, board_name, f"{tool.type} · {tool.model}")
+    board_device_id = board.device_id if board else ""
+    await log_action(db, "tool_deleted", user, tool.board_id, board_name, f"{tool.type} · {tool.model}", device_id=board_device_id)
     await db.delete(tool)
     await db.commit()

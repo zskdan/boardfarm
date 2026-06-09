@@ -185,7 +185,6 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
   const [username, setUsernameState] = useState(getDefaultUser());
   const [form, setForm] = useState({
     name: board.name,
-    device_id: board.device_id,
     serial_number: board.serial_number,
     revision: board.revision,
     description: board.description,
@@ -231,7 +230,10 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
             <input className={inputCls} value={username}
               onChange={(e) => setUsernameState(e.target.value)} placeholder="Required" />
           </Field>
-          {([['Name', 'name'], ['Device ID', 'device_id'], ['Serial Number', 'serial_number'], ['Revision', 'revision'], ['Description', 'description'], ['Location', 'location'], ['SSH User', 'ssh_user'], ['Power Script', 'power_script']] as [string, keyof typeof form][]).map(([label, key]) => (
+          <Field label="Device ID">
+            <span className="font-mono text-sm text-gray-500 bg-gray-50 border rounded-lg px-3 py-1.5">{board.device_id || '—'}</span>
+          </Field>
+          {([['Name', 'name'], ['Serial Number', 'serial_number'], ['Revision', 'revision'], ['Description', 'description'], ['Location', 'location'], ['SSH User', 'ssh_user'], ['Power Script', 'power_script']] as [string, keyof typeof form][]).map(([label, key]) => (
             <Field key={key} label={label}>
               <input type="text" className={inputCls} value={String(form[key] ?? '')}
                 onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
@@ -547,6 +549,7 @@ export default function InventoryPage() {
     const q = search.toLowerCase();
     return (
       b.name.toLowerCase().includes(q) ||
+      b.device_id.toLowerCase().includes(q) ||
       b.location.toLowerCase().includes(q) ||
       b.description.toLowerCase().includes(q) ||
       (b.active_booking?.username ?? '').toLowerCase().includes(q) ||

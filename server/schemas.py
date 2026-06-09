@@ -150,6 +150,7 @@ class AuditLogOut(BaseModel):
     username: str
     board_id: str | None
     board_name: str
+    device_id: str = ""
     detail: str
 
     @field_serializer("timestamp")

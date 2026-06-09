@@ -35,6 +35,10 @@ async def init_db() -> None:
                 await conn.execute(text(f"ALTER TABLE boards ADD COLUMN {col} TEXT NOT NULL DEFAULT ''"))
             except Exception:
                 pass
+        try:
+            await conn.execute(text("ALTER TABLE audit_log ADD COLUMN device_id TEXT NOT NULL DEFAULT ''"))
+        except Exception:
+            pass
 
 
 async def get_db():

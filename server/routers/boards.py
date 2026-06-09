@@ -149,7 +149,7 @@ async def create_board(
         await db.rollback()
         _raise_uniqueness_error(str(exc))
     board = await _load_board(board.id, db)
-    await log_action(db, "board_created", user, board.id, board.name, f"location='{body.location}'")
+    await log_action(db, "board_created", user, board.id, board.name, f"location='{body.location}'", device_id=board.device_id)
     await db.commit()
     return await _build_board_out(board, db)
 
@@ -174,7 +174,7 @@ async def update_board(
         await db.rollback()
         _raise_uniqueness_error(str(exc))
     board = await _load_board(board_id, db)
-    await log_action(db, "board_updated", user, board_id, board.name, detail)
+    await log_action(db, "board_updated", user, board_id, board.name, detail, device_id=board.device_id)
     await db.commit()
     return await _build_board_out(board, db)
 
@@ -191,6 +191,6 @@ async def delete_board(
             raise HTTPException(
                 status_code=409, detail="Board has an active booking; release it first"
             )
-    await log_action(db, "board_deleted", user, board.id, board.name, "")
+    await log_action(db, "board_deleted", user, board.id, board.name, "", device_id=board.device_id)
     await db.delete(board)
     await db.commit()

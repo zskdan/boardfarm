@@ -155,7 +155,7 @@ async def book_board(
             .options(selectinload(Booking.board).selectinload(Board.agent))
         )
         booking = result.scalar_one()
-        await log_action(db, "booked", user, board_id, booking.board.name if booking.board else "", f"{effective_hours}h — {comment}")
+        await log_action(db, "booked", user, board_id, booking.board.name if booking.board else "", f"{effective_hours}h — {comment}", device_id=booking.board.device_id if booking.board else "")
         await db.commit()
 
     asyncio.create_task(broadcast({"type": "booking_changed", "board_id": board_id}))
@@ -181,7 +181,7 @@ async def release_booking(
 
     booking.active = False
     booking.release_reason = "admin" if is_admin and booking.username != user else "manual"
-    await log_action(db, "released", user, booking.board_id, booking.board.name if booking.board else "", f"reason: {booking.release_reason}")
+    await log_action(db, "released", user, booking.board_id, booking.board.name if booking.board else "", f"reason: {booking.release_reason}", device_id=booking.board.device_id if booking.board else "")
     await db.commit()
 
     board = booking.board
@@ -225,7 +225,7 @@ async def extend_booking(
 
     booking.end_time = new_end
     booking.extended = True
-    await log_action(db, "extended", user, booking.board_id, booking.board.name if booking.board else "", f"+{hours}h")
+    await log_action(db, "extended", user, booking.board_id, booking.board.name if booking.board else "", f"+{hours}h", device_id=booking.board.device_id if booking.board else "")
     await db.commit()
     await db.refresh(booking)
     return _booking_out(booking)

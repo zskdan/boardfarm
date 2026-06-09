@@ -15,6 +15,7 @@ class AuditLog(Base):
     username: Mapped[str] = mapped_column(String, default="")
     board_id: Mapped[str | None] = mapped_column(String, nullable=True)
     board_name: Mapped[str] = mapped_column(String, default="")
+    device_id: Mapped[str] = mapped_column(String, default="")
     detail: Mapped[str] = mapped_column(String, default="")
 
 

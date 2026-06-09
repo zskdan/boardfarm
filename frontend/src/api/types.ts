@@ -96,5 +96,6 @@ export interface ActivityEntry {
   username: string;
   board_id: string | null;
   board_name: string;
+  device_id: string;
   detail: string;
 }

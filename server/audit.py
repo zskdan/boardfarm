@@ -13,6 +13,7 @@ async def log_action(
     board_id: str | None = None,
     board_name: str = "",
     detail: str = "",
+    device_id: str = "",
 ) -> None:
     entry = AuditLog(
         id=str(uuid.uuid4()),
@@ -21,6 +22,7 @@ async def log_action(
         username=username,
         board_id=board_id,
         board_name=board_name,
+        device_id=device_id,
         detail=detail,
     )
     db.add(entry)
