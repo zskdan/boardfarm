@@ -15,31 +15,75 @@ import {
 import type { BoardCreate, ToolCreate } from '../api/types';
 import ToolBadge from '../components/ToolBadge';
 
-const DEFAULT_BOARD: BoardCreate = {
-  name: '',
-  description: '',
-  location: '',
-  features: {},
-  jtag_port: 3121,
-  uart_tcp_port: 5555,
-  ssh_user: 'root',
-  ssh_port: 22,
-  power_script: '',
-  power_args: {},
-  enabled: true,
-  current_notes: '',
-};
+function parseAddr(addr: string, defaultPort: number): { ip: string; port: number } {
+  const last = addr.lastIndexOf(':');
+  if (last === -1) return { ip: addr.trim(), port: defaultPort };
+  return { ip: addr.slice(0, last).trim(), port: parseInt(addr.slice(last + 1)) || defaultPort };
+}
+
+function ServiceSection({
+  label,
+  enabled,
+  onToggle,
+  children,
+}: {
+  label: string;
+  enabled: boolean;
+  onToggle: (v: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border rounded-lg p-3 flex flex-col gap-2">
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input type="checkbox" checked={enabled} onChange={(e) => onToggle(e.target.checked)} />
+        <span className="text-sm font-medium text-gray-700">{label}</span>
+      </label>
+      {enabled && <div className="flex flex-col gap-2 pl-6">{children}</div>}
+    </div>
+  );
+}
 
 function AddBoardModal({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [form, setForm] = useState<BoardCreate>(DEFAULT_BOARD);
-  const [featuresRaw, setFeaturesRaw] = useState('{}');
   const [username, setUsername] = useState(getDefaultUser());
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [notes, setNotes] = useState('');
+  const [featuresRaw, setFeaturesRaw] = useState('{}');
+  const [enabled, setEnabled] = useState(true);
+
+  const [ssh, setSsh] = useState({ enabled: true, addr: '', user: 'root' });
+  const [uart, setUart] = useState({ enabled: true, addr: '' });
+  const [jtag, setJtag] = useState({ enabled: true, addr: '' });
+  const [power, setPower] = useState({ enabled: false, script: '', args: '{}' });
 
   const mut = useMutation({
-    mutationFn: () =>
-      createBoard({ ...form, features: JSON.parse(featuresRaw) }, username),
+    mutationFn: () => {
+      const sshP = ssh.enabled ? parseAddr(ssh.addr, 22) : { ip: '', port: 0 };
+      const uartP = uart.enabled ? parseAddr(uart.addr, 5555) : { ip: '', port: 0 };
+      const jtagP = jtag.enabled ? parseAddr(jtag.addr, 3121) : { ip: '', port: 0 };
+      const host_ip = sshP.ip || uartP.ip || jtagP.ip || undefined;
+      return createBoard(
+        {
+          name,
+          description,
+          location,
+          current_notes: notes,
+          host_ip,
+          features: JSON.parse(featuresRaw || '{}'),
+          enabled,
+          ssh_user: ssh.enabled ? ssh.user || 'root' : 'root',
+          ssh_port: sshP.port,
+          uart_tcp_port: uartP.port,
+          jtag_port: jtagP.port,
+          power_script: power.enabled ? power.script : '',
+          power_args: power.enabled ? JSON.parse(power.args || '{}') : {},
+        },
+        username,
+      );
+    },
     onSuccess: (board) => {
       setDefaultUser(username);
       qc.invalidateQueries({ queryKey: ['boards'] });
@@ -64,74 +108,115 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
               placeholder="Required"
             />
           </label>
+
           {[
-            ['Name', 'name', 'text'],
-            ['Description', 'description', 'text'],
-            ['Location', 'location', 'text'],
-            ['SSH User', 'ssh_user', 'text'],
-            ['Power Script', 'power_script', 'text'],
-          ].map(([label, key, type]) => (
-            <label key={key} className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-gray-600">{label}</span>
+            ['Name *', name, setName],
+            ['Description', description, setDescription],
+            ['Location', location, setLocation],
+          ].map(([label, val, setter]) => (
+            <label key={label as string} className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-600">{label as string}</span>
               <input
-                type={type}
                 className="border rounded-lg px-3 py-1.5 text-sm"
-                value={String(form[key as keyof BoardCreate] ?? '')}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, [key]: e.target.value }))
-                }
+                value={val as string}
+                onChange={(e) => (setter as (v: string) => void)(e.target.value)}
               />
             </label>
           ))}
-          {[
-            ['JTAG Port', 'jtag_port'],
-            ['UART TCP Port', 'uart_tcp_port'],
-            ['SSH Port', 'ssh_port'],
-          ].map(([label, key]) => (
-            <label key={key} className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-gray-600">{label}</span>
-              <input
-                type="number"
-                className="border rounded-lg px-3 py-1.5 text-sm"
-                value={Number(form[key as keyof BoardCreate])}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, [key]: Number(e.target.value) }))
-                }
-              />
-            </label>
-          ))}
+
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide pt-1">
+            Services
+          </span>
+
+          <ServiceSection label="SSH" enabled={ssh.enabled} onToggle={(v) => setSsh((s) => ({ ...s, enabled: v }))}>
+            <input
+              type="text"
+              className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+              placeholder="192.168.1.5:22"
+              value={ssh.addr}
+              onChange={(e) => setSsh((s) => ({ ...s, addr: e.target.value }))}
+            />
+            <input
+              type="text"
+              className="border rounded px-2 py-1.5 text-sm w-full"
+              placeholder="SSH user (default: root)"
+              value={ssh.user}
+              onChange={(e) => setSsh((s) => ({ ...s, user: e.target.value }))}
+            />
+          </ServiceSection>
+
+          <ServiceSection label="UART" enabled={uart.enabled} onToggle={(v) => setUart((s) => ({ ...s, enabled: v }))}>
+            <input
+              type="text"
+              className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+              placeholder="192.168.1.5:5555"
+              value={uart.addr}
+              onChange={(e) => setUart((s) => ({ ...s, addr: e.target.value }))}
+            />
+          </ServiceSection>
+
+          <ServiceSection label="JTAG" enabled={jtag.enabled} onToggle={(v) => setJtag((s) => ({ ...s, enabled: v }))}>
+            <input
+              type="text"
+              className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+              placeholder="192.168.1.5:3121"
+              value={jtag.addr}
+              onChange={(e) => setJtag((s) => ({ ...s, addr: e.target.value }))}
+            />
+          </ServiceSection>
+
+          <ServiceSection label="Power Control" enabled={power.enabled} onToggle={(v) => setPower((s) => ({ ...s, enabled: v }))}>
+            <input
+              type="text"
+              className="border rounded px-2 py-1.5 text-sm w-full"
+              placeholder="Script path (e.g. power/usb_relay.py)"
+              value={power.script}
+              onChange={(e) => setPower((s) => ({ ...s, script: e.target.value }))}
+            />
+            <textarea
+              className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+              rows={2}
+              placeholder='{"relay_id": 1}'
+              value={power.args}
+              onChange={(e) => setPower((s) => ({ ...s, args: e.target.value }))}
+            />
+          </ServiceSection>
+
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-gray-600">
-              Features (JSON)
-            </span>
+            <span className="text-xs font-medium text-gray-600">Features (JSON)</span>
             <textarea
               className="border rounded-lg px-3 py-1.5 text-sm font-mono"
-              rows={3}
+              rows={2}
               value={featuresRaw}
               onChange={(e) => setFeaturesRaw(e.target.value)}
             />
           </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={form.enabled}
-              onChange={(e) => setForm((f) => ({ ...f, enabled: e.target.checked }))}
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-gray-600">Notes</span>
+            <textarea
+              className="border rounded-lg px-3 py-1.5 text-sm"
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
             />
+          </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
             Enabled
           </label>
+
           {mut.error && (
             <p className="text-xs text-red-600">{(mut.error as Error).message}</p>
           )}
           <div className="flex gap-2 justify-end mt-2">
-            <button
-              onClick={onClose}
-              className="px-4 py-1.5 border rounded-lg text-sm hover:bg-gray-50"
-            >
+            <button onClick={onClose} className="px-4 py-1.5 border rounded-lg text-sm hover:bg-gray-50">
               Cancel
             </button>
             <button
               onClick={() => mut.mutate()}
-              disabled={mut.isPending || !form.name || !username}
+              disabled={mut.isPending || !name || !username}
               className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
             >
               {mut.isPending ? 'Creating…' : 'Create'}

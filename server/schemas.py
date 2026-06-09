@@ -48,11 +48,12 @@ class BoardIn(BaseModel):
     description: str = ""
     location: str = ""
     current_notes: str = ""
+    host_ip: str | None = None
     features: dict = {}
-    jtag_port: int = 3121
-    uart_tcp_port: int = 5555
+    jtag_port: int = 0
+    uart_tcp_port: int = 0
     ssh_user: str = "root"
-    ssh_port: int = 22
+    ssh_port: int = 0
     power_script: str = ""
     power_args: dict = {}
     enabled: bool = True
@@ -63,6 +64,7 @@ class BoardUpdate(BaseModel):
     description: str | None = None
     location: str | None = None
     current_notes: str | None = None
+    host_ip: str | None = None
     features: dict | None = None
     jtag_port: int | None = None
     uart_tcp_port: int | None = None

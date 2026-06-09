@@ -118,6 +118,7 @@ async def create_board(
         description=body.description,
         location=body.location,
         current_notes=body.current_notes,
+        host_ip=body.host_ip,
         features=json.dumps(body.features),
         jtag_port=body.jtag_port,
         uart_tcp_port=body.uart_tcp_port,

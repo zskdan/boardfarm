@@ -64,6 +64,7 @@ export interface BoardCreate {
   name: string;
   description: string;
   location: string;
+  host_ip?: string | null;
   features: Record<string, unknown>;
   jtag_port: number;
   uart_tcp_port: number;
