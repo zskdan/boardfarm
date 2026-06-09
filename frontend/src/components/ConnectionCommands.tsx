@@ -2,54 +2,44 @@ import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 import type { CommandsInfo } from '../api/types';
 
-function CopyButton({ text }: { text: string }) {
+function ShellLine({ label, cmd }: { label: string; cmd: string }) {
   const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard.writeText(text).then(() => {
+  function copy() {
+    navigator.clipboard.writeText(cmd).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  };
+  }
   return (
-    <button
-      onClick={copy}
-      className="text-gray-400 hover:text-gray-700 transition-colors"
-      title="Copy"
-    >
-      {copied ? <Check size={14} /> : <Copy size={14} />}
-    </button>
-  );
-}
-
-interface CommandRowProps {
-  label: string;
-  value: string;
-}
-
-function CommandRow({ label, value }: CommandRowProps) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-        {label}
-      </span>
-      <div className="flex items-start gap-2 bg-gray-900 rounded p-3">
-        <pre className="flex-1 text-sm text-green-400 font-mono whitespace-pre-wrap break-all">
-          {value}
-        </pre>
-        <CopyButton text={value} />
+    <div className="group">
+      <div className="flex items-center justify-between px-4 pt-3 pb-1">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
+        <button onClick={copy} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white" title="Copy">
+          {copied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
+        </button>
+      </div>
+      <div className="flex items-start gap-2 px-4 pb-3">
+        <span className="text-gray-500 select-none font-mono text-sm mt-0.5">$</span>
+        <pre className="text-green-400 font-mono text-sm whitespace-pre-wrap break-all flex-1">{cmd}</pre>
       </div>
     </div>
   );
 }
 
 export default function ConnectionCommands({ commands }: { commands: CommandsInfo }) {
+  const lines: [string, string][] = [
+    ['SSH', commands.ssh],
+    ['UART', commands.uart],
+    ['JTAG', commands.jtag_connect],
+    ['Vivado TCL', commands.vivado_tcl],
+    ['Power on', commands.power_on],
+  ].filter(([, cmd]) => cmd) as [string, string][];
+
   return (
-    <div className="flex flex-col gap-3">
-      <CommandRow label="JTAG (hw_server)" value={commands.jtag_connect} />
-      <CommandRow label="Vivado TCL" value={commands.vivado_tcl} />
-      <CommandRow label="UART (telnet)" value={commands.uart} />
-      <CommandRow label="SSH" value={commands.ssh} />
-      <CommandRow label="Power control" value={commands.power_on} />
+    <div className="bg-gray-900 rounded-xl overflow-hidden divide-y divide-gray-800">
+      {lines.map(([label, cmd]) => (
+        <ShellLine key={label} label={label} cmd={cmd} />
+      ))}
     </div>
   );
 }

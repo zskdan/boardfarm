@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Copy, MapPin, Wifi, WifiOff } from 'lucide-react';
+import { ArrowLeft, Check, Copy, MapPin, Wifi, WifiOff } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -16,20 +16,26 @@ import ConnectionCommands from '../components/ConnectionCommands';
 import StatusBadge from '../components/StatusBadge';
 import ToolBadge from '../components/ToolBadge';
 
-function ConnRow({ label, value }: { label: string; value: string }) {
+function ShellLine({ label, cmd }: { label: string; cmd: string }) {
+  const [copied, setCopied] = useState(false);
+  function copy() {
+    navigator.clipboard.writeText(cmd).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <span className="w-16 text-xs font-semibold text-gray-500 uppercase shrink-0">{label}</span>
-      <code className="bg-gray-50 border rounded px-2 py-1 text-xs flex-1 font-mono text-gray-800 break-all">
-        {value}
-      </code>
-      <button
-        onClick={() => navigator.clipboard.writeText(value)}
-        className="text-gray-300 hover:text-gray-600 shrink-0"
-        title="Copy"
-      >
-        <Copy size={13} />
-      </button>
+    <div className="group">
+      <div className="flex items-center justify-between px-4 pt-3 pb-1">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
+        <button onClick={copy} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white" title="Copy">
+          {copied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
+        </button>
+      </div>
+      <div className="flex items-start gap-2 px-4 pb-3">
+        <span className="text-gray-500 select-none font-mono text-sm mt-0.5">$</span>
+        <pre className="text-green-400 font-mono text-sm whitespace-pre-wrap break-all flex-1">{cmd}</pre>
+      </div>
     </div>
   );
 }
@@ -182,27 +188,30 @@ export default function BoardDetailPage() {
         {(board.ssh_port > 0 || board.uart_tcp_port > 0 || board.jtag_port > 0 || board.power_script) && (
           <div className="bg-white rounded-xl border p-5 mb-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Connectivity</h2>
-            <div className="flex flex-col gap-2">
+            <div className="bg-gray-900 rounded-xl overflow-hidden divide-y divide-gray-800">
               {board.ssh_port > 0 && (
-                <ConnRow
+                <ShellLine
                   label="SSH"
-                  value={`${board.ssh_user}@${board.host_ip ?? 'AGENT_IP'}:${board.ssh_port}`}
+                  cmd={`ssh ${board.ssh_user}@${board.host_ip ?? 'AGENT_IP'} -p ${board.ssh_port}`}
                 />
               )}
               {board.uart_tcp_port > 0 && (
-                <ConnRow
+                <ShellLine
                   label="UART"
-                  value={`${board.host_ip ?? 'AGENT_IP'}:${board.uart_tcp_port}`}
+                  cmd={`telnet ${board.host_ip ?? 'AGENT_IP'} ${board.uart_tcp_port}`}
                 />
               )}
               {board.jtag_port > 0 && (
-                <ConnRow
+                <ShellLine
                   label="JTAG"
-                  value={`${board.host_ip ?? 'AGENT_IP'}:${board.jtag_port}`}
+                  cmd={`connect_hw_server -url tcp:${board.host_ip ?? 'AGENT_IP'}:${board.jtag_port}`}
                 />
               )}
               {board.power_script && (
-                <ConnRow label="Power" value={board.power_script} />
+                <ShellLine
+                  label="Power"
+                  cmd={`python3 ${board.power_script} --action on`}
+                />
               )}
             </div>
           </div>
