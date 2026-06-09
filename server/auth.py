@@ -1,35 +1,28 @@
 import secrets
 
-from fastapi import Header, HTTPException
+from fastapi import Depends, Header, HTTPException
 
 from .config import settings
 
 
-async def require_auth(
-    x_token: str = Header(...),
+async def _check_token(x_token: str | None = Header(default=None)) -> None:
+    """Enforce token only when one is configured. Empty/null token = open access."""
+    if not settings.token:
+        return
+    if x_token is None or not secrets.compare_digest(x_token, settings.token):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+async def require_user(
     x_user: str = Header(..., alias="X-User"),
+    _: None = Depends(_check_token),
 ) -> str:
-    if not secrets.compare_digest(x_token, settings.token):
-        raise HTTPException(status_code=401, detail="Invalid token")
+    """Require X-User on mutating requests. Also enforces token if configured."""
     return x_user
 
 
-async def require_auth_or_admin(
-    x_token: str = Header(...),
+async def require_user_or_admin(
     x_user: str = Header(..., alias="X-User"),
+    _: None = Depends(_check_token),
 ) -> tuple[str, bool]:
-    if not secrets.compare_digest(x_token, settings.token):
-        raise HTTPException(status_code=401, detail="Invalid token")
-    is_admin = x_user in settings.admin_users
-    return x_user, is_admin
-
-
-async def optional_auth(
-    x_token: str | None = Header(default=None),
-    x_user: str | None = Header(default=None, alias="X-User"),
-) -> str | None:
-    if x_token is None:
-        return None
-    if not secrets.compare_digest(x_token, settings.token):
-        raise HTTPException(status_code=401, detail="Invalid token")
-    return x_user
+    return x_user, x_user in settings.admin_users

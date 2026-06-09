@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..auth import require_auth
+from ..auth import require_user
 from ..database import get_db
 from ..models import Board, Tool
 from ..schemas import ToolIn, ToolOut
@@ -16,7 +16,6 @@ router = APIRouter(tags=["tools"])
 async def list_tools(
     board_id: str,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
 ):
     result = await db.execute(select(Tool).where(Tool.board_id == board_id))
     return result.scalars().all()
@@ -27,7 +26,7 @@ async def add_tool(
     board_id: str,
     body: ToolIn,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
+    user: str = Depends(require_user),
 ):
     result = await db.execute(select(Board).where(Board.id == board_id))
     if result.scalar_one_or_none() is None:
@@ -45,7 +44,7 @@ async def update_tool(
     tool_id: str,
     body: ToolIn,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
+    user: str = Depends(require_user),
 ):
     result = await db.execute(select(Tool).where(Tool.id == tool_id))
     tool = result.scalar_one_or_none()
@@ -62,7 +61,7 @@ async def update_tool(
 async def delete_tool(
     tool_id: str,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
+    user: str = Depends(require_user),
 ):
     result = await db.execute(select(Tool).where(Tool.id == tool_id))
     tool = result.scalar_one_or_none()

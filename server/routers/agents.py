@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..auth import require_auth
+from ..auth import require_user
 from ..database import get_db
 from ..models import Agent, Board
 from ..schemas import AgentOut
@@ -70,7 +70,6 @@ async def heartbeat(body: dict, db: AsyncSession = Depends(get_db)):
 @router.get("", response_model=list[AgentOut])
 async def list_agents(
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
 ):
     result = await db.execute(select(Agent))
     agents = result.scalars().all()

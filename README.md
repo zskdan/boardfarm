@@ -67,7 +67,7 @@ The SQLite database is stored in a named volume (`boardfarm_data`) so it persist
 http://localhost
 ```
 
-Enter `http://localhost:8765` as the server URL, the token from your config, and you're in.
+Enter `http://localhost:8765` as the server URL. No token needed by default.
 
 **Useful commands**
 
@@ -127,10 +127,12 @@ Key `config.yaml` options:
 
 ```yaml
 server:
-  token: "changeme"          # shared secret — set this
-  max_booking_hours: 24      # booking cap: N=hours, null=unlimited, 0=never expires
-  default_user: null         # pre-fill this username in the UI (null = no default)
-  admin_users: ["admin"]     # users allowed to modify/delete boards
+  token: ""              # leave empty for internal deployments (no token required)
+                         # set a secret string to require a token on all writes
+  max_booking_hours: 24  # booking cap: N=hours, null=unlimited, 0=never expires
+  default_user: null     # username pre-filled in the UI (null = no default)
+  admin_users:           # users who can release any booking and delete boards
+    - "admin"
 ```
 
 #### 2. Add boards to inventory
@@ -220,7 +222,7 @@ Custom controllers: subclass `power.base.PowerController` and call `run_controll
 
 ### Connect to a server
 
-Open `http://localhost:5173` and enter the server URL and the shared token. The server URL is stored in your browser for subsequent visits.
+Open `http://localhost:5173` and enter the server URL. If a token is configured on the server, enter it too — otherwise leave it blank. The URL is stored in your browser for subsequent visits.
 
 ![Discovery – connect screen](screenshots/v2-discovery.png)
 

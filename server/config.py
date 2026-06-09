@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     port: int = 8765
-    token: str = "changeme"
+    token: str = ""
     db_path: str = "./boardfarm.db"
     admin_users: list[str] = []
     # max_booking_hours: positive int = cap, None = unlimited, 0 = never expires

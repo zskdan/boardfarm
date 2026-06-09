@@ -1,6 +1,8 @@
 server:
   port: 8765
-  token: "changeme"
+  # Token required on mutating requests (book, release, add/edit boards…).
+  # Set to "" or omit to disable token checking (recommended for internal deployments).
+  token: ""
   db_path: "./boardfarm.db"
   admin_users:
     - "admin"

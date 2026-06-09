@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..auth import require_auth
+from ..auth import require_user
 from ..database import get_db
 from ..models import Agent, Board, Booking
 from ..schemas import BoardIn, BoardOut, BoardUpdate, BookingOut, ToolOut
@@ -84,7 +84,6 @@ async def _load_board(board_id: str, db: AsyncSession) -> Board:
 @router.get("", response_model=list[BoardOut])
 async def list_boards(
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
 ):
     result = await db.execute(
         select(Board).options(
@@ -101,7 +100,6 @@ async def list_boards(
 async def get_board(
     board_id: str,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
 ):
     board = await _load_board(board_id, db)
     return await _build_board_out(board, db)
@@ -111,7 +109,7 @@ async def get_board(
 async def create_board(
     body: BoardIn,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
+    user: str = Depends(require_user),
 ):
     board = Board(
         id=str(uuid.uuid4()),
@@ -139,7 +137,7 @@ async def update_board(
     board_id: str,
     body: BoardUpdate,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
+    user: str = Depends(require_user),
 ):
     board = await _load_board(board_id, db)
     for field, value in body.model_dump(exclude_none=True).items():
@@ -156,7 +154,7 @@ async def update_board(
 async def delete_board(
     board_id: str,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
+    user: str = Depends(require_user),
 ):
     board = await _load_board(board_id, db)
     for bk in board.bookings:

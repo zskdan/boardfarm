@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..auth import require_auth, require_auth_or_admin
+from ..auth import require_user, require_user_or_admin
 from ..config import settings
 from ..database import get_db
 from ..models import Board, Booking
@@ -90,7 +90,7 @@ async def book_board(
     board_id: str,
     body: dict,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
+    user: str = Depends(require_user),
 ):
     comment: str = str(body.get("comment", ""))[:500]
     max_h = settings.max_booking_hours
@@ -163,7 +163,7 @@ async def book_board(
 async def release_booking(
     booking_id: str,
     db: AsyncSession = Depends(get_db),
-    auth: tuple[str, bool] = Depends(require_auth_or_admin),
+    auth: tuple[str, bool] = Depends(require_user_or_admin),
 ):
     user, is_admin = auth
     booking = await _load_booking(booking_id, db)
@@ -200,7 +200,7 @@ async def extend_booking(
     booking_id: str,
     body: dict,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
+    user: str = Depends(require_user),
 ):
     hours = int(body.get("hours", 1))
     booking = await _load_booking(booking_id, db)
@@ -230,14 +230,11 @@ async def extend_booking(
 async def get_commands(
     booking_id: str,
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
 ):
     booking = await _load_booking(booking_id, db)
 
     if not booking.active:
         raise HTTPException(status_code=409, detail="Booking is not active")
-    if booking.username != user:
-        raise HTTPException(status_code=403, detail="Not your booking")
 
     board = booking.board
     ip = board.host_ip or "AGENT_IP"
@@ -259,7 +256,6 @@ async def list_bookings(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, le=200),
     db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_auth),
 ):
     query = select(Booking).options(
         selectinload(Booking.board).selectinload(Board.agent)
