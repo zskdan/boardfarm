@@ -49,6 +49,8 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
   const [username, setUsername] = useState(getDefaultUser());
   const [name, setName] = useState('');
   const [deviceId, setDeviceId] = useState('');
+  const [serialNumber, setSerialNumber] = useState('');
+  const [revision, setRevision] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -70,6 +72,8 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
         {
           name,
           device_id: deviceId,
+          serial_number: serialNumber,
+          revision,
           description,
           location,
           current_notes: notes,
@@ -133,6 +137,26 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
               value={deviceId}
               onChange={(e) => setDeviceId(e.target.value)}
               placeholder="e.g. ZYNQ-001"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-gray-600">Serial Number</span>
+            <input
+              className="border rounded-lg px-3 py-1.5 text-sm font-mono"
+              value={serialNumber}
+              onChange={(e) => setSerialNumber(e.target.value)}
+              placeholder="e.g. SN-20240001"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-gray-600">Revision</span>
+            <input
+              className="border rounded-lg px-3 py-1.5 text-sm"
+              value={revision}
+              onChange={(e) => setRevision(e.target.value)}
+              placeholder="e.g. 1.2"
             />
           </label>
 
