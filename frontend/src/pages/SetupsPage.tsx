@@ -344,7 +344,7 @@ function SetupCard({ setup }: { setup: SetupInfo }) {
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {myBooking && (
           <button
             onClick={() => releaseMut.mutate()}
@@ -354,16 +354,18 @@ function SetupCard({ setup }: { setup: SetupInfo }) {
             {releaseMut.isPending ? 'Releasing…' : 'Release'}
           </button>
         )}
-        {!setup.active_booking && setup.all_available && (
-          <button
-            onClick={() => setShowBook(true)}
-            className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Book Setup
-          </button>
-        )}
-        {!setup.active_booking && !setup.all_available && (
-          <span className="text-xs text-gray-400">Some devices unavailable</span>
+        {!setup.active_booking && (
+          <>
+            <button
+              onClick={() => setShowBook(true)}
+              className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Book Setup
+            </button>
+            {!setup.all_available && (
+              <span className="text-xs text-amber-600">Some devices unavailable</span>
+            )}
+          </>
         )}
         {deleteMut.error && (
           <span className="text-xs text-red-600">{(deleteMut.error as Error).message}</span>
