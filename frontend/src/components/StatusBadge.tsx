@@ -15,14 +15,14 @@ export default function StatusBadge({ agentOnline, activeBooking, enabled, hasAg
   }
   if (hasAgent && !agentOnline) {
     return (
-      <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">
+      <span className="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700">
         Offline
       </span>
     );
   }
   if (activeBooking) {
     return (
-      <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
+      <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700">
         Booked
       </span>
     );

@@ -39,14 +39,14 @@ function DeviceRow({ board }: { board: SetupInfo['boards'][0] }) {
   const blocked = !!board.active_booking_username;
   return (
     <div className="flex items-center gap-2 text-xs py-1">
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${blocked ? 'bg-red-400' : board.agent_online ? 'bg-green-400' : 'bg-gray-300'}`} />
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${blocked ? 'bg-blue-400' : board.agent_online ? 'bg-green-400' : 'bg-gray-300'}`} />
       {board.device_id && (
         <span className="font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border">{board.device_id}</span>
       )}
       <span className="font-medium text-gray-800">{board.board_name}</span>
       {board.location && <span className="text-gray-400">{board.location}</span>}
       {blocked && (
-        <span className="text-red-500 ml-auto">
+        <span className="text-blue-500 ml-auto">
           booked by {board.active_booking_username}
           {board.active_booking_setup_name && ` (${board.active_booking_setup_name})`}
         </span>
