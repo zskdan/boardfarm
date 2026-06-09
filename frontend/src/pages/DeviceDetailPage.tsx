@@ -200,7 +200,7 @@ export default function DeviceDetailPage() {
         )}
 
         {/* Connectivity */}
-        {(device.ssh_port > 0 || device.uart_tcp_port > 0 || device.jtag_port > 0 || device.power_script) && (
+        {(device.ssh_port > 0 || (device.usb_device && device.host_ip) || device.jtag_port > 0 || device.power_script) && (
           <div className="bg-white rounded-xl border p-5 mb-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Connectivity</h2>
             <div className="flex flex-col gap-2">
@@ -210,10 +210,10 @@ export default function DeviceDetailPage() {
                   cmd={`ssh ${device.ssh_user}@${device.device_ip || device.host_ip || 'DEVICE_IP'} -p ${device.ssh_port}`}
                 />
               )}
-              {device.uart_tcp_port > 0 && (
+              {device.usb_device && device.host_ip && (
                 <ShellLine
                   label="UART"
-                  cmd={`telnet ${device.host_ip ?? 'AGENT_IP'} ${device.uart_tcp_port}`}
+                  cmd={`sudo socat pty,link=/dev/tty${device.device_id},rawer EXEC:"ssh vivado@${device.host_ip} socat - ${device.usb_device},rawer"`}
                 />
               )}
               {device.jtag_port > 0 && (

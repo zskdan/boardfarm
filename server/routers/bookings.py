@@ -248,7 +248,10 @@ async def get_commands(
     return CommandsOut(
         jtag_connect=f"connect_hw_server -url tcp:{agent_ip}:{board.jtag_port}" if board.jtag_port else "",
         vivado_tcl=f"connect_hw_server -url tcp:{agent_ip}:{board.jtag_port}\nopen_hw_target" if board.jtag_port else "",
-        uart=f"telnet {agent_ip} {board.uart_tcp_port}" if board.uart_tcp_port else "",
+        uart=(
+            f"sudo socat pty,link=/dev/tty{board.device_id},rawer "
+            f"EXEC:\"ssh vivado@{agent_ip} socat - {board.usb_device},rawer\""
+        ) if (board.usb_device and board.host_ip) else "",
         ssh=f"ssh {board.ssh_user}@{ssh_ip} -p {board.ssh_port}" if board.ssh_port else "",
         power_on=f"# Use the boardfarm UI or API: POST /boards/{board.id}/power {{\"action\":\"on\"}}",
     )

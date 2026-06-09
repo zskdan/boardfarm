@@ -121,6 +121,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
   const [hasSsh, setHasSsh] = useState(true);
   const [hasAgent, setHasAgent] = useState(false);
   const [hasUsb, setHasUsb] = useState(false);
+  const [hasUart, setHasUart] = useState(true);
 
   const mut = useMutation({
     mutationFn: () => {
@@ -135,7 +136,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
         uart_tcp_port: hasAgent ? form.uart_tcp_port : 0,
         power_script: hasAgent ? form.power_script : '',
         power_args: hasAgent ? form.power_args : {},
-        usb_device: hasUsb ? form.usb_device ?? '' : '',
+        usb_device: hasUsb && hasUart ? form.usb_device ?? '' : '',
       };
       return createDevice(payload, username);
     },
@@ -207,12 +208,21 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           </label>
           {hasUsb && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-200">
-              <Field label="USB device path">
-                <input type="text" className={`${inputCls} font-mono`}
-                  placeholder="ex: /dev/ttyUSB0"
-                  value={form.usb_device ?? ''}
-                  onChange={(e) => setForm(f => ({ ...f, usb_device: e.target.value }))} />
-              </Field>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-purple-600" checked={hasUart}
+                  onChange={(e) => setHasUart(e.target.checked)} />
+                UART
+              </label>
+              {hasUart && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-100">
+                  <Field label="UART device">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /dev/ttyUSB0"
+                      value={form.usb_device ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, usb_device: e.target.value }))} />
+                  </Field>
+                </div>
+              )}
             </div>
           )}
 
@@ -289,6 +299,7 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
   const [hasSsh, setHasSsh] = useState(!!(device.device_ip || device.ssh_port));
   const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.uart_tcp_port));
   const [hasUsb, setHasUsb] = useState(!!device.usb_device);
+  const [hasUart, setHasUart] = useState(!!device.usb_device);
 
   const updateMut = useMutation({
     mutationFn: () => {
@@ -305,7 +316,7 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
         uart_tcp_port: hasAgent ? form.uart_tcp_port : 0,
         power_script: hasAgent ? form.power_script : '',
         power_args: hasAgent ? form.power_args : {},
-        usb_device: hasUsb ? form.usb_device : '',
+        usb_device: hasUsb && hasUart ? form.usb_device : '',
       }, username);
     },
     onSuccess: () => { setDefaultUser(username); qc.invalidateQueries({ queryKey: ['devices'] }); onClose(); },
@@ -375,12 +386,21 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
           </label>
           {hasUsb && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-200">
-              <Field label="USB device path">
-                <input type="text" className={`${inputCls} font-mono`}
-                  placeholder="ex: /dev/ttyUSB0"
-                  value={form.usb_device}
-                  onChange={(e) => setForm(f => ({ ...f, usb_device: e.target.value }))} />
-              </Field>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-purple-600" checked={hasUart}
+                  onChange={(e) => setHasUart(e.target.checked)} />
+                UART
+              </label>
+              {hasUart && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-purple-100">
+                  <Field label="UART device">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /dev/ttyUSB0"
+                      value={form.usb_device}
+                      onChange={(e) => setForm(f => ({ ...f, usb_device: e.target.value }))} />
+                  </Field>
+                </div>
+              )}
             </div>
           )}
 
