@@ -40,8 +40,18 @@ A development board booking system for shared hardware labs.
 cd server
 pip install -r requirements.txt
 cp config.example.yaml config.yaml
-# Edit config.yaml: set a strong token
+# Edit config.yaml: set a strong token, adjust max_booking_hours if needed
 uvicorn server.main:app --port 8765
+```
+
+Key `config.yaml` options:
+
+```yaml
+server:
+  token: "changeme"          # shared secret — set this
+  max_booking_hours: 24      # booking cap: N=hours, null=unlimited, 0=never expires
+  default_user: null         # pre-fill this username in the UI (null = no default)
+  admin_users: ["admin"]     # users allowed to modify/delete boards
 ```
 
 ### 2. Add boards to inventory
@@ -128,9 +138,11 @@ Custom controllers: subclass `power.base.PowerController` and call `run_controll
 
 ## Using the Frontend
 
+> **No login required.** Boardfarm does not have user accounts or sessions. You supply your username when you perform an action (book, release, modify, add). A default username is stored locally and pre-filled in every form so you only type it once.
+
 ### Connect to a server
 
-Open `http://localhost:5173`, enter the server URL, your username, and the shared token, then click **Connect**.
+Open `http://localhost:5173` and enter the server URL and the shared token. The server URL is stored in your browser for subsequent visits.
 
 ![Discovery – connect screen](screenshots/v2-discovery.png)
 
@@ -144,19 +156,19 @@ The main page lists every registered board in a table. Each row shows:
 - **Booked by** — current holder's username + booking comment
 - **Location** — physical rack/bench location
 - **Tools** — colour-coded badges for attached hardware (logic analyzer, power supply, …)
-- **Actions** — **Book** button for free boards, **Modify** to edit any board
+- **Actions** — **Book** (free boards) · **Release** (booked boards) · **Modify** (any board)
 
-![Inventory table](screenshots/v2-inventory.png)
+![Inventory table](screenshots/v3-inventory.png)
 
-Use the **Filter** box in the header to search by board name, location, user, or tool type. Results update instantly.
+Use the **Filter** box in the header to search by board name, location, user, or tool type.
 
 ---
 
 ### Book a board
 
-Click **Book** on any free board's row. A modal opens where you set the duration (1–24 hours) and an optional comment describing your intended use. Click **Book for Nh** to confirm.
+Click **Book** on any free board's row. A modal opens — enter your username (pre-filled from the stored default), set the duration, and add an optional comment.
 
-![Book modal](screenshots/v2-book-modal.png)
+![Book modal](screenshots/v3-book-modal.png)
 
 Once booked, navigate to the board's detail page to get the connection commands (JTAG, UART, SSH).
 
@@ -164,21 +176,51 @@ Once booked, navigate to the board's detail page to get the connection commands 
 
 ---
 
+### Release a board
+
+Click **Release** on any booked board's row. The modal shows who currently has the board and asks for the username of whoever is releasing it (usually the same person, but admins can release any board).
+
+![Release modal](screenshots/v3-release-modal.png)
+
+---
+
+### Booking limit
+
+The **Max Nh** button in the header controls how long bookings can last. Click it to change the mode:
+
+| Mode | Behaviour |
+|------|-----------|
+| **Limited (hours)** | Users choose 1–N hours at booking time (server default: 24 h) |
+| **Unlimited** | Users choose any duration |
+| **Never expires** | Bookings do not auto-expire; must be released manually |
+
+The server sets the initial value via `max_booking_hours` in `config.yaml`. You can override it locally in the browser.
+
+![Booking Limit modal](screenshots/v3-limit-modal.png)
+
+---
+
+### Settings
+
+Click **Settings** in the header to update the server URL, default username, and token. The **Default username** is pre-filled in every action form — change it here to switch users without re-typing each time.
+
+![Settings modal](screenshots/v3-settings-modal.png)
+
+---
+
 ### Manage boards
 
-Click **Modify** on any row to open the edit modal. You can update the board's name, location, ports, features JSON, notes, and attached tools (add or remove) — all without leaving the inventory page.
+Click **Modify** on any row to open the edit modal. Supply your username, then update the board's name, location, ports, features JSON, notes, and attached tools.
 
-![Edit board modal](screenshots/v2-edit-modal.png)
+To add a new board, click **Add Board** in the header.
 
-To add a new board, click **Add Board** in the header. A compact form overlays the current view.
-
-![Add board modal](screenshots/v2-add-modal.png)
+![Add board modal](screenshots/v3-add-modal.png)
 
 ---
 
 ### Delete boards
 
-Click **Delete** in the header to enter delete mode. Checkboxes appear on each row — select the boards you want to remove, then click **Delete (N)** to confirm. Click **Cancel** to exit without deleting.
+Click **Delete** in the header to enter delete mode. Checkboxes appear on each row — select the boards you want to remove, then click **Delete (N)** to confirm.
 
 ![Delete mode with checkboxes](screenshots/v2-delete-mode.png)
 
@@ -186,7 +228,7 @@ Click **Delete** in the header to enter delete mode. Checkboxes appear on each r
 
 ### Booking history
 
-Click **History** to navigate to the history page. You can filter by board name, username, or active-only bookings. Each row shows the start/end time, release reason, and the booking comment.
+Click **History** to navigate to the history page. Filter by board name, username, or active-only bookings. Each row shows the start/end time, release reason, and booking comment.
 
 ![Booking history](screenshots/v2-history.png)
 
