@@ -53,4 +53,5 @@ async def health():
         "status": "ok",
         "version": "0.1.0",
         "max_booking_hours": settings.max_booking_hours,
+        "default_user": settings.default_user,
     }

@@ -9,3 +9,5 @@ server:
   #   null                – unlimited (user chooses any duration)
   #   0                   – bookings never expire (permanent until released)
   max_booking_hours: 24
+  # Default username pre-filled in the UI's action forms (null = no default)
+  default_user: null

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  Clock,
   History,
   MapPin,
   Pencil,
@@ -7,6 +8,7 @@ import {
   RefreshCw,
   Settings,
   Trash2,
+  Unlock,
   X,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -18,14 +20,15 @@ import {
   deleteBoard,
   deleteTool,
   getBookingLimit,
+  getDefaultUser,
   getServerUrl,
   getToken,
-  getUsername,
   listBoards,
+  releaseBooking,
   setBookingLimit,
+  setDefaultUser,
   setServerUrl,
   setToken,
-  setUsername,
   updateBoard,
 } from '../api/client';
 import type { BookingLimit } from '../api/client';
@@ -57,6 +60,59 @@ const DEFAULT_BOARD: BoardCreate = {
 };
 const TOOL_TYPES = ['logic_analyzer', 'power_supply', 'oscilloscope', 'debugger', 'other'];
 
+function limitLabel(l: BookingLimit): string {
+  if (l === 'unlimited') return 'Unlimited';
+  if (l === 'never') return 'No expiry';
+  return `Max ${l}h`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Booking Limit Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+function BookingLimitModal({ onClose }: { onClose: () => void }) {
+  const cur = getBookingLimit();
+  const [kind, setKind] = useState<'hours' | 'unlimited' | 'never'>(
+    cur === 'unlimited' ? 'unlimited' : cur === 'never' ? 'never' : 'hours',
+  );
+  const [hours, setHours] = useState(typeof cur === 'number' ? cur : 24);
+
+  function save() {
+    setBookingLimit(kind === 'hours' ? Math.max(1, hours) : kind);
+    onClose();
+  }
+
+  return (
+    <Overlay onClose={onClose}>
+      <ModalCard title="Booking limit" onClose={onClose}>
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-gray-500">Maximum duration a board can be reserved at once.</p>
+          <Field label="Mode">
+            <select className={inputCls} value={kind}
+              onChange={(e) => setKind(e.target.value as typeof kind)}>
+              <option value="hours">Limited (hours)</option>
+              <option value="unlimited">Unlimited</option>
+              <option value="never">Never expires</option>
+            </select>
+          </Field>
+          {kind === 'hours' && (
+            <Field label="Max hours">
+              <input type="number" min={1} className={inputCls} value={hours}
+                onChange={(e) => setHours(Math.max(1, Number(e.target.value)))} />
+            </Field>
+          )}
+          <p className="text-xs text-gray-400">
+            {kind === 'hours' && `Bookings expire after ${hours}h unless manually released`}
+            {kind === 'unlimited' && 'Users can choose any duration'}
+            {kind === 'never' && 'Bookings never auto-expire — manual release only'}
+          </p>
+          <ModalActions onCancel={onClose} onConfirm={save} confirmLabel="Save" />
+        </div>
+      </ModalCard>
+    </Overlay>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Add Board Modal
 // ─────────────────────────────────────────────────────────────────────────────
@@ -64,18 +120,28 @@ const TOOL_TYPES = ['logic_analyzer', 'power_supply', 'oscilloscope', 'debugger'
 function AddBoardModal({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [username, setUsernameState] = useState(getDefaultUser());
   const [form, setForm] = useState<BoardCreate>(DEFAULT_BOARD);
   const [featuresRaw, setFeaturesRaw] = useState('{}');
 
   const mut = useMutation({
-    mutationFn: () => createBoard({ ...form, features: JSON.parse(featuresRaw) }),
-    onSuccess: (board) => { qc.invalidateQueries({ queryKey: ['boards'] }); onClose(); navigate(`/boards/${board.id}`); },
+    mutationFn: () => createBoard({ ...form, features: JSON.parse(featuresRaw) }, username),
+    onSuccess: (board) => {
+      setDefaultUser(username);
+      qc.invalidateQueries({ queryKey: ['boards'] });
+      onClose();
+      navigate(`/boards/${board.id}`);
+    },
   });
 
   return (
     <Overlay onClose={onClose}>
       <ModalCard title="Add Board" onClose={onClose}>
         <div className="flex flex-col gap-3">
+          <Field label="Your username">
+            <input className={inputCls} value={username}
+              onChange={(e) => setUsernameState(e.target.value)} placeholder="Required" />
+          </Field>
           {FIELD_TEXT.map(([label, key]) => (
             <Field key={key as string} label={label}>
               <input type="text" className={inputCls} value={String(form[key] ?? '')}
@@ -100,7 +166,7 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
           {mut.error && <p className="text-xs text-red-600">{(mut.error as Error).message}</p>}
           <ModalActions onCancel={onClose} onConfirm={() => mut.mutate()}
             confirmLabel={mut.isPending ? 'Creating…' : 'Create'}
-            confirmDisabled={mut.isPending || !form.name} />
+            confirmDisabled={mut.isPending || !form.name || !username} />
         </div>
       </ModalCard>
     </Overlay>
@@ -113,6 +179,7 @@ function AddBoardModal({ onClose }: { onClose: () => void }) {
 
 function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => void }) {
   const qc = useQueryClient();
+  const [username, setUsernameState] = useState(getDefaultUser());
   const [form, setForm] = useState({
     name: board.name,
     description: board.description,
@@ -133,16 +200,20 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
     mutationFn: () => {
       let features = board.features;
       try { features = JSON.parse(featuresRaw); } catch { /* keep old */ }
-      return updateBoard(board.id, { ...form, features });
+      return updateBoard(board.id, { ...form, features }, username);
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['boards'] }); onClose(); },
+    onSuccess: () => { setDefaultUser(username); qc.invalidateQueries({ queryKey: ['boards'] }); onClose(); },
   });
   const addToolMut = useMutation({
-    mutationFn: () => addTool(board.id, newTool),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['boards'] }); setAddingTool(false); setNewTool({ type: 'logic_analyzer', model: '', connection: 'usb', connection_detail: '', notes: '' }); },
+    mutationFn: () => addTool(board.id, newTool, username),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['boards'] });
+      setAddingTool(false);
+      setNewTool({ type: 'logic_analyzer', model: '', connection: 'usb', connection_detail: '', notes: '' });
+    },
   });
   const deleteToolMut = useMutation({
-    mutationFn: deleteTool,
+    mutationFn: (toolId: string) => deleteTool(toolId, username),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['boards'] }),
   });
 
@@ -150,6 +221,10 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
     <Overlay onClose={onClose}>
       <ModalCard title={`Edit — ${board.name}`} onClose={onClose} wide>
         <div className="flex flex-col gap-3">
+          <Field label="Your username">
+            <input className={inputCls} value={username}
+              onChange={(e) => setUsernameState(e.target.value)} placeholder="Required" />
+          </Field>
           {([['Name', 'name'], ['Description', 'description'], ['Location', 'location'], ['SSH User', 'ssh_user'], ['Power Script', 'power_script']] as [string, keyof typeof form][]).map(([label, key]) => (
             <Field key={key} label={label}>
               <input type="text" className={inputCls} value={String(form[key] ?? '')}
@@ -183,9 +258,8 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
               {board.tools.map((t) => (
                 <div key={t.id} className="flex items-center gap-1">
                   <ToolBadge tool={t} />
-                  <button onClick={() => deleteToolMut.mutate(t.id)} className="text-gray-300 hover:text-red-500">
-                    <X size={11} />
-                  </button>
+                  <button onClick={() => deleteToolMut.mutate(t.id)}
+                    className="text-gray-300 hover:text-red-500"><X size={11} /></button>
                 </div>
               ))}
             </div>
@@ -199,11 +273,14 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
                   value={newTool.model} onChange={(e) => setNewTool(t => ({ ...t, model: e.target.value }))} />
                 <input className="border rounded px-1.5 py-1 text-xs w-28" placeholder="/dev/ttyUSB1"
                   value={newTool.connection_detail} onChange={(e) => setNewTool(t => ({ ...t, connection_detail: e.target.value }))} />
-                <button onClick={() => addToolMut.mutate()} className="px-2 py-1 text-xs bg-blue-600 text-white rounded">Add</button>
-                <button onClick={() => setAddingTool(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                <button onClick={() => addToolMut.mutate()}
+                  className="px-2 py-1 text-xs bg-blue-600 text-white rounded">Add</button>
+                <button onClick={() => setAddingTool(false)}
+                  className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
               </div>
             ) : (
-              <button onClick={() => setAddingTool(true)} className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600">
+              <button onClick={() => setAddingTool(true)}
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600">
                 <Plus size={11} /> Add tool
               </button>
             )}
@@ -212,7 +289,7 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
           {updateMut.error && <p className="text-xs text-red-600">{(updateMut.error as Error).message}</p>}
           <ModalActions onCancel={onClose} onConfirm={() => updateMut.mutate()}
             confirmLabel={updateMut.isPending ? 'Saving…' : 'Save changes'}
-            confirmDisabled={updateMut.isPending || !form.name} />
+            confirmDisabled={updateMut.isPending || !form.name || !username} />
         </div>
       </ModalCard>
     </Overlay>
@@ -220,34 +297,23 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Settings Modal
+// Settings Modal  (server URL · default user · token)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const [url, setUrl] = useState(getServerUrl());
-  const [user, setUser] = useState(getUsername());
+  const [defaultUser, setDefaultUserState] = useState(getDefaultUser());
   const [token, setTokenState] = useState(getToken());
-
-  const currentLimit = getBookingLimit();
-  const [limitKind, setLimitKind] = useState<'hours' | 'unlimited' | 'never'>(
-    currentLimit === 'unlimited' ? 'unlimited' : currentLimit === 'never' ? 'never' : 'hours',
-  );
-  const [limitHours, setLimitHours] = useState<number>(
-    typeof currentLimit === 'number' ? currentLimit : 24,
-  );
 
   function save() {
     setServerUrl(url);
-    setUsername(user);
+    setDefaultUser(defaultUser);
     setToken(token);
-    const limit: BookingLimit =
-      limitKind === 'hours' ? Math.max(1, limitHours) : limitKind;
-    setBookingLimit(limit);
     onClose();
   }
   function disconnect() {
-    setServerUrl(''); setUsername(''); setToken('');
+    setServerUrl(''); setDefaultUser(''); setToken('');
     navigate('/');
   }
 
@@ -258,35 +324,18 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
           <Field label="Server URL">
             <input className={inputCls} value={url} onChange={(e) => setUrl(e.target.value)} />
           </Field>
-          <Field label="Username">
-            <input className={inputCls} value={user} onChange={(e) => setUser(e.target.value)} />
+          <Field label="Default username">
+            <input className={inputCls} value={defaultUser}
+              onChange={(e) => setDefaultUserState(e.target.value)}
+              placeholder="Pre-filled in all action forms" />
           </Field>
           <Field label="Token">
-            <input type="password" className={inputCls} value={token} onChange={(e) => setTokenState(e.target.value)} />
+            <input type="password" className={inputCls} value={token}
+              onChange={(e) => setTokenState(e.target.value)} />
           </Field>
-
-          <Field label="Booking limit">
-            <select className={inputCls} value={limitKind}
-              onChange={(e) => setLimitKind(e.target.value as typeof limitKind)}>
-              <option value="hours">Limited (hours)</option>
-              <option value="unlimited">Unlimited</option>
-              <option value="never">Never expires</option>
-            </select>
-            {limitKind === 'hours' && (
-              <input type="number" min={1} className={`${inputCls} mt-1`}
-                value={limitHours}
-                onChange={(e) => setLimitHours(Math.max(1, Number(e.target.value)))} />
-            )}
-            <span className="text-xs text-gray-400 mt-0.5">
-              {limitKind === 'hours' && `Max ${limitHours}h per booking`}
-              {limitKind === 'unlimited' && 'User chooses any duration'}
-              {limitKind === 'never' && 'Bookings do not auto-expire'}
-            </span>
-          </Field>
-
           <ModalActions onCancel={onClose} onConfirm={save} confirmLabel="Save" />
           <button onClick={disconnect} className="text-xs text-red-500 hover:underline text-center mt-1">
-            Disconnect (return to login)
+            Disconnect (return to setup)
           </button>
         </div>
       </ModalCard>
@@ -304,22 +353,32 @@ function BookModal({ board, onClose }: { board: BoardInfo; onClose: () => void }
   const limit = getBookingLimit();
   const isNever = limit === 'never';
   const maxHours = typeof limit === 'number' ? limit : undefined;
-  const defaultHours = maxHours ? Math.min(4, maxHours) : 4;
-  const [hours, setHours] = useState(defaultHours);
+  const [username, setUsernameState] = useState(getDefaultUser());
+  const [hours, setHours] = useState(maxHours ? Math.min(4, maxHours) : 4);
   const [comment, setComment] = useState('');
 
   const mut = useMutation({
-    mutationFn: () => bookBoard(board.id, isNever ? 1 : hours, comment),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['boards'] }); onClose(); navigate(`/boards/${board.id}`); },
+    mutationFn: () => bookBoard(board.id, isNever ? 1 : hours, comment, username),
+    onSuccess: () => {
+      setDefaultUser(username);
+      qc.invalidateQueries({ queryKey: ['boards'] });
+      onClose();
+      navigate(`/boards/${board.id}`);
+    },
   });
 
   return (
     <Overlay onClose={onClose}>
       <ModalCard title="Book board" subtitle={board.name} onClose={onClose}>
         <div className="flex flex-col gap-4">
+          <Field label="Your username">
+            <input className={inputCls} value={username}
+              onChange={(e) => setUsernameState(e.target.value)}
+              placeholder="Required" />
+          </Field>
           {isNever ? (
             <div className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-800">
-              This booking will not expire automatically — it stays active until you release it.
+              This booking will not expire automatically — release it when you're done.
             </div>
           ) : (
             <Field label="Duration (hours)">
@@ -330,7 +389,7 @@ function BookModal({ board, onClose }: { board: BoardInfo; onClose: () => void }
                   setHours(maxHours ? Math.min(maxHours, v) : v);
                 }} />
               <span className="text-xs text-gray-400 mt-1">
-                {maxHours ? `Maximum ${maxHours} h · extendable once` : 'No limit · extendable once'}
+                {maxHours ? `Maximum ${maxHours}h · extendable once` : 'No limit · extendable once'}
               </span>
             </Field>
           )}
@@ -342,7 +401,51 @@ function BookModal({ board, onClose }: { board: BoardInfo; onClose: () => void }
           {mut.error && <p className="text-xs text-red-600">{(mut.error as Error).message}</p>}
           <ModalActions onCancel={onClose} onConfirm={() => mut.mutate()}
             confirmLabel={mut.isPending ? 'Booking…' : isNever ? 'Book (permanent)' : `Book for ${hours}h`}
-            confirmDisabled={mut.isPending} />
+            confirmDisabled={mut.isPending || !username} />
+        </div>
+      </ModalCard>
+    </Overlay>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Release Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ReleaseModal({ board, onClose }: { board: BoardInfo; onClose: () => void }) {
+  const qc = useQueryClient();
+  const booking = board.active_booking!;
+  const [username, setUsernameState] = useState(getDefaultUser());
+
+  const mut = useMutation({
+    mutationFn: () => releaseBooking(booking.id, username),
+    onSuccess: () => {
+      setDefaultUser(username);
+      qc.invalidateQueries({ queryKey: ['boards'] });
+      onClose();
+    },
+  });
+
+  return (
+    <Overlay onClose={onClose}>
+      <ModalCard title={`Release — ${board.name}`} onClose={onClose}>
+        <div className="flex flex-col gap-4">
+          <div className="rounded-lg bg-amber-50 border border-amber-100 px-4 py-3">
+            <p className="text-xs text-gray-400 mb-0.5">Currently booked by</p>
+            <p className="font-semibold text-gray-900">{booking.username}</p>
+            {booking.comment && (
+              <p className="text-xs text-gray-400 mt-1 italic">{booking.comment}</p>
+            )}
+          </div>
+          <Field label="Your username">
+            <input className={inputCls} value={username}
+              onChange={(e) => setUsernameState(e.target.value)}
+              placeholder="Enter your username to confirm" />
+          </Field>
+          {mut.error && <p className="text-xs text-red-600">{(mut.error as Error).message}</p>}
+          <ModalActions onCancel={onClose} onConfirm={() => mut.mutate()}
+            confirmLabel={mut.isPending ? 'Releasing…' : 'Release board'}
+            confirmDisabled={mut.isPending || !username} />
         </div>
       </ModalCard>
     </Overlay>
@@ -408,7 +511,7 @@ function ModalActions({ onCancel, onConfirm, confirmLabel, confirmDisabled }: {
 // Main page
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Modal = 'add' | 'settings' | null;
+type Modal = 'add' | 'settings' | 'limit' | null;
 
 export default function InventoryPage() {
   const qc = useQueryClient();
@@ -416,6 +519,7 @@ export default function InventoryPage() {
   const [modal, setModal] = useState<Modal>(null);
   const [editBoard, setEditBoard] = useState<BoardInfo | null>(null);
   const [bookBoard2, setBookBoard2] = useState<BoardInfo | null>(null);
+  const [releaseBoard, setReleaseBoard] = useState<BoardInfo | null>(null);
   const [deleteMode, setDeleteMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -475,12 +579,8 @@ export default function InventoryPage() {
               <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
               </svg>
-              <input
-                className="text-sm focus:outline-none w-36 bg-transparent"
-                placeholder="Filter boards…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <input className="text-sm focus:outline-none w-36 bg-transparent" placeholder="Filter boards…"
+                value={search} onChange={(e) => setSearch(e.target.value)} />
               {search && (
                 <button onClick={() => setSearch('')} className="text-gray-400 hover:text-gray-600"><X size={13} /></button>
               )}
@@ -488,6 +588,13 @@ export default function InventoryPage() {
 
             <button onClick={() => refetch()} className="p-2 rounded-lg border bg-white hover:bg-gray-50" title="Refresh">
               <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''} />
+            </button>
+
+            {/* Booking limit */}
+            <button onClick={() => setModal('limit')}
+              className="flex items-center gap-1.5 px-3 py-2 border bg-white text-sm rounded-lg hover:bg-gray-50 text-gray-600">
+              <Clock size={14} />
+              {limitLabel(getBookingLimit())}
             </button>
 
             {/* Add Board */}
@@ -608,6 +715,12 @@ export default function InventoryPage() {
                             Book
                           </button>
                         )}
+                        {b.active_booking && (
+                          <button onClick={() => setReleaseBoard(b)}
+                            className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 whitespace-nowrap">
+                            <Unlock size={11} /> Release
+                          </button>
+                        )}
                         <button onClick={() => setEditBoard(b)}
                           className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border bg-white hover:bg-gray-50 text-gray-600 whitespace-nowrap">
                           <Pencil size={11} /> Modify
@@ -625,8 +738,10 @@ export default function InventoryPage() {
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
       {modal === 'add'      && <AddBoardModal onClose={() => setModal(null)} />}
       {modal === 'settings' && <SettingsModal onClose={() => setModal(null)} />}
+      {modal === 'limit'    && <BookingLimitModal onClose={() => setModal(null)} />}
       {editBoard            && <EditBoardModal board={editBoard} onClose={() => setEditBoard(null)} />}
       {bookBoard2           && <BookModal board={bookBoard2} onClose={() => setBookBoard2(null)} />}
+      {releaseBoard         && <ReleaseModal board={releaseBoard} onClose={() => setReleaseBoard(null)} />}
     </div>
   );
 }

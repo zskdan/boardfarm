@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     admin_users: list[str] = []
     # max_booking_hours: positive int = cap, None = unlimited, 0 = never expires
     max_booking_hours: int | None = 24
+    # default_user: pre-filled username in UI forms (None = no default)
+    default_user: str | None = None
 
     model_config = {"env_prefix": "BOARDFARM_"}
 
@@ -30,6 +32,8 @@ class Settings(BaseSettings):
                 object.__setattr__(self, "admin_users", srv["admin_users"])
             if "max_booking_hours" in srv and os.getenv("BOARDFARM_MAX_BOOKING_HOURS") is None:
                 object.__setattr__(self, "max_booking_hours", srv["max_booking_hours"])
+            if "default_user" in srv and os.getenv("BOARDFARM_DEFAULT_USER") is None:
+                object.__setattr__(self, "default_user", srv["default_user"])
 
 
 settings = Settings()
