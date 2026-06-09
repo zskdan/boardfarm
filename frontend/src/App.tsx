@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './index.css';
-import { getToken, getUsername } from './api/client';
+import { getUsername } from './api/client';
 import AdminPage from './pages/AdminPage';
 import BoardDetailPage from './pages/BoardDetailPage';
 import DiscoveryPage from './pages/DiscoveryPage';
@@ -13,7 +13,7 @@ const queryClient = new QueryClient({
 });
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  if (!getToken() || !getUsername()) {
+  if (!getUsername()) {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
