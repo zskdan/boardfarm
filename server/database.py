@@ -30,6 +30,11 @@ async def init_db() -> None:
             ))
         except Exception:
             pass
+        for col in ("serial_number", "revision"):
+            try:
+                await conn.execute(text(f"ALTER TABLE boards ADD COLUMN {col} TEXT NOT NULL DEFAULT ''"))
+            except Exception:
+                pass
 
 
 async def get_db():

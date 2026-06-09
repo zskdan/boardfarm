@@ -46,6 +46,8 @@ class ToolOut(ToolIn):
 class BoardIn(BaseModel):
     name: str
     device_id: str = ""
+    serial_number: str = ""
+    revision: str = ""
     description: str = ""
     location: str = ""
     current_notes: str = ""
@@ -63,6 +65,8 @@ class BoardIn(BaseModel):
 class BoardUpdate(BaseModel):
     name: str | None = None
     device_id: str | None = None
+    serial_number: str | None = None
+    revision: str | None = None
     description: str | None = None
     location: str | None = None
     current_notes: str | None = None
@@ -103,6 +107,8 @@ class BookingOut(BaseModel):
 class BoardOut(BaseModel):
     id: str
     device_id: str = ""
+    serial_number: str = ""
+    revision: str = ""
     name: str
     description: str
     location: str

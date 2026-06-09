@@ -138,6 +138,18 @@ export default function BoardDetailPage() {
               )}
               {board.host_ip ?? 'No agent'}
             </div>
+            {board.serial_number && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-semibold text-gray-400 uppercase">S/N</span>
+                <span className="font-mono">{board.serial_number}</span>
+              </div>
+            )}
+            {board.revision && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-semibold text-gray-400 uppercase">Rev</span>
+                <span>{board.revision}</span>
+              </div>
+            )}
           </div>
 
           {board.tools.length > 0 && (

@@ -54,6 +54,8 @@ async def _build_board_out(board: Board, db: AsyncSession) -> BoardOut:
     return BoardOut(
         id=board.id,
         device_id=board.device_id,
+        serial_number=board.serial_number,
+        revision=board.revision,
         name=board.name,
         description=board.description,
         location=board.location,
@@ -123,6 +125,8 @@ async def create_board(
     board = Board(
         id=str(uuid.uuid4()),
         device_id=body.device_id,
+        serial_number=body.serial_number,
+        revision=body.revision,
         name=body.name,
         description=body.description,
         location=body.location,

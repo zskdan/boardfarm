@@ -44,6 +44,8 @@ import { useStatusSocket } from '../hooks/useStatusSocket';
 const FIELD_TEXT: [string, keyof BoardCreate, string][] = [
   ['Name', 'name', 'text'],
   ['Device ID', 'device_id', 'text'],
+  ['Serial Number', 'serial_number', 'text'],
+  ['Revision', 'revision', 'text'],
   ['Description', 'description', 'text'],
   ['Location', 'location', 'text'],
   ['SSH User', 'ssh_user', 'text'],
@@ -55,9 +57,10 @@ const FIELD_NUM: [string, keyof BoardCreate][] = [
   ['SSH Port', 'ssh_port'],
 ];
 const DEFAULT_BOARD: BoardCreate = {
-  name: '', device_id: '', description: '', location: '', features: {},
-  jtag_port: 3121, uart_tcp_port: 5555, ssh_user: 'root', ssh_port: 22,
-  power_script: '', power_args: {}, enabled: true, current_notes: '',
+  name: '', device_id: '', serial_number: '', revision: '', description: '',
+  location: '', features: {}, jtag_port: 3121, uart_tcp_port: 5555,
+  ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
+  enabled: true, current_notes: '',
 };
 const TOOL_TYPES = ['logic_analyzer', 'power_supply', 'oscilloscope', 'debugger', 'other'];
 
@@ -184,6 +187,8 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
   const [form, setForm] = useState({
     name: board.name,
     device_id: board.device_id,
+    serial_number: board.serial_number,
+    revision: board.revision,
     description: board.description,
     location: board.location,
     current_notes: board.current_notes,
@@ -227,7 +232,7 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
             <input className={inputCls} value={username}
               onChange={(e) => setUsernameState(e.target.value)} placeholder="Required" />
           </Field>
-          {([['Name', 'name'], ['Device ID', 'device_id'], ['Description', 'description'], ['Location', 'location'], ['SSH User', 'ssh_user'], ['Power Script', 'power_script']] as [string, keyof typeof form][]).map(([label, key]) => (
+          {([['Name', 'name'], ['Device ID', 'device_id'], ['Serial Number', 'serial_number'], ['Revision', 'revision'], ['Description', 'description'], ['Location', 'location'], ['SSH User', 'ssh_user'], ['Power Script', 'power_script']] as [string, keyof typeof form][]).map(([label, key]) => (
             <Field key={key} label={label}>
               <input type="text" className={inputCls} value={String(form[key] ?? '')}
                 onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
