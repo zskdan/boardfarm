@@ -6,6 +6,8 @@ import type {
   BoardInfo,
   BookingInfo,
   CommandsInfo,
+  SetupCreate,
+  SetupInfo,
   ToolCreate,
   ToolInfo,
 } from './types';
@@ -202,6 +204,34 @@ export async function listBookings(params?: {
 }): Promise<BookingInfo[]> {
   const { data } = await api().get<BookingInfo[]>('/bookings', { params });
   return data;
+}
+
+export async function listSetups(): Promise<SetupInfo[]> {
+  const { data } = await api().get<SetupInfo[]>('/setups');
+  return data;
+}
+
+export async function createSetup(body: SetupCreate, username: string): Promise<SetupInfo> {
+  const { data } = await apiAs(username).post<SetupInfo>('/setups', body);
+  return data;
+}
+
+export async function updateSetup(id: string, body: Partial<SetupCreate>, username: string): Promise<SetupInfo> {
+  const { data } = await apiAs(username).patch<SetupInfo>(`/setups/${id}`, body);
+  return data;
+}
+
+export async function deleteSetup(id: string, username: string): Promise<void> {
+  await apiAs(username).delete(`/setups/${id}`);
+}
+
+export async function bookSetup(id: string, durationHours: number, comment: string, username: string): Promise<BookingInfo[]> {
+  const { data } = await apiAs(username).post<BookingInfo[]>(`/setups/${id}/book`, { duration_hours: durationHours, comment });
+  return data;
+}
+
+export async function releaseSetupBooking(id: string, username: string): Promise<void> {
+  await apiAs(username).delete(`/setups/${id}/booking`);
 }
 
 export async function listActivity(params?: {

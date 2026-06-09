@@ -6,6 +6,25 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
 
+class Setup(Base):
+    __tablename__ = "setups"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(String, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    setup_boards: Mapped[list["SetupBoard"]] = relationship("SetupBoard", back_populates="setup", cascade="all, delete-orphan")
+
+
+class SetupBoard(Base):
+    __tablename__ = "setup_boards"
+
+    setup_id: Mapped[str] = mapped_column(String, ForeignKey("setups.id", ondelete="CASCADE"), primary_key=True)
+    board_id: Mapped[str] = mapped_column(String, ForeignKey("boards.id", ondelete="CASCADE"), primary_key=True)
+    setup: Mapped["Setup"] = relationship("Setup", back_populates="setup_boards")
+    board: Mapped["Board"] = relationship("Board")
+
+
 class AuditLog(Base):
     __tablename__ = "audit_log"
 
@@ -104,5 +123,7 @@ class Booking(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     release_reason: Mapped[str] = mapped_column(String, default="")
     comment: Mapped[str] = mapped_column(String, default="")
+    setup_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    setup_name: Mapped[str] = mapped_column(String, default="")
 
     board: Mapped["Board"] = relationship("Board", back_populates="bookings")

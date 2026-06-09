@@ -90,6 +90,8 @@ class BookingOut(BaseModel):
     active: bool
     release_reason: str
     comment: str = ""
+    setup_id: str | None = None
+    setup_name: str = ""
 
     @field_serializer("start_time")
     def _start_time(self, v: datetime) -> str:
@@ -141,6 +143,61 @@ class CommandsOut(BaseModel):
     uart: str
     ssh: str
     power_on: str
+
+
+class SetupBoardOut(BaseModel):
+    board_id: str
+    board_name: str
+    device_id: str
+    location: str
+    agent_online: bool
+    active_booking_username: str | None = None
+    active_booking_setup_name: str | None = None
+
+
+class SetupBookingOut(BaseModel):
+    username: str
+    start_time: datetime
+    end_time: datetime
+
+    @field_serializer("start_time")
+    def _st(self, v: datetime) -> str:
+        return v.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+
+    @field_serializer("end_time")
+    def _et(self, v: datetime) -> str:
+        return v.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+
+
+class SetupOut(BaseModel):
+    id: str
+    name: str
+    description: str
+    created_at: datetime
+    boards: list[SetupBoardOut]
+    all_available: bool
+    active_booking: SetupBookingOut | None = None
+
+    @field_serializer("created_at")
+    def _ca(self, v: datetime) -> str:
+        return v.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+
+
+class SetupIn(BaseModel):
+    name: str
+    description: str = ""
+    board_ids: list[str]
+
+
+class SetupUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    board_ids: list[str] | None = None
+
+
+class BookSetupIn(BaseModel):
+    duration_hours: int = 4
+    comment: str = ""
 
 
 class AuditLogOut(BaseModel):

@@ -39,6 +39,14 @@ async def init_db() -> None:
             await conn.execute(text("ALTER TABLE audit_log ADD COLUMN device_id TEXT NOT NULL DEFAULT ''"))
         except Exception:
             pass
+        for col_def in (
+            "ALTER TABLE bookings ADD COLUMN setup_id TEXT",
+            "ALTER TABLE bookings ADD COLUMN setup_name TEXT NOT NULL DEFAULT ''",
+        ):
+            try:
+                await conn.execute(text(col_def))
+            except Exception:
+                pass
 
 
 async def get_db():

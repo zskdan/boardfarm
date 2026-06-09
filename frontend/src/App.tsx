@@ -7,6 +7,7 @@ import BoardDetailPage from './pages/BoardDetailPage';
 import DiscoveryPage from './pages/DiscoveryPage';
 import HistoryPage from './pages/HistoryPage';
 import InventoryPage from './pages/InventoryPage';
+import SetupsPage from './pages/SetupsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 10_000 } },
@@ -46,6 +47,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <HistoryPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/setups"
+            element={
+              <RequireAuth>
+                <SetupsPage />
               </RequireAuth>
             }
           />

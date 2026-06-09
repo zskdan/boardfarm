@@ -37,6 +37,40 @@ export interface BookingInfo {
   active: boolean;
   release_reason: string;
   comment: string;
+  setup_id: string | null;
+  setup_name: string;
+}
+
+export interface SetupBoardInfo {
+  board_id: string;
+  board_name: string;
+  device_id: string;
+  location: string;
+  agent_online: boolean;
+  active_booking_username: string | null;
+  active_booking_setup_name: string | null;
+}
+
+export interface SetupBookingInfo {
+  username: string;
+  start_time: string;
+  end_time: string;
+}
+
+export interface SetupInfo {
+  id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  boards: SetupBoardInfo[];
+  all_available: boolean;
+  active_booking: SetupBookingInfo | null;
+}
+
+export interface SetupCreate {
+  name: string;
+  description: string;
+  board_ids: string[];
 }
 
 export interface BoardInfo {

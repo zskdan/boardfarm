@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Clock,
   History,
+  Layers,
   MapPin,
   Pencil,
   Plus,
@@ -635,6 +636,12 @@ export default function InventoryPage() {
                 <Trash2 size={14} /> Delete
               </button>
             )}
+
+            {/* Setups */}
+            <Link to="/setups"
+              className="flex items-center gap-1.5 px-3 py-2 border bg-white text-sm rounded-lg hover:bg-gray-50 text-gray-600">
+              <Layers size={14} /> Setups
+            </Link>
 
             {/* History */}
             <Link to="/history"
