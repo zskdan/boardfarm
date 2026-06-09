@@ -112,8 +112,9 @@ agent:
   name: "lab-host-1"
   port: 8766
   server_url: "http://192.168.1.100:8765"
-  server_token: ""          # match server/config.yaml token
-  host_ip: "192.168.1.5"   # this machine's LAN IP
+  server_token: ""           # match server/config.yaml token
+  agent_token: ""            # token agents use to authenticate with server
+  host_ip: "192.168.1.5"    # this machine's LAN IP
 
 boards:
   - id: "paste-device-uuid-here"
@@ -169,7 +170,7 @@ Custom controllers: subclass `power.base.PowerController`.
 
 Lists every registered device with live status:
 
-- **Status badge** — Free (green), Booked (amber/blue), Offline/Disabled (grey)
+- **Status badge** — Free (green), Booked (blue), Offline (amber), Disabled (grey)
 - **Device ID** — server-assigned unique identifier (e.g. `DEV-A3F9C1`), shown as a monospace badge next to the device name
 - **Booked by** — current holder's username and booking comment
 - **Location** — physical rack/bench location
@@ -215,7 +216,7 @@ Groups of devices that are always used together (e.g. "FPGA + logic analyzer + t
 - **Book atomically** — all devices in a setup are reserved in a single transaction. If any device is already taken the whole booking fails, with a message listing which devices are blocked and by whom.
 - **Release atomically** — releases all devices in the setup at once.
 - **Device picker** — searchable by name, device ID, or location. Selected devices appear as removable chips so the list stays short at scale.
-- Each setup card shows a per-device availability dot: green = free and online, red = booked, grey = offline.
+- Each setup card shows a per-device availability dot: green = free and online, blue = booked, grey = offline.
 
 ### Booking history (`/history`)
 

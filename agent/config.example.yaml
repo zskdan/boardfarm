@@ -2,18 +2,15 @@ agent:
   name: "lab-host-1"
   port: 8766
   server_url: "http://192.168.1.100:8765"
-  server_token: "changeme"
+  server_token: ""           # match server/config.yaml token
   agent_token: "agent-secret-change-me"
-  host_ip: "192.168.1.5"
+  host_ip: "192.168.1.5"    # this machine's LAN IP
 
 boards:
-  - id: "zynq-dev-1"
-    uart_device: "/dev/ttyUSB0"
-    uart_baud: 115200
-    jtag_port: 3121
-    uart_tcp_port: 5555
-    host_check_ip: "192.168.1.10"
-    host_check_port: 22
+  - id: "paste-device-uuid-here"
+    usb_device: "/dev/bus/usb/001/002"  # raw USB device (optional)
+    uart_device: "/dev/ttyUSB0"         # UART serial device (optional)
+    jtag_port: 3121                     # hw_server port (optional)
     power_script: "../../power/usb_relay.py"
     power_args:
       relay_id: 1
