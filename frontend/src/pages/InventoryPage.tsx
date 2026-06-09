@@ -48,6 +48,7 @@ const FIELD_TEXT: [string, keyof BoardCreate, string][] = [
   ['Revision', 'revision', 'text'],
   ['Description', 'description', 'text'],
   ['Location', 'location', 'text'],
+  ['Agent Host IP', 'host_ip', 'text'],
   ['SSH User', 'ssh_user', 'text'],
   ['Power Script', 'power_script', 'text'],
 ];
@@ -58,7 +59,7 @@ const FIELD_NUM: [string, keyof BoardCreate][] = [
 ];
 const DEFAULT_BOARD: BoardCreate = {
   name: '', serial_number: '', revision: '', description: '',
-  location: '', features: {}, jtag_port: 3121, uart_tcp_port: 5555,
+  location: '', host_ip: '', features: {}, jtag_port: 3121, uart_tcp_port: 5555,
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
   enabled: true, current_notes: '',
 };
@@ -190,6 +191,7 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
     revision: board.revision,
     description: board.description,
     location: board.location,
+    host_ip: board.host_ip ?? '',
     current_notes: board.current_notes,
     ssh_user: board.ssh_user,
     ssh_port: board.ssh_port,
@@ -234,7 +236,7 @@ function EditBoardModal({ board, onClose }: { board: BoardInfo; onClose: () => v
           <Field label="Device ID">
             <span className="font-mono text-sm text-gray-500 bg-gray-50 border rounded-lg px-3 py-1.5">{board.device_id || '—'}</span>
           </Field>
-          {([['Name', 'name'], ['Serial Number', 'serial_number'], ['Revision', 'revision'], ['Description', 'description'], ['Location', 'location'], ['SSH User', 'ssh_user'], ['Power Script', 'power_script']] as [string, keyof typeof form][]).map(([label, key]) => (
+          {([['Name', 'name'], ['Serial Number', 'serial_number'], ['Revision', 'revision'], ['Description', 'description'], ['Location', 'location'], ['Agent Host IP', 'host_ip'], ['SSH User', 'ssh_user'], ['Power Script', 'power_script']] as [string, keyof typeof form][]).map(([label, key]) => (
             <Field key={key} label={label}>
               <input type="text" className={inputCls} value={String(form[key] ?? '')}
                 onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} />
@@ -570,7 +572,7 @@ export default function InventoryPage() {
 
   function cancelDelete() { setDeleteMode(false); setSelected(new Set()); }
 
-  const isFree = (b: BoardInfo) => b.enabled && b.agent_online && !b.active_booking;
+  const isFree = (b: BoardInfo) => b.enabled && !b.active_booking;
 
   return (
     <div className="min-h-screen bg-gray-50">
