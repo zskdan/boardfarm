@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 # Boardfarm agent installer.
-# Run as root from the repo root (or from a release tarball root).
 #
-#   sudo ./agent/install.sh
+# Works in two modes:
+#
+#   Offline tarball (recommended for production):
+#     tar xzf boardfarm-agent-YYYYMMDD.tar.gz
+#     sudo boardfarm-agent/install.sh
+#
+#   Repo (development, requires internet):
+#     sudo ./agent/install.sh          # from repo root
 #
 # Installs to /opt/boardfarm/agent/.
 # Safe to re-run: existing config.yaml is never overwritten.
@@ -12,9 +18,29 @@ set -euo pipefail
 INSTALL_DIR="/opt/boardfarm/agent"
 SERVICE_USER="boardfarm"
 SERVICE_FILE="/etc/systemd/system/boardfarm-agent.service"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# ── helpers ──────────────────────────────────────────────────────────────────
+# Auto-detect layout:
+#   tarball: install.sh lives at root, agent/ is a subdirectory
+#   repo:    install.sh lives inside agent/, which IS the Python package
+if [ -d "$SCRIPT_DIR/agent" ]; then
+    AGENT_SRC="$SCRIPT_DIR/agent"
+    SCRIPTS_SRC="$SCRIPT_DIR/scripts"
+    SERVICE_SRC="$SCRIPT_DIR/boardfarm-agent.service"
+    CONFIG_EXAMPLE="$SCRIPT_DIR/config.example.yaml"
+    REQUIREMENTS="$SCRIPT_DIR/agent/requirements.txt"
+else
+    AGENT_SRC="$SCRIPT_DIR"
+    SCRIPTS_SRC="$SCRIPT_DIR/scripts"
+    SERVICE_SRC="$SCRIPT_DIR/boardfarm-agent.service"
+    CONFIG_EXAMPLE="$SCRIPT_DIR/config.example.yaml"
+    REQUIREMENTS="$SCRIPT_DIR/requirements.txt"
+fi
+
+WHEELS_DIR="$SCRIPT_DIR/wheels"
+
+# ── helpers ───────────────────────────────────────────────────────────────────
 
 info()  { echo "  [+] $*"; }
 fatal() { echo "  [!] $*" >&2; exit 1; }
@@ -28,7 +54,7 @@ require_python() {
         || fatal "Python 3.11+ required (found: $(python3 --version 2>&1))"
 }
 
-# ── main ─────────────────────────────────────────────────────────────────────
+# ── main ──────────────────────────────────────────────────────────────────────
 
 require_root
 require_python
@@ -40,8 +66,8 @@ if ! id "$SERVICE_USER" &>/dev/null; then
     useradd --system --no-create-home --shell /usr/sbin/nologin "$SERVICE_USER"
     info "Created system user '$SERVICE_USER'"
 fi
-usermod -a -G dialout "$SERVICE_USER" 2>/dev/null || true   # serial port access
-usermod -a -G plugdev "$SERVICE_USER" 2>/dev/null || true   # USB device access
+usermod -a -G dialout "$SERVICE_USER" 2>/dev/null || true
+usermod -a -G plugdev "$SERVICE_USER" 2>/dev/null || true
 
 # Install directory
 mkdir -p "$INSTALL_DIR"
@@ -49,19 +75,18 @@ mkdir -p "$INSTALL_DIR"
 # Python package
 info "Copying agent package..."
 rm -rf "$INSTALL_DIR/agent"
-cp -r "$SCRIPT_DIR/agent" "$INSTALL_DIR/agent"
+cp -r "$AGENT_SRC" "$INSTALL_DIR/agent"
 find "$INSTALL_DIR/agent" -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 
-# Helper scripts (sdcard-acquire / sdcard-release go in INSTALL_DIR so
-# sudoers rules and the user-facing sdcard script can reference a stable path)
+# Helper scripts
 info "Installing helper scripts..."
-install -m 0755 "$SCRIPT_DIR/agent/scripts/sdcard-acquire" "$INSTALL_DIR/sdcard-acquire"
-install -m 0755 "$SCRIPT_DIR/agent/scripts/sdcard-release" "$INSTALL_DIR/sdcard-release"
+install -m 0755 "$SCRIPTS_SRC/sdcard-acquire" "$INSTALL_DIR/sdcard-acquire"
+install -m 0755 "$SCRIPTS_SRC/sdcard-release" "$INSTALL_DIR/sdcard-release"
 
-# Config (never overwrite an existing one)
+# Config (never overwrite)
 if [ ! -f "$INSTALL_DIR/config.yaml" ]; then
-    cp "$SCRIPT_DIR/agent/config.example.yaml" "$INSTALL_DIR/config.yaml"
-    info "Created $INSTALL_DIR/config.yaml from example — edit before starting the service"
+    cp "$CONFIG_EXAMPLE" "$INSTALL_DIR/config.yaml"
+    info "Created $INSTALL_DIR/config.yaml — edit before starting the service"
 else
     info "Keeping existing $INSTALL_DIR/config.yaml"
 fi
@@ -70,14 +95,24 @@ fi
 info "Setting up Python virtualenv..."
 python3 -m venv "$INSTALL_DIR/venv"
 "$INSTALL_DIR/venv/bin/pip" install --quiet --upgrade pip
-"$INSTALL_DIR/venv/bin/pip" install --quiet -r "$SCRIPT_DIR/agent/requirements.txt"
+
+if [ -d "$WHEELS_DIR" ]; then
+    info "Installing dependencies from bundled wheels (offline)..."
+    "$INSTALL_DIR/venv/bin/pip" install --quiet \
+        --no-index \
+        --find-links "$WHEELS_DIR" \
+        -r "$REQUIREMENTS"
+else
+    info "Installing dependencies from PyPI..."
+    "$INSTALL_DIR/venv/bin/pip" install --quiet -r "$REQUIREMENTS"
+fi
 
 # Ownership
 chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
 
 # Systemd service
 info "Installing systemd service..."
-cp "$SCRIPT_DIR/agent/boardfarm-agent.service" "$SERVICE_FILE"
+cp "$SERVICE_SRC" "$SERVICE_FILE"
 systemctl daemon-reload
 systemctl enable boardfarm-agent
 
@@ -85,8 +120,6 @@ echo ""
 echo "Installation complete."
 echo ""
 echo "  1. Edit $INSTALL_DIR/config.yaml"
-echo "  2. Start the agent:"
-echo "       sudo systemctl start boardfarm-agent"
-echo "       sudo systemctl status boardfarm-agent"
-echo "  3. Follow logs:"
-echo "       sudo journalctl -u boardfarm-agent -f"
+echo "  2. Start:   sudo systemctl start boardfarm-agent"
+echo "  3. Status:  sudo systemctl status boardfarm-agent"
+echo "  4. Logs:    sudo journalctl -u boardfarm-agent -f"
