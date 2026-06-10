@@ -280,7 +280,7 @@ export default function DeviceDetailPage() {
         )}
 
         {/* Connectivity */}
-        {(device.ssh_port > 0 || (device.uart_device && device.host_ip) || device.jtag_port > 0 || device.power_script || !!device.host_ip) && (
+        {(device.ssh_port > 0 || (device.uart_device && device.host_ip) || device.jtag_port > 0 || device.power_script || !!device.sdmux_control) && (
           <div className="bg-white rounded-xl border p-5 mb-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Connectivity</h2>
             <div className="flex flex-col gap-2">
@@ -312,7 +312,7 @@ export default function DeviceDetailPage() {
                   cmd={`python3 ${device.power_script} --action on`}
                 />
               )}
-              {device.host_ip && (
+              {device.sdmux_control && device.host_ip && (
                 <ShellLine
                   label="SD Card"
                   cmd="sdcard open|close"

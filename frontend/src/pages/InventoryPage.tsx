@@ -78,7 +78,7 @@ const DEFAULT_DEVICE: DeviceCreate = {
   name: '', serial_number: '', revision: '', description: '',
   location: '', device_ip: '', host_ip: '', features: {}, jtag_port: 3121,
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
-  usb_device: '', uart_device: '', enabled: true, current_notes: '',
+  usb_device: '', uart_device: '', sdmux_control: '', sdmux_sdcard: '', enabled: true, current_notes: '',
 };
 
 function limitLabel(l: BookingLimit): string {
@@ -151,6 +151,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
   const [hasUart, setHasUart] = useState(false);
   const [hasJtag, setHasJtag] = useState(false);
   const [hasPower, setHasPower] = useState(false);
+  const [hasSdmux, setHasSdmux] = useState(false);
 
   const mut = useMutation({
     mutationFn: () => {
@@ -166,6 +167,8 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
         power_args: hasAgent && hasPower ? form.power_args : {},
         usb_device: hasAgent && hasUsb ? form.usb_device ?? '' : '',
         uart_device: hasAgent && hasUart ? form.uart_device ?? '' : '',
+        sdmux_control: hasAgent && hasSdmux ? form.sdmux_control ?? '' : '',
+        sdmux_sdcard: hasAgent && hasSdmux ? form.sdmux_sdcard ?? '' : '',
       };
       return createDevice(payload, username);
     },
@@ -306,6 +309,28 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
                   </Field>
                 </div>
               )}
+              {/* SDMux sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-teal-500" checked={hasSdmux}
+                  onChange={(e) => setHasSdmux(e.target.checked)} />
+                SDMux
+              </label>
+              {hasSdmux && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-teal-100">
+                  <Field label="SDMux control device">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /dev/sg0"
+                      value={form.sdmux_control ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, sdmux_control: e.target.value }))} />
+                  </Field>
+                  <Field label="SD card path">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /dev/disk/by-path/..."
+                      value={form.sdmux_sdcard ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, sdmux_sdcard: e.target.value }))} />
+                  </Field>
+                </div>
+              )}
             </div>
           )}
 
@@ -347,16 +372,19 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
     power_args: device.power_args,
     usb_device: device.usb_device ?? '',
     uart_device: device.uart_device ?? '',
+    sdmux_control: device.sdmux_control ?? '',
+    sdmux_sdcard: device.sdmux_sdcard ?? '',
     enabled: device.enabled,
   });
   const [featuresRaw, setFeaturesRaw] = useState(JSON.stringify(device.features, null, 2));
   const [hasEthernet, setHasEthernet] = useState(!!(device.device_ip || device.ssh_port));
   const [hasSsh, setHasSsh] = useState(!!device.ssh_port);
-  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.power_script || device.usb_device || device.uart_device));
+  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.power_script || device.usb_device || device.uart_device || device.sdmux_control));
   const [hasUsb, setHasUsb] = useState(!!device.usb_device);
   const [hasUart, setHasUart] = useState(!!device.uart_device);
   const [hasJtag, setHasJtag] = useState(!!device.jtag_port);
   const [hasPower, setHasPower] = useState(!!device.power_script);
+  const [hasSdmux, setHasSdmux] = useState(!!device.sdmux_control);
 
   const updateMut = useMutation({
     mutationFn: () => {
@@ -374,6 +402,8 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
         power_args: hasAgent && hasPower ? form.power_args : {},
         usb_device: hasAgent && hasUsb ? form.usb_device : '',
         uart_device: hasAgent && hasUart ? form.uart_device : '',
+        sdmux_control: hasAgent && hasSdmux ? form.sdmux_control : '',
+        sdmux_sdcard: hasAgent && hasSdmux ? form.sdmux_sdcard : '',
       }, username);
     },
     onSuccess: () => { setDefaultUser(username); qc.invalidateQueries({ queryKey: ['devices'] }); onClose(); },
@@ -511,6 +541,28 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
                     <textarea className={`${inputCls} font-mono`} rows={2}
                       value={JSON.stringify(form.power_args ?? {})}
                       onChange={(e) => { try { setForm(f => ({ ...f, power_args: JSON.parse(e.target.value) })); } catch { /* ignore */ } }} />
+                  </Field>
+                </div>
+              )}
+              {/* SDMux sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-teal-500" checked={hasSdmux}
+                  onChange={(e) => setHasSdmux(e.target.checked)} />
+                SDMux
+              </label>
+              {hasSdmux && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-teal-100">
+                  <Field label="SDMux control device">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /dev/sg0"
+                      value={form.sdmux_control ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, sdmux_control: e.target.value }))} />
+                  </Field>
+                  <Field label="SD card path">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /dev/disk/by-path/..."
+                      value={form.sdmux_sdcard ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, sdmux_sdcard: e.target.value }))} />
                   </Field>
                 </div>
               )}

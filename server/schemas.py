@@ -45,6 +45,8 @@ class DeviceIn(BaseModel):
     power_args: dict = {}
     usb_device: str = ""
     uart_device: str = ""
+    sdmux_control: str = ""
+    sdmux_sdcard: str = ""
     enabled: bool = True
 
 
@@ -65,6 +67,8 @@ class DeviceUpdate(BaseModel):
     power_args: dict | None = None
     usb_device: str | None = None
     uart_device: str | None = None
+    sdmux_control: str | None = None
+    sdmux_sdcard: str | None = None
     enabled: bool | None = None
 
 
@@ -113,6 +117,8 @@ class DeviceOut(BaseModel):
     power_args: dict
     usb_device: str = ""
     uart_device: str = ""
+    sdmux_control: str = ""
+    sdmux_sdcard: str = ""
     enabled: bool
     agent_online: bool = False
     active_booking: BookingOut | None = None

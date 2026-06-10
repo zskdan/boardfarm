@@ -68,6 +68,8 @@ async def _build_board_out(board: Board, db: AsyncSession) -> BoardOut:
         ssh_port=board.ssh_port,
         power_script=board.power_script,
         power_args=json.loads(board.power_args) if board.power_args else {},
+        sdmux_control=board.sdmux_control or "",
+        sdmux_sdcard=board.sdmux_sdcard or "",
         enabled=board.enabled,
         agent_online=agent_online,
         active_booking=active_booking,
@@ -135,6 +137,8 @@ async def create_board(
         ssh_port=body.ssh_port,
         power_script=body.power_script,
         power_args=json.dumps(body.power_args),
+        sdmux_control=body.sdmux_control,
+        sdmux_sdcard=body.sdmux_sdcard,
         enabled=body.enabled,
     )
     db.add(board)

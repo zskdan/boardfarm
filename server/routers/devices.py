@@ -70,6 +70,8 @@ async def _build_device_out(board: Board, db: AsyncSession) -> DeviceOut:
         power_args=json.loads(board.power_args) if board.power_args else {},
         usb_device=board.usb_device or "",
         uart_device=board.uart_device or "",
+        sdmux_control=board.sdmux_control or "",
+        sdmux_sdcard=board.sdmux_sdcard or "",
         enabled=board.enabled,
         agent_online=agent_online,
         active_booking=active_booking,
@@ -139,6 +141,8 @@ async def create_device(
         power_args=json.dumps(body.power_args),
         usb_device=body.usb_device,
         uart_device=body.uart_device,
+        sdmux_control=body.sdmux_control,
+        sdmux_sdcard=body.sdmux_sdcard,
         enabled=body.enabled,
     )
     db.add(board)
