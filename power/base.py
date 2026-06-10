@@ -14,7 +14,7 @@ class PowerController(ABC):
 
 
 def run_controller(controller: PowerController) -> None:
-    parser = argparse.ArgumentParser(description="Board power control")
+    parser = argparse.ArgumentParser(description="Device power control")
     parser.add_argument(
         "--action", choices=["on", "off", "reset"], required=True, help="Power action"
     )

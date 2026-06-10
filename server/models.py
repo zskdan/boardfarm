@@ -120,11 +120,11 @@ class Tool(Base):
     __tablename__ = "tools"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    board_id: Mapped[str] = mapped_column(String, ForeignKey("boards.id", ondelete="CASCADE"), nullable=False)
+    device_id: Mapped[str] = mapped_column("board_id", String, ForeignKey("boards.id", ondelete="CASCADE"), nullable=False)
     type: Mapped[str] = mapped_column(String, nullable=False)
     model: Mapped[str] = mapped_column(String, default="")
     connection: Mapped[str] = mapped_column(String, default="usb")
     connection_detail: Mapped[str] = mapped_column(String, default="")
     notes: Mapped[str] = mapped_column(String, default="")
 
-    device: Mapped["Device"] = relationship("Device", back_populates="tools", foreign_keys=[board_id])
+    device: Mapped["Device"] = relationship("Device", back_populates="tools", foreign_keys="[Tool.device_id]")

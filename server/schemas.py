@@ -109,7 +109,7 @@ class ToolIn(BaseModel):
 
 class ToolOut(BaseModel):
     id: str
-    board_id: str
+    device_id: str
     type: str
     model: str
     connection: str
