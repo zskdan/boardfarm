@@ -249,9 +249,11 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           </label>
           {hasAgent && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-200">
-              <Field label="Agent Host IP">
-                <input type="text" className={inputCls} value={form.host_ip ?? ''}
-                  onChange={(e) => setForm(f => ({ ...f, host_ip: e.target.value }))} />
+              <Field label={<>Hardware agent IP <span className="text-red-500">*</span></>}>
+                <input type="text" className={`${inputCls} ${!form.host_ip?.trim() ? 'border-red-300 focus:ring-red-400' : ''}`}
+                  value={form.host_ip ?? ''}
+                  onChange={(e) => setForm(f => ({ ...f, host_ip: e.target.value }))}
+                  placeholder="Required" />
               </Field>
               {/* USB sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
@@ -321,7 +323,11 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
               {/* SDMux sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-teal-500" checked={hasSdmux}
-                  onChange={(e) => setHasSdmux(e.target.checked)} />
+                  onChange={(e) => {
+                    setHasSdmux(e.target.checked);
+                    if (e.target.checked && !form.sdmux_control?.trim())
+                      setForm(f => ({ ...f, sdmux_control: '/dev/sg0' }));
+                  }} />
                 SDMux
               </label>
               {hasSdmux && (
@@ -367,7 +373,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           {mut.error && <p className="text-xs text-red-600">{(mut.error as Error).message}</p>}
           <ModalActions onCancel={onClose} onConfirm={() => mut.mutate()}
             confirmLabel={mut.isPending ? 'Creating…' : 'Create'}
-            confirmDisabled={mut.isPending || !form.name || !username} />
+            confirmDisabled={mut.isPending || !form.name || !username || (hasAgent && !form.host_ip?.trim())} />
         </div>
       </ModalCard>
     </Overlay>
@@ -508,9 +514,11 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
           </label>
           {hasAgent && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-200">
-              <Field label="Agent Host IP">
-                <input type="text" className={inputCls} value={form.host_ip ?? ''}
-                  onChange={(e) => setForm(f => ({ ...f, host_ip: e.target.value }))} />
+              <Field label={<>Hardware agent IP <span className="text-red-500">*</span></>}>
+                <input type="text" className={`${inputCls} ${!form.host_ip?.trim() ? 'border-red-300 focus:ring-red-400' : ''}`}
+                  value={form.host_ip ?? ''}
+                  onChange={(e) => setForm(f => ({ ...f, host_ip: e.target.value }))}
+                  placeholder="Required" />
               </Field>
               {/* USB sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
@@ -580,7 +588,11 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
               {/* SDMux sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-teal-500" checked={hasSdmux}
-                  onChange={(e) => setHasSdmux(e.target.checked)} />
+                  onChange={(e) => {
+                    setHasSdmux(e.target.checked);
+                    if (e.target.checked && !form.sdmux_control?.trim())
+                      setForm(f => ({ ...f, sdmux_control: '/dev/sg0' }));
+                  }} />
                 SDMux
               </label>
               {hasSdmux && (
@@ -627,7 +639,7 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
           {updateMut.error && <p className="text-xs text-red-600">{(updateMut.error as Error).message}</p>}
           <ModalActions onCancel={onClose} onConfirm={() => updateMut.mutate()}
             confirmLabel={updateMut.isPending ? 'Saving…' : 'Save changes'}
-            confirmDisabled={updateMut.isPending || !form.name || !username} />
+            confirmDisabled={updateMut.isPending || !form.name || !username || (hasAgent && !form.host_ip?.trim())} />
         </div>
       </ModalCard>
     </Overlay>

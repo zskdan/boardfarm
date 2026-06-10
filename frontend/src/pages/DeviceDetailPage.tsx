@@ -12,8 +12,32 @@ import {
 } from '../api/client';
 import DeviceNotes from '../components/DeviceNotes';
 import BookingTimer from '../components/BookingTimer';
-import ConnectionCommands from '../components/ConnectionCommands';
 import StatusBadge from '../components/StatusBadge';
+
+const TAG_COLORS = [
+  'bg-blue-100 text-blue-700',
+  'bg-green-100 text-green-700',
+  'bg-purple-100 text-purple-700',
+  'bg-orange-100 text-orange-700',
+  'bg-pink-100 text-pink-700',
+  'bg-teal-100 text-teal-700',
+  'bg-yellow-100 text-yellow-700',
+  'bg-indigo-100 text-indigo-700',
+  'bg-cyan-100 text-cyan-700',
+  'bg-rose-100 text-rose-700',
+];
+function tagColor(key: string): string {
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  return TAG_COLORS[hash % TAG_COLORS.length];
+}
+function formatTag(k: string, v: unknown): string {
+  if (v === true || v === 'true') return k;
+  if (v === false || v === 'false') return `${k}: false`;
+  const s = String(v);
+  if (/^-?\d+(\.\d+)?$/.test(s)) return `${k}: ${s}`;
+  return s;
+}
 
 function downloadFile(filename: string, content: string) {
   const blob = new Blob([content], { type: 'text/plain' });
@@ -268,11 +292,8 @@ export default function DeviceDetailPage() {
             <h2 className="text-sm font-semibold text-gray-700 mb-2">Features</h2>
             <div className="flex flex-wrap gap-2">
               {Object.entries(device.features).map(([k, v]) => (
-                <span
-                  key={k}
-                  className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700"
-                >
-                  {k}: {String(v)}
+                <span key={k} className={`px-2 py-0.5 text-xs rounded-full font-medium ${tagColor(k)}`}>
+                  {formatTag(k, v)}
                 </span>
               ))}
             </div>
@@ -321,6 +342,9 @@ export default function DeviceDetailPage() {
                     content: sdcardScript(`vivado@${device.host_ip}`, device.device_id),
                   }}
                 />
+              )}
+              {commands?.vivado_tcl && (
+                <ShellLine label="Vivado TCL" cmd={commands.vivado_tcl} />
               )}
             </div>
           </div>
@@ -390,15 +414,6 @@ export default function DeviceDetailPage() {
           )}
         </div>
 
-        {/* Connection commands */}
-        {commands && (
-          <div className="bg-white rounded-xl border p-5">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">
-              Connection Commands
-            </h2>
-            <ConnectionCommands commands={commands} />
-          </div>
-        )}
       </div>
     </div>
   );
