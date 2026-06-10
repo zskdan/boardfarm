@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import require_user
 from ..database import get_db
-from ..models import Agent, Board
+from ..models import Agent, Device
 from ..schemas import AgentOut
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -42,12 +42,12 @@ async def register_agent(
 
     await db.flush()
 
-    # Claim boards: link them to this agent
+    # Claim devices: link them to this agent
     if board_ids:
         host_ip = url.split("//")[-1].split(":")[0]
         await db.execute(
-            update(Board)
-            .where(Board.id.in_(board_ids))
+            update(Device)
+            .where(Device.id.in_(board_ids))
             .values(agent_id=agent.id, host_ip=host_ip)
         )
 

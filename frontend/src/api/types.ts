@@ -10,8 +10,8 @@ export interface AgentInfo {
 
 export interface BookingInfo {
   id: string;
-  board_id: string;
-  board_name: string;
+  device_id: string;
+  device_name: string;
   username: string;
   start_time: string;
   end_time: string;

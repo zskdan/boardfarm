@@ -74,8 +74,8 @@ class DeviceUpdate(BaseModel):
 
 class BookingOut(BaseModel):
     id: str
-    board_id: str
-    board_name: str = ""
+    device_id: str
+    device_name: str = ""
     username: str
     start_time: datetime
     end_time: datetime

@@ -18,19 +18,19 @@ _processes: dict[str, subprocess.Popen] = {}
 _locks: dict[str, asyncio.Lock] = {}
 
 
-def _get_lock(board_id: str) -> asyncio.Lock:
-    if board_id not in _locks:
-        _locks[board_id] = asyncio.Lock()
-    return _locks[board_id]
+def _get_lock(device_id: str) -> asyncio.Lock:
+    if device_id not in _locks:
+        _locks[device_id] = asyncio.Lock()
+    return _locks[device_id]
 
 
-async def start(board_id: str, jtag_port: int) -> bool:
-    async with _get_lock(board_id):
-        if board_id in _processes and _processes[board_id].poll() is None:
-            logger.info("hw_server already running for board %s", board_id)
+async def start(device_id: str, jtag_port: int) -> bool:
+    async with _get_lock(device_id):
+        if device_id in _processes and _processes[device_id].poll() is None:
+            logger.info("hw_server already running for device %s", device_id)
             return True
         if _port_in_use(jtag_port):
-            logger.warning("Port %d already in use for board %s; hw_server may already be running", jtag_port, board_id)
+            logger.warning("Port %d already in use for device %s; hw_server may already be running", jtag_port, device_id)
             # Treat as success (another hw_server is already serving)
             return True
         try:
@@ -40,20 +40,20 @@ async def start(board_id: str, jtag_port: int) -> bool:
                 stderr=subprocess.DEVNULL,
                 preexec_fn=os.setsid,  # new process group
             )
-            _processes[board_id] = proc
-            logger.info("Started hw_server for board %s on port %d", board_id, jtag_port)
+            _processes[device_id] = proc
+            logger.info("Started hw_server for device %s on port %d", device_id, jtag_port)
             return True
         except FileNotFoundError:
-            logger.warning("hw_server not found; JTAG will not be available for board %s", board_id)
+            logger.warning("hw_server not found; JTAG will not be available for device %s", device_id)
             return False
         except Exception:
-            logger.exception("Failed to start hw_server for board %s", board_id)
+            logger.exception("Failed to start hw_server for device %s", device_id)
             return False
 
 
-async def stop(board_id: str) -> None:
-    async with _get_lock(board_id):
-        proc = _processes.pop(board_id, None)
+async def stop(device_id: str) -> None:
+    async with _get_lock(device_id):
+        proc = _processes.pop(device_id, None)
         if proc is None:
             return
         try:
@@ -62,13 +62,13 @@ async def stop(board_id: str) -> None:
                 proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            logger.info("Stopped hw_server for board %s", board_id)
+            logger.info("Stopped hw_server for device %s", device_id)
         except ProcessLookupError:
             pass  # Already dead
         except Exception:
-            logger.exception("Error stopping hw_server for board %s", board_id)
+            logger.exception("Error stopping hw_server for device %s", device_id)
 
 
 async def stop_all() -> None:
-    for board_id in list(_processes):
-        await stop(board_id)
+    for device_id in list(_processes):
+        await stop(device_id)

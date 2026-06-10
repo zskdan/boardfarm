@@ -7,23 +7,23 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from .database import async_session
-from .models import Board, Booking
+from .models import Device, Booking
 from .ws import broadcast
 
 logger = logging.getLogger(__name__)
 AGENT_TIMEOUT = 5.0
 
 
-async def _stop_agent_services(board: Board, board_id: str) -> None:
-    if board and board.agent and board.agent.url:
+async def _stop_agent_services(device: Device, board_id: str) -> None:
+    if device and device.agent and device.agent.url:
         try:
-            agent_token = board.agent.agent_token if board.agent else ""
+            agent_token = device.agent.agent_token if device.agent else ""
             headers = {}
             if agent_token:
                 headers["X-Agent-Token"] = agent_token
             async with httpx.AsyncClient(timeout=AGENT_TIMEOUT) as client:
                 await client.post(
-                    f"{board.agent.url}/boards/{board_id}/services/stop",
+                    f"{device.agent.url}/boards/{board_id}/services/stop",
                     headers=headers,
                 )
         except Exception:
@@ -39,19 +39,19 @@ async def expiry_loop(interval_seconds: int = 60) -> None:
                 result = await db.execute(
                     select(Booking)
                     .where(Booking.active == True, Booking.end_time < now)
-                    .options(selectinload(Booking.board).selectinload(Board.agent))
+                    .options(selectinload(Booking.device).selectinload(Device.agent))
                 )
                 expired = result.scalars().all()
                 for booking in expired:
                     booking.active = False
                     booking.release_reason = "expired"
                     logger.info(
-                        "Expired booking %s for board %s (user: %s)",
+                        "Expired booking %s for device %s (user: %s)",
                         booking.id,
                         booking.board_id,
                         booking.username,
                     )
-                    await _stop_agent_services(booking.board, booking.board_id)
+                    await _stop_agent_services(booking.device, booking.board_id)
                 if expired:
                     await db.commit()
                     for booking in expired:

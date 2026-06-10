@@ -5,23 +5,23 @@ import { Link } from 'react-router-dom';
 import { listActivity } from '../api/client';
 import type { ActivityEntry } from '../api/types';
 
-type ActionGroup = 'all' | 'bookings' | 'board_changes';
+type ActionGroup = 'all' | 'bookings' | 'device_changes';
 
 const ACTION_BADGE: Record<string, { label: string; cls: string }> = {
-  booked:        { label: 'Booked',         cls: 'bg-blue-100 text-blue-700' },
-  released:      { label: 'Released',        cls: 'bg-green-100 text-green-700' },
-  extended:      { label: 'Extended',        cls: 'bg-teal-100 text-teal-700' },
-  board_created: { label: 'Device created',  cls: 'bg-purple-100 text-purple-700' },
-  board_updated: { label: 'Device updated',  cls: 'bg-gray-100 text-gray-600' },
-  board_deleted: { label: 'Device deleted',  cls: 'bg-red-100 text-red-700' },
-  tool_added:    { label: 'Tool added',      cls: 'bg-orange-100 text-orange-700' },
-  tool_deleted:  { label: 'Tool deleted',    cls: 'bg-red-100 text-red-700' },
+  booked:          { label: 'Booked',         cls: 'bg-blue-100 text-blue-700' },
+  released:        { label: 'Released',        cls: 'bg-green-100 text-green-700' },
+  extended:        { label: 'Extended',        cls: 'bg-teal-100 text-teal-700' },
+  device_created:  { label: 'Device created',  cls: 'bg-purple-100 text-purple-700' },
+  device_updated:  { label: 'Device updated',  cls: 'bg-gray-100 text-gray-600' },
+  device_deleted:  { label: 'Device deleted',  cls: 'bg-red-100 text-red-700' },
+  tool_added:      { label: 'Tool added',      cls: 'bg-orange-100 text-orange-700' },
+  tool_deleted:    { label: 'Tool deleted',    cls: 'bg-red-100 text-red-700' },
 };
 
 const GROUP_ACTIONS: Record<ActionGroup, string[]> = {
   all: [],
   bookings: ['booked', 'released', 'extended'],
-  board_changes: ['board_created', 'board_updated', 'board_deleted'],
+  device_changes: ['device_created', 'device_updated', 'device_deleted'],
 };
 
 function ActionBadge({ action }: { action: string }) {
@@ -58,7 +58,7 @@ export default function HistoryPage() {
   const groups: { label: string; value: ActionGroup }[] = [
     { label: 'All', value: 'all' },
     { label: 'Bookings', value: 'bookings' },
-    { label: 'Device changes', value: 'board_changes' },
+    { label: 'Device changes', value: 'device_changes' },
   ];
 
   return (

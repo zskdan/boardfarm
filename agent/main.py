@@ -43,13 +43,13 @@ async def _recover_active_bookings() -> None:
             if resp.status_code != 200:
                 return
             bookings = resp.json()
-        our_board_ids = {b.id for b in config.boards}
-        board_map = {b.id: b for b in config.boards}
+        our_device_ids = {b.id for b in config.boards}
+        device_map = {b.id: b for b in config.boards}
         for booking in bookings:
-            bid = booking["board_id"]
-            if bid in our_board_ids:
-                b = board_map[bid]
-                logger.info("Recovering services for board %s (active booking: %s)", bid, booking["id"])
+            bid = booking["device_id"]
+            if bid in our_device_ids:
+                b = device_map[bid]
+                logger.info("Recovering services for device %s (active booking: %s)", bid, booking["id"])
                 await hw_server.start(bid, b.jtag_port)
     except Exception:
         logger.exception("Error during booking recovery")
@@ -100,7 +100,7 @@ async def health():
         "status": "ok",
         "version": "0.1.0",
         "agent": config.name,
-        "boards": [b.id for b in config.boards],
+        "devices": [b.id for b in config.boards],
     }
 
 

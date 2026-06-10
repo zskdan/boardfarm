@@ -13,16 +13,16 @@ class Setup(Base):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[str] = mapped_column(String, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    setup_boards: Mapped[list["SetupBoard"]] = relationship("SetupBoard", back_populates="setup", cascade="all, delete-orphan")
+    setup_devices: Mapped[list["SetupDevice"]] = relationship("SetupDevice", back_populates="setup", cascade="all, delete-orphan")
 
 
-class SetupBoard(Base):
+class SetupDevice(Base):
     __tablename__ = "setup_boards"
 
     setup_id: Mapped[str] = mapped_column(String, ForeignKey("setups.id", ondelete="CASCADE"), primary_key=True)
     board_id: Mapped[str] = mapped_column(String, ForeignKey("boards.id", ondelete="CASCADE"), primary_key=True)
-    setup: Mapped["Setup"] = relationship("Setup", back_populates="setup_boards")
-    board: Mapped["Board"] = relationship("Board")
+    setup: Mapped["Setup"] = relationship("Setup", back_populates="setup_devices")
+    device: Mapped["Device"] = relationship("Device")
 
 
 class AuditLog(Base):
@@ -47,10 +47,10 @@ class Agent(Base):
     last_seen: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     agent_token: Mapped[str] = mapped_column(String, default="")
 
-    boards: Mapped[list["Board"]] = relationship("Board", back_populates="agent")
+    devices: Mapped[list["Device"]] = relationship("Device", back_populates="agent")
 
 
-class Board(Base):
+class Device(Base):
     __tablename__ = "boards"
     __table_args__ = (
         Index("uq_device_id", "device_id", unique=True, sqlite_where=text("device_id != ''")),
@@ -81,8 +81,8 @@ class Board(Base):
     sdmux_sdcard: Mapped[str] = mapped_column(String, default="")
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    agent: Mapped["Agent | None"] = relationship("Agent", back_populates="boards")
-    bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="board")
+    agent: Mapped["Agent | None"] = relationship("Agent", back_populates="devices")
+    bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="device")
 
 
 class Booking(Base):
@@ -111,4 +111,4 @@ class Booking(Base):
     setup_id: Mapped[str | None] = mapped_column(String, nullable=True)
     setup_name: Mapped[str] = mapped_column(String, default="")
 
-    board: Mapped["Board"] = relationship("Board", back_populates="bookings")
+    device: Mapped["Device"] = relationship("Device", back_populates="bookings")

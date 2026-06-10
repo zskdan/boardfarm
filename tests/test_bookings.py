@@ -8,12 +8,12 @@ AUTH_HEADERS = {"X-Token": "test-token", "X-User": "testuser"}
 ADMIN_HEADERS = {"X-Token": "test-token", "X-User": "admin"}
 
 
-async def create_test_board(client) -> dict:
+async def create_test_device(client) -> dict:
     resp = await client.post(
         "/boards",
         json={
-            "name": f"test-board-{uuid.uuid4().hex[:6]}",
-            "description": "Test board",
+            "name": f"test-device-{uuid.uuid4().hex[:6]}",
+            "description": "Test device",
             "location": "Test Lab",
             "features": {"jtag": True},
             "jtag_port": 3121,
@@ -37,16 +37,16 @@ async def test_health(client):
 
 
 @pytest.mark.asyncio
-async def test_create_board(client):
-    board = await create_test_board(client)
-    assert board["name"].startswith("test-board-")
-    assert board["enabled"] is True
-    assert board["agent_online"] is False
+async def test_create_device(client):
+    device = await create_test_device(client)
+    assert device["name"].startswith("test-device-")
+    assert device["enabled"] is True
+    assert device["agent_online"] is False
 
 
 @pytest.mark.asyncio
-async def test_list_boards(client):
-    await create_test_board(client)
+async def test_list_devices(client):
+    await create_test_device(client)
     resp = await client.get("/boards", headers=AUTH_HEADERS)
     assert resp.status_code == 200
     assert isinstance(resp.json(), list)
@@ -55,12 +55,12 @@ async def test_list_boards(client):
 
 @pytest.mark.asyncio
 async def test_book_and_release(client):
-    board = await create_test_board(client)
-    board_id = board["id"]
+    device = await create_test_device(client)
+    device_id = device["id"]
 
     # Book it
     resp = await client.post(
-        f"/boards/{board_id}/book",
+        f"/boards/{device_id}/book",
         json={"duration_hours": 2},
         headers=AUTH_HEADERS,
     )
@@ -69,8 +69,8 @@ async def test_book_and_release(client):
     assert booking["active"] is True
     assert booking["username"] == "testuser"
 
-    # Board should now show as booked
-    resp = await client.get(f"/boards/{board_id}", headers=AUTH_HEADERS)
+    # Device should now show as booked
+    resp = await client.get(f"/boards/{device_id}", headers=AUTH_HEADERS)
     assert resp.json()["active_booking"]["id"] == booking["id"]
 
     # Release it
@@ -82,20 +82,20 @@ async def test_book_and_release(client):
 
 @pytest.mark.asyncio
 async def test_double_booking_rejected(client):
-    board = await create_test_board(client)
-    board_id = board["id"]
+    device = await create_test_device(client)
+    device_id = device["id"]
 
     # First booking
     resp1 = await client.post(
-        f"/boards/{board_id}/book",
+        f"/boards/{device_id}/book",
         json={"duration_hours": 1},
         headers=AUTH_HEADERS,
     )
     assert resp1.status_code == 201
 
-    # Second booking on same board should fail
+    # Second booking on same device should fail
     resp2 = await client.post(
-        f"/boards/{board_id}/book",
+        f"/boards/{device_id}/book",
         json={"duration_hours": 1},
         headers={"X-Token": "test-token", "X-User": "otheruser"},
     )
@@ -104,11 +104,11 @@ async def test_double_booking_rejected(client):
 
 @pytest.mark.asyncio
 async def test_extend_booking(client):
-    board = await create_test_board(client)
-    board_id = board["id"]
+    device = await create_test_device(client)
+    device_id = device["id"]
 
     resp = await client.post(
-        f"/boards/{board_id}/book",
+        f"/boards/{device_id}/book",
         json={"duration_hours": 2},
         headers=AUTH_HEADERS,
     )
@@ -134,9 +134,9 @@ async def test_extend_booking(client):
 
 @pytest.mark.asyncio
 async def test_booking_duration_limit(client):
-    board = await create_test_board(client)
+    device = await create_test_device(client)
     resp = await client.post(
-        f"/boards/{board['id']}/book",
+        f"/boards/{device['id']}/book",
         json={"duration_hours": 25},  # over 24h limit
         headers=AUTH_HEADERS,
     )
@@ -145,11 +145,11 @@ async def test_booking_duration_limit(client):
 
 @pytest.mark.asyncio
 async def test_release_other_user_booking_rejected(client):
-    board = await create_test_board(client)
-    board_id = board["id"]
+    device = await create_test_device(client)
+    device_id = device["id"]
 
     resp = await client.post(
-        f"/boards/{board_id}/book",
+        f"/boards/{device_id}/book",
         json={"duration_hours": 1},
         headers=AUTH_HEADERS,
     )
@@ -165,12 +165,12 @@ async def test_release_other_user_booking_rejected(client):
 
 @pytest.mark.asyncio
 async def test_booking_history(client):
-    board = await create_test_board(client)
-    board_id = board["id"]
+    device = await create_test_device(client)
+    device_id = device["id"]
 
     # Create and release a booking
     resp = await client.post(
-        f"/boards/{board_id}/book",
+        f"/boards/{device_id}/book",
         json={"duration_hours": 1},
         headers=AUTH_HEADERS,
     )
@@ -180,7 +180,7 @@ async def test_booking_history(client):
     # History should include it
     resp = await client.get(
         "/bookings",
-        params={"board_id": board_id},
+        params={"board_id": device_id},
         headers=AUTH_HEADERS,
     )
     assert resp.status_code == 200
@@ -190,12 +190,12 @@ async def test_booking_history(client):
 
 @pytest.mark.asyncio
 async def test_add_and_remove_tool(client):
-    board = await create_test_board(client)
-    board_id = board["id"]
+    device = await create_test_device(client)
+    device_id = device["id"]
 
     # Add tool
     resp = await client.post(
-        f"/boards/{board_id}/tools",
+        f"/boards/{device_id}/tools",
         json={
             "type": "logic_analyzer",
             "model": "Saleae Logic 8",
@@ -208,8 +208,8 @@ async def test_add_and_remove_tool(client):
     assert resp.status_code == 201
     tool = resp.json()
 
-    # Board should show tool
-    resp = await client.get(f"/boards/{board_id}", headers=AUTH_HEADERS)
+    # Device should show tool
+    resp = await client.get(f"/boards/{device_id}", headers=AUTH_HEADERS)
     assert any(t["id"] == tool["id"] for t in resp.json()["tools"])
 
     # Remove tool
@@ -218,17 +218,17 @@ async def test_add_and_remove_tool(client):
 
 
 @pytest.mark.asyncio
-async def test_board_notes(client):
-    board = await create_test_board(client)
-    board_id = board["id"]
+async def test_device_notes(client):
+    device = await create_test_device(client)
+    device_id = device["id"]
 
     resp = await client.patch(
-        f"/boards/{board_id}",
-        json={"current_notes": "Board needs power cycle after JTAG"},
+        f"/boards/{device_id}",
+        json={"current_notes": "Device needs power cycle after JTAG"},
         headers=AUTH_HEADERS,
     )
     assert resp.status_code == 200
-    assert resp.json()["current_notes"] == "Board needs power cycle after JTAG"
+    assert resp.json()["current_notes"] == "Device needs power cycle after JTAG"
 
 
 @pytest.mark.asyncio

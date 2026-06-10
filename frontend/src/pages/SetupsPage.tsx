@@ -35,23 +35,23 @@ function SetupStatusBadge({ setup, me }: { setup: SetupInfo; me: string }) {
   return <span className="px-2 py-0.5 text-xs rounded-full font-medium bg-amber-100 text-amber-700">Partially unavailable</span>;
 }
 
-function DeviceRow({ board }: { board: SetupInfo['boards'][0] }) {
-  const blocked = !!board.active_booking_username;
+function DeviceRow({ device }: { device: SetupInfo['boards'][0] }) {
+  const blocked = !!device.active_booking_username;
   return (
     <div className="flex items-center gap-2 text-xs py-1">
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${blocked ? 'bg-blue-400' : board.agent_online ? 'bg-green-400' : 'bg-gray-300'}`} />
-      {board.device_id && (
-        <span className="font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border">{board.device_id}</span>
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${blocked ? 'bg-blue-400' : device.agent_online ? 'bg-green-400' : 'bg-gray-300'}`} />
+      {device.device_id && (
+        <span className="font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border">{device.device_id}</span>
       )}
-      <span className="font-medium text-gray-800">{board.board_name}</span>
-      {board.location && <span className="text-gray-400">{board.location}</span>}
+      <span className="font-medium text-gray-800">{device.board_name}</span>
+      {device.location && <span className="text-gray-400">{device.location}</span>}
       {blocked && (
         <span className="text-blue-500 ml-auto">
-          booked by {board.active_booking_username}
-          {board.active_booking_setup_name && ` (${board.active_booking_setup_name})`}
+          booked by {device.active_booking_username}
+          {device.active_booking_setup_name && ` (${device.active_booking_setup_name})`}
         </span>
       )}
-      {!blocked && !board.agent_online && <span className="text-gray-400 ml-auto">offline</span>}
+      {!blocked && !device.agent_online && <span className="text-gray-400 ml-auto">offline</span>}
     </div>
   );
 }
@@ -332,7 +332,7 @@ function SetupCard({ setup }: { setup: SetupInfo }) {
         {setup.boards.length === 0 ? (
           <p className="text-xs text-gray-400 py-2">No devices</p>
         ) : (
-          setup.boards.map((b) => <DeviceRow key={b.board_id} board={b} />)
+          setup.boards.map((b) => <DeviceRow key={b.board_id} device={b} />)
         )}
       </div>
 

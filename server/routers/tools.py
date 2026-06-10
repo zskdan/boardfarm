@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..audit import log_action
 from ..auth import require_user
 from ..database import get_db
-from ..models import Board, Tool
+from ..models import Device, Tool
 from ..schemas import ToolIn, ToolOut
 
 router = APIRouter(tags=["tools"])
@@ -29,14 +29,14 @@ async def add_tool(
     db: AsyncSession = Depends(get_db),
     user: str = Depends(require_user),
 ):
-    board_result = await db.execute(select(Board).where(Board.id == board_id))
-    board = board_result.scalar_one_or_none()
-    if board is None:
-        raise HTTPException(status_code=404, detail="Board not found")
+    device_result = await db.execute(select(Device).where(Device.id == board_id))
+    device = device_result.scalar_one_or_none()
+    if device is None:
+        raise HTTPException(status_code=404, detail="Device not found")
 
     tool = Tool(id=str(uuid.uuid4()), board_id=board_id, **body.model_dump())
     db.add(tool)
-    await log_action(db, "tool_added", user, board_id, board.name, f"{body.type} · {body.model}", device_id=board.device_id)
+    await log_action(db, "tool_added", user, board_id, device.name, f"{body.type} · {body.model}", device_id=device.device_id)
     await db.commit()
     await db.refresh(tool)
     return ToolOut.model_validate(tool)
@@ -70,10 +70,10 @@ async def delete_tool(
     tool = result.scalar_one_or_none()
     if tool is None:
         raise HTTPException(status_code=404, detail="Tool not found")
-    board_result = await db.execute(select(Board).where(Board.id == tool.board_id))
-    board = board_result.scalar_one_or_none()
-    board_name = board.name if board else ""
-    board_device_id = board.device_id if board else ""
-    await log_action(db, "tool_deleted", user, tool.board_id, board_name, f"{tool.type} · {tool.model}", device_id=board_device_id)
+    device_result = await db.execute(select(Device).where(Device.id == tool.board_id))
+    device = device_result.scalar_one_or_none()
+    device_name = device.name if device else ""
+    device_id_val = device.device_id if device else ""
+    await log_action(db, "tool_deleted", user, tool.board_id, device_name, f"{tool.type} · {tool.model}", device_id=device_id_val)
     await db.delete(tool)
     await db.commit()

@@ -3,7 +3,7 @@ Reusable pytest fixtures providing a pre-seeded dataset.
 
 Import the fixtures you need in your test file:
 
-    from tests.dataset import seeded_client, board_ids, active_booking
+    from tests.dataset import seeded_client, device_ids, active_booking
 
 Or simply use them as pytest fixtures (conftest auto-collects this module
 if you add `pytest_plugins = ["tests.dataset"]` to conftest.py).
@@ -27,7 +27,7 @@ ADMIN = {"X-Token": "test-token", "X-User": "admin"}
 
 
 # ---------------------------------------------------------------------------
-# Board definitions
+# Device definitions
 # ---------------------------------------------------------------------------
 
 BOARD_DEFS = [
@@ -88,11 +88,11 @@ async def seeded_db_engine():
 @pytest_asyncio.fixture
 async def seeded_client(seeded_db_engine):
     """
-    HTTP test client with pre-seeded boards, tools, and booking history.
+    HTTP test client with pre-seeded devices, tools, and booking history.
 
     Attributes injected on the client object for convenience:
-      client.board_ids   — dict[name → id]
-      client.tool_ids    — dict[(board_name, model) → id]
+      client.device_ids  — dict[name → id]
+      client.tool_ids    — dict[(device_name, model) → id]
       client.booking_ids — list of released booking IDs (history)
     """
     factory = sessionmaker(seeded_db_engine, class_=AsyncSession, expire_on_commit=False)
@@ -108,19 +108,19 @@ async def seeded_client(seeded_db_engine):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        board_ids: dict[str, str] = {}
+        device_ids: dict[str, str] = {}
         tool_ids: dict[tuple, str] = {}
         booking_ids: list[str] = []
 
-        # Create boards
+        # Create devices
         for bd in BOARD_DEFS:
             r = await ac.post("/boards", json=bd, headers=AUTH)
-            assert r.status_code == 201, f"board create failed: {r.text}"
-            board_ids[bd["name"]] = r.json()["id"]
+            assert r.status_code == 201, f"device create failed: {r.text}"
+            device_ids[bd["name"]] = r.json()["id"]
 
         # Create tools
         for (bname, ttype, model, conn, detail) in TOOL_DEFS:
-            r = await ac.post(f"/boards/{board_ids[bname]}/tools", headers=AUTH, json={
+            r = await ac.post(f"/boards/{device_ids[bname]}/tools", headers=AUTH, json={
                 "type": ttype, "model": model,
                 "connection": conn, "connection_detail": detail, "notes": "",
             })
@@ -128,7 +128,7 @@ async def seeded_client(seeded_db_engine):
             tool_ids[(bname, model)] = r.json()["id"]
 
         # Past booking: alice booked zynq-dev-1, already released
-        r = await ac.post(f"/boards/{board_ids['zynq-dev-1']}/book",
+        r = await ac.post(f"/boards/{device_ids['zynq-dev-1']}/book",
                           json={"duration_hours": 3}, headers=ALICE)
         assert r.status_code == 201
         bk = r.json()
@@ -136,7 +136,7 @@ async def seeded_client(seeded_db_engine):
         await ac.delete(f"/bookings/{bk['id']}", headers=ALICE)
 
         # Past booking: bob booked stm32-nucleo-1, extended, then released
-        r = await ac.post(f"/boards/{board_ids['stm32-nucleo-1']}/book",
+        r = await ac.post(f"/boards/{device_ids['stm32-nucleo-1']}/book",
                           json={"duration_hours": 4}, headers=BOB)
         assert r.status_code == 201
         bk = r.json()
@@ -145,12 +145,12 @@ async def seeded_client(seeded_db_engine):
         await ac.delete(f"/bookings/{bk['id']}", headers=BOB)
 
         # Active booking: alice has zynq-dev-1 right now
-        r = await ac.post(f"/boards/{board_ids['zynq-dev-1']}/book",
+        r = await ac.post(f"/boards/{device_ids['zynq-dev-1']}/book",
                           json={"duration_hours": 2}, headers=ALICE)
         assert r.status_code == 201
         active_booking = r.json()
 
-        ac.board_ids = board_ids
+        ac.device_ids = device_ids
         ac.tool_ids = tool_ids
         ac.booking_ids = booking_ids
         ac.active_booking = active_booking

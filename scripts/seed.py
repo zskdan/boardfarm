@@ -178,15 +178,15 @@ def main():
             print(f"Cannot reach server at {args.url}: {e}")
             sys.exit(1)
 
-        # --- optionally clear existing boards ---
+        # --- optionally clear existing devices ---
         if args.clear:
-            existing = _ok(c.get("/boards", headers=h), "list boards")
+            existing = _ok(c.get("/boards", headers=h), "list devices")
             for b in existing:
                 c.delete(f"/boards/{b['id']}", headers=h)
-            print(f"Cleared {len(existing)} existing board(s)")
+            print(f"Cleared {len(existing)} existing device(s)")
 
-        # --- create boards ---
-        print("\n--- Boards ---")
+        # --- create devices ---
+        print("\n--- Devices ---")
         board_ids: dict[str, str] = {}   # name → id
         for bd in BOARDS:
             r = c.post("/boards", json=bd, headers=h)
@@ -208,7 +208,7 @@ def main():
         for (bname, ttype, model, conn, detail, notes) in TOOLS:
             bid = board_ids.get(bname)
             if not bid:
-                print(f"  SKIP tool for {bname} (board not created)")
+                print(f"  SKIP tool for {bname} (device not created)")
                 continue
             r = c.post(f"/boards/{bid}/tools", headers=h, json={
                 "type": ttype,
@@ -230,7 +230,7 @@ def main():
         for (bname, uname, hours_ago, dur, extended, reason) in PAST_BOOKINGS:
             bid = board_ids.get(bname)
             if not bid:
-                print(f"  SKIP booking for {bname}")
+                print(f"  SKIP booking for {bname} (device not created)")
                 continue
             # Book for a short time so it doesn't conflict with active bookings
             bh = _headers(args.token, uname)
@@ -252,7 +252,7 @@ def main():
         for (bname, uname, _, dur) in ACTIVE_BOOKINGS:
             bid = board_ids.get(bname)
             if not bid:
-                print(f"  SKIP active booking for {bname}")
+                print(f"  SKIP active booking for {bname} (device not created)")
                 continue
             bh = _headers(args.token, uname)
             r = c.post(f"/boards/{bid}/book", headers=bh, json={"duration_hours": dur})
@@ -268,7 +268,7 @@ def main():
         print("\n--- Summary ---")
         boards_out = _ok(c.get("/boards", headers=h), "list") or []
         active = sum(1 for b in boards_out if b.get("active_booking"))
-        print(f"  Boards   : {len(boards_out)}")
+        print(f"  Devices  : {len(boards_out)}")
         print(f"  Active   : {active}")
         bookings_out = _ok(c.get("/bookings", headers=h), "history") or []
         print(f"  Bookings : {len(bookings_out)} total")

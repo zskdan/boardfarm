@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from ..auth import require_user
 from ..database import get_db
-from ..models import Board, Booking, Setup, SetupBoard
+from ..models import Device, Booking, Setup, SetupDevice
 from ..schemas import BookSetupIn, BookingOut, SetupBoardOut, SetupBookingOut, SetupIn, SetupOut, SetupUpdate
 
 router = APIRouter(prefix="/setups", tags=["setups"])
@@ -24,8 +24,8 @@ async def _load_setup(setup_id: str, db: AsyncSession) -> Setup:
         select(Setup)
         .where(Setup.id == setup_id)
         .options(
-            selectinload(Setup.setup_boards).selectinload(SetupBoard.board).selectinload(Board.agent),
-            selectinload(Setup.setup_boards).selectinload(SetupBoard.board).selectinload(Board.bookings),
+            selectinload(Setup.setup_devices).selectinload(SetupDevice.device).selectinload(Device.agent),
+            selectinload(Setup.setup_devices).selectinload(SetupDevice.device).selectinload(Device.bookings),
         )
     )
     setup = result.scalar_one_or_none()
@@ -34,23 +34,23 @@ async def _load_setup(setup_id: str, db: AsyncSession) -> Setup:
     return setup
 
 
-def _board_agent_online(board: Board) -> bool:
-    if not board.agent:
+def _device_agent_online(device: Device) -> bool:
+    if not device.agent:
         return False
-    return (_now_utc() - board.agent.last_seen).total_seconds() < 90
+    return (_now_utc() - device.agent.last_seen).total_seconds() < 90
 
 
 async def _build_setup_out(setup: Setup, db: AsyncSession) -> SetupOut:
     board_outs = []
-    for sb in setup.setup_boards:
-        b = sb.board
+    for sb in setup.setup_devices:
+        b = sb.device
         active_bk = next((bk for bk in b.bookings if bk.active), None)
         board_outs.append(SetupBoardOut(
             board_id=b.id,
             board_name=b.name,
             device_id=b.device_id,
             location=b.location,
-            agent_online=_board_agent_online(b),
+            agent_online=_device_agent_online(b),
             active_booking_username=active_bk.username if active_bk else None,
             active_booking_setup_name=active_bk.setup_name if active_bk else None,
         ))
@@ -68,7 +68,7 @@ async def _build_setup_out(setup: Setup, db: AsyncSession) -> SetupOut:
     )
     active_setup_bookings = result.scalars().all()
     active_booking_out = None
-    if len(active_setup_bookings) == len(setup.setup_boards) and active_setup_bookings:
+    if len(active_setup_bookings) == len(setup.setup_devices) and active_setup_bookings:
         bk = active_setup_bookings[0]
         active_booking_out = SetupBookingOut(
             username=bk.username,
@@ -91,8 +91,8 @@ async def _build_setup_out(setup: Setup, db: AsyncSession) -> SetupOut:
 async def list_setups(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Setup).options(
-            selectinload(Setup.setup_boards).selectinload(SetupBoard.board).selectinload(Board.agent),
-            selectinload(Setup.setup_boards).selectinload(SetupBoard.board).selectinload(Board.bookings),
+            selectinload(Setup.setup_devices).selectinload(SetupDevice.device).selectinload(Device.agent),
+            selectinload(Setup.setup_devices).selectinload(SetupDevice.device).selectinload(Device.bookings),
         )
     )
     setups = result.scalars().all()
@@ -118,12 +118,12 @@ async def create_setup(
         await db.rollback()
         raise HTTPException(status_code=422, detail="Setup name is already in use")
 
-    for board_id in body.board_ids:
-        board_result = await db.execute(select(Board).where(Board.id == board_id))
-        if board_result.scalar_one_or_none() is None:
+    for device_id in body.board_ids:
+        device_result = await db.execute(select(Device).where(Device.id == device_id))
+        if device_result.scalar_one_or_none() is None:
             await db.rollback()
-            raise HTTPException(status_code=404, detail=f"Board {board_id} not found")
-        db.add(SetupBoard(setup_id=setup.id, board_id=board_id))
+            raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
+        db.add(SetupDevice(setup_id=setup.id, board_id=device_id))
 
     await db.commit()
     setup = await _load_setup(setup.id, db)
@@ -143,15 +143,15 @@ async def update_setup(
     if body.description is not None:
         setup.description = body.description
     if body.board_ids is not None:
-        for sb in list(setup.setup_boards):
+        for sb in list(setup.setup_devices):
             await db.delete(sb)
         await db.flush()
-        for board_id in body.board_ids:
-            board_result = await db.execute(select(Board).where(Board.id == board_id))
-            if board_result.scalar_one_or_none() is None:
+        for device_id in body.board_ids:
+            device_result = await db.execute(select(Device).where(Device.id == device_id))
+            if device_result.scalar_one_or_none() is None:
                 await db.rollback()
-                raise HTTPException(status_code=404, detail=f"Board {board_id} not found")
-            db.add(SetupBoard(setup_id=setup.id, board_id=board_id))
+                raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
+            db.add(SetupDevice(setup_id=setup.id, board_id=device_id))
     try:
         await db.commit()
     except IntegrityError:
@@ -186,12 +186,12 @@ async def book_setup(
 ):
     setup = await _load_setup(setup_id, db)
 
-    if not setup.setup_boards:
+    if not setup.setup_devices:
         raise HTTPException(status_code=400, detail="Setup has no devices")
 
     blocked = []
-    for sb in setup.setup_boards:
-        b = sb.board
+    for sb in setup.setup_devices:
+        b = sb.device
         active_bk = next((bk for bk in b.bookings if bk.active), None)
         if active_bk:
             blocked.append(f"{b.name} (booked by {active_bk.username})")
@@ -204,7 +204,7 @@ async def book_setup(
     now = _now_utc()
     end = now + timedelta(hours=body.duration_hours)
     bookings = []
-    for sb in setup.setup_boards:
+    for sb in setup.setup_devices:
         bk = Booking(
             id=str(uuid.uuid4()),
             board_id=sb.board_id,
@@ -228,8 +228,8 @@ async def book_setup(
     return [
         BookingOut(
             id=bk.id,
-            board_id=bk.board_id,
-            board_name=next(sb.board.name for sb in setup.setup_boards if sb.board_id == bk.board_id),
+            device_id=bk.board_id,
+            device_name=next(sb.device.name for sb in setup.setup_devices if sb.board_id == bk.board_id),
             username=bk.username,
             start_time=bk.start_time,
             end_time=bk.end_time,
