@@ -6,8 +6,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=boardfarm
-WorkingDirectory=/opt/boardfarm
-ExecStart=/opt/boardfarm/venv/bin/uvicorn agent.main:app --host 0.0.0.0 --port 8766
+WorkingDirectory=/opt/boardfarm/agent
+ExecStart=/opt/boardfarm/agent/venv/bin/uvicorn agent.main:app --host 0.0.0.0 --port 8766
 Restart=on-failure
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1
