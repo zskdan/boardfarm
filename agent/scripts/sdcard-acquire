@@ -1,0 +1,53 @@
+#!/bin/sh
+set -eu
+
+LOCKDIR=/run/sdmux-sdcard
+MNT=/mnt/sdmux-sdcard
+BYPATH_GLOB="/dev/disk/by-path/*usb*"
+
+mkdir "$LOCKDIR" 2>/dev/null || {
+    echo "SD card already acquired"
+    exit 1
+}
+
+cleanup()
+{
+    rm -rf "$LOCKDIR"
+}
+trap cleanup EXIT INT TERM
+
+sdmux host
+
+DEV=""
+
+for i in $(seq 1 50); do
+    DEV="$(ls $BYPATH_GLOB-part* 2>/dev/null | head -n 1 || true)"
+    [ -n "$DEV" ] || DEV="$(ls $BYPATH_GLOB 2>/dev/null | grep -v -- '-part' | head -n 1 || true)"
+    [ -n "$DEV" ] && break
+    sleep 0.1
+done
+
+[ -n "$DEV" ] || {
+    echo "No SD card device found in /dev/disk/by-path"
+    exit 1
+}
+
+mkdir -p "$MNT"
+
+REAL_DEV="$(readlink -f "$DEV")"
+
+findmnt -rn -S "$REAL_DEV" -o TARGET | while read -r AUTO_MNT; do
+    [ -n "$AUTO_MNT" ] || continue
+
+    echo "WARNING: $REAL_DEV is already mounted at $AUTO_MNT, taking ownership" >&2
+    umount "$AUTO_MNT"
+done
+
+mount "$DEV" "$MNT"
+
+echo "$REAL_DEV" > "$LOCKDIR/dev"
+echo "$MNT" > "$LOCKDIR/mountpoint"
+
+trap - EXIT INT TERM
+
+echo "$MNT"
