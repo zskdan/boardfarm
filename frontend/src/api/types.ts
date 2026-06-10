@@ -4,7 +4,7 @@ export interface AgentInfo {
   url: string;
   last_seen?: string;
   online: boolean;
-  board_count?: number;
+  device_count?: number;
   self?: boolean;
 }
 
@@ -83,8 +83,6 @@ export interface DeviceInfo {
   current_notes: string;
 }
 
-/** Backward-compat alias */
-export type BoardInfo = DeviceInfo;
 
 export interface DeviceCreate {
   name: string;
@@ -109,8 +107,6 @@ export interface DeviceCreate {
   current_notes: string;
 }
 
-/** Backward-compat alias */
-export type BoardCreate = DeviceCreate;
 
 export interface CommandsInfo {
   jtag_connect: string;
@@ -125,8 +121,8 @@ export interface ActivityEntry {
   timestamp: string;
   action: string;
   username: string;
-  board_id: string | null;
-  board_name: string;
+  device_ref: string | null;
+  device_name: string;
   device_id: string;
   detail: string;
 }

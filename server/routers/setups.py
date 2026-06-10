@@ -123,7 +123,7 @@ async def create_setup(
         if device_result.scalar_one_or_none() is None:
             await db.rollback()
             raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
-        db.add(SetupDevice(setup_id=setup.id, board_id=device_id))
+        db.add(SetupDevice(setup_id=setup.id, device_id=device_id))
 
     await db.commit()
     setup = await _load_setup(setup.id, db)
@@ -151,7 +151,7 @@ async def update_setup(
             if device_result.scalar_one_or_none() is None:
                 await db.rollback()
                 raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
-            db.add(SetupDevice(setup_id=setup.id, board_id=device_id))
+            db.add(SetupDevice(setup_id=setup.id, device_id=device_id))
     try:
         await db.commit()
     except IntegrityError:
@@ -207,7 +207,7 @@ async def book_setup(
     for sb in setup.setup_devices:
         bk = Booking(
             id=str(uuid.uuid4()),
-            board_id=sb.board_id,
+            device_id=sb.device_id,
             username=user,
             start_time=now,
             end_time=end,
@@ -228,8 +228,8 @@ async def book_setup(
     return [
         BookingOut(
             id=bk.id,
-            device_id=bk.board_id,
-            device_name=next(sb.device.name for sb in setup.setup_devices if sb.board_id == bk.board_id),
+            device_id=bk.device_id,
+            device_name=next(sb.device.name for sb in setup.setup_devices if sb.device_id == bk.device_id),
             username=bk.username,
             start_time=bk.start_time,
             end_time=bk.end_time,

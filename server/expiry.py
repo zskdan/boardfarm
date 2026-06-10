@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 AGENT_TIMEOUT = 5.0
 
 
-async def _stop_agent_services(device: Device, board_id: str) -> None:
+async def _stop_agent_services(device: Device, device_id: str) -> None:
     if device and device.agent and device.agent.url:
         try:
             agent_token = device.agent.agent_token if device.agent else ""
@@ -23,7 +23,7 @@ async def _stop_agent_services(device: Device, board_id: str) -> None:
                 headers["X-Agent-Token"] = agent_token
             async with httpx.AsyncClient(timeout=AGENT_TIMEOUT) as client:
                 await client.post(
-                    f"{device.agent.url}/boards/{board_id}/services/stop",
+                    f"{device.agent.url}/devices/{device_id}/services/stop",
                     headers=headers,
                 )
         except Exception:
@@ -48,16 +48,16 @@ async def expiry_loop(interval_seconds: int = 60) -> None:
                     logger.info(
                         "Expired booking %s for device %s (user: %s)",
                         booking.id,
-                        booking.board_id,
+                        booking.device_id,
                         booking.username,
                     )
-                    await _stop_agent_services(booking.device, booking.board_id)
+                    await _stop_agent_services(booking.device, booking.device_id)
                 if expired:
                     await db.commit()
                     for booking in expired:
                         asyncio.create_task(
                             broadcast(
-                                {"type": "booking_expired", "board_id": booking.board_id}
+                                {"type": "booking_expired", "device_id": booking.device_id}
                             )
                         )
         except Exception:

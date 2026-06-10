@@ -20,7 +20,7 @@ class SetupDevice(Base):
     __tablename__ = "setup_boards"
 
     setup_id: Mapped[str] = mapped_column(String, ForeignKey("setups.id", ondelete="CASCADE"), primary_key=True)
-    board_id: Mapped[str] = mapped_column(String, ForeignKey("boards.id", ondelete="CASCADE"), primary_key=True)
+    device_id: Mapped[str] = mapped_column("board_id", String, ForeignKey("boards.id", ondelete="CASCADE"), primary_key=True)
     setup: Mapped["Setup"] = relationship("Setup", back_populates="setup_devices")
     device: Mapped["Device"] = relationship("Device")
 
@@ -32,8 +32,8 @@ class AuditLog(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     action: Mapped[str] = mapped_column(String, nullable=False)
     username: Mapped[str] = mapped_column(String, default="")
-    board_id: Mapped[str | None] = mapped_column(String, nullable=True)
-    board_name: Mapped[str] = mapped_column(String, default="")
+    device_ref: Mapped[str | None] = mapped_column("board_id", String, nullable=True)
+    device_name: Mapped[str] = mapped_column("board_name", String, default="")
     device_id: Mapped[str] = mapped_column(String, default="")
     detail: Mapped[str] = mapped_column(String, default="")
 
@@ -84,6 +84,7 @@ class Device(Base):
 
     agent: Mapped["Agent | None"] = relationship("Agent", back_populates="devices")
     bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="device")
+    tools: Mapped[list["Tool"]] = relationship("Tool", back_populates="device", cascade="all, delete-orphan", foreign_keys="Tool.board_id")
 
 
 class Booking(Base):
@@ -99,8 +100,8 @@ class Booking(Base):
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    board_id: Mapped[str] = mapped_column(
-        String, ForeignKey("boards.id"), nullable=False
+    device_id: Mapped[str] = mapped_column(
+        "board_id", String, ForeignKey("boards.id"), nullable=False
     )
     username: Mapped[str] = mapped_column(String, nullable=False)
     start_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -113,3 +114,17 @@ class Booking(Base):
     setup_name: Mapped[str] = mapped_column(String, default="")
 
     device: Mapped["Device"] = relationship("Device", back_populates="bookings")
+
+
+class Tool(Base):
+    __tablename__ = "tools"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    board_id: Mapped[str] = mapped_column(String, ForeignKey("boards.id", ondelete="CASCADE"), nullable=False)
+    type: Mapped[str] = mapped_column(String, nullable=False)
+    model: Mapped[str] = mapped_column(String, default="")
+    connection: Mapped[str] = mapped_column(String, default="usb")
+    connection_detail: Mapped[str] = mapped_column(String, default="")
+    notes: Mapped[str] = mapped_column(String, default="")
+
+    device: Mapped["Device"] = relationship("Device", back_populates="tools", foreign_keys=[board_id])

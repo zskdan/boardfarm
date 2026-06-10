@@ -18,7 +18,7 @@ import httpx
 # Sample dataset
 # ---------------------------------------------------------------------------
 
-BOARDS = [
+DEVICES = [
     {
         "name": "zynq-dev-1",
         "description": "Xilinx Zynq-7000 SoC dev board, primary FPGA dev target",
@@ -100,7 +100,7 @@ BOARDS = [
     },
 ]
 
-# (board_name, tool_type, model, connection, connection_detail, notes)
+# (device_name, tool_type, model, connection, connection_detail, notes)
 TOOLS = [
     ("zynq-dev-1",   "logic_analyzer", "Saleae Logic 8",        "usb",     "/dev/ttyUSB1",          ""),
     ("zynq-dev-1",   "power_supply",   "Rigol DP832",           "network", "192.168.1.30:5000",     "Ch1=3.3V, Ch2=5V"),
@@ -113,7 +113,7 @@ TOOLS = [
     ("arty-a7",      "debugger",       "Digilent JTAG-HS3",     "usb",     "/dev/ttyUSB5",          "Cable broken"),
 ]
 
-# Past bookings: (board_name, username, hours_ago_start, duration_h, extended, release_reason)
+# Past bookings: (device_name, username, hours_ago_start, duration_h, extended, release_reason)
 PAST_BOOKINGS = [
     ("zynq-dev-1",    "alice",   48, 4,  False, "manual"),
     ("zynq-dev-1",    "bob",     36, 8,  True,  "manual"),
@@ -127,7 +127,7 @@ PAST_BOOKINGS = [
     ("arty-a7",       "bob",    120, 4,  False, "admin"),
 ]
 
-# Active bookings: (board_name, username, started_hours_ago, duration_hours)
+# Active bookings: (device_name, username, started_hours_ago, duration_hours)
 ACTIVE_BOOKINGS = [
     ("zynq-dev-1", "alice", 1, 4),
     ("rpi4-test",  "bob",   0.5, 2),
@@ -163,7 +163,7 @@ def main():
     parser.add_argument("--url",   default="http://localhost:8765", help="Server base URL")
     parser.add_argument("--token", default="changeme",              help="Server token")
     parser.add_argument("--user",  default="admin",                 help="Username for seed requests")
-    parser.add_argument("--clear", action="store_true",             help="Delete existing boards before seeding")
+    parser.add_argument("--clear", action="store_true",             help="Delete existing devices before seeding")
     args = parser.parse_args()
 
     h = _headers(args.token, args.user)
@@ -180,25 +180,25 @@ def main():
 
         # --- optionally clear existing devices ---
         if args.clear:
-            existing = _ok(c.get("/boards", headers=h), "list devices")
+            existing = _ok(c.get("/devices", headers=h), "list devices")
             for b in existing:
-                c.delete(f"/boards/{b['id']}", headers=h)
+                c.delete(f"/devices/{b['id']}", headers=h)
             print(f"Cleared {len(existing)} existing device(s)")
 
         # --- create devices ---
         print("\n--- Devices ---")
-        board_ids: dict[str, str] = {}   # name → id
-        for bd in BOARDS:
-            r = c.post("/boards", json=bd, headers=h)
+        device_ids: dict[str, str] = {}   # name → id
+        for bd in DEVICES:
+            r = c.post("/devices", json=bd, headers=h)
             if r.status_code == 201:
-                board_ids[bd["name"]] = r.json()["id"]
-                print(f"  + {bd['name']}  ({board_ids[bd['name']]})")
+                device_ids[bd["name"]] = r.json()["id"]
+                print(f"  + {bd['name']}  ({device_ids[bd['name']]})")
             elif r.status_code == 409:
                 # already exists — look it up
-                existing = _ok(c.get("/boards", headers=h), "list")
+                existing = _ok(c.get("/devices", headers=h), "list")
                 for b in existing:
                     if b["name"] == bd["name"]:
-                        board_ids[bd["name"]] = b["id"]
+                        device_ids[bd["name"]] = b["id"]
                 print(f"  = {bd['name']} already exists, skipping")
             else:
                 print(f"  ERROR creating {bd['name']}: {r.status_code} {r.text[:200]}")
@@ -206,11 +206,11 @@ def main():
         # --- create tools ---
         print("\n--- Tools ---")
         for (bname, ttype, model, conn, detail, notes) in TOOLS:
-            bid = board_ids.get(bname)
+            bid = device_ids.get(bname)
             if not bid:
                 print(f"  SKIP tool for {bname} (device not created)")
                 continue
-            r = c.post(f"/boards/{bid}/tools", headers=h, json={
+            r = c.post(f"/devices/{bid}/tools", headers=h, json={
                 "type": ttype,
                 "model": model,
                 "connection": conn,
@@ -228,13 +228,13 @@ def main():
         # via PATCH if the API supports it, otherwise just release.
         print("\n--- Past bookings ---")
         for (bname, uname, hours_ago, dur, extended, reason) in PAST_BOOKINGS:
-            bid = board_ids.get(bname)
+            bid = device_ids.get(bname)
             if not bid:
                 print(f"  SKIP booking for {bname} (device not created)")
                 continue
             # Book for a short time so it doesn't conflict with active bookings
             bh = _headers(args.token, uname)
-            r = c.post(f"/boards/{bid}/book", headers=bh, json={"duration_hours": min(dur, 24)})
+            r = c.post(f"/devices/{bid}/book", headers=bh, json={"duration_hours": min(dur, 24)})
             if r.status_code != 201:
                 print(f"  SKIP past booking {bname}/{uname}: {r.status_code} {r.text[:100]}")
                 continue
@@ -250,12 +250,12 @@ def main():
         # --- active bookings ---
         print("\n--- Active bookings ---")
         for (bname, uname, _, dur) in ACTIVE_BOOKINGS:
-            bid = board_ids.get(bname)
+            bid = device_ids.get(bname)
             if not bid:
                 print(f"  SKIP active booking for {bname} (device not created)")
                 continue
             bh = _headers(args.token, uname)
-            r = c.post(f"/boards/{bid}/book", headers=bh, json={"duration_hours": dur})
+            r = c.post(f"/devices/{bid}/book", headers=bh, json={"duration_hours": dur})
             if r.status_code == 201:
                 bk = r.json()
                 print(f"  + {bname}/{uname}  expires in {dur}h  ({bk['id']})")
@@ -266,9 +266,9 @@ def main():
 
         # --- summary ---
         print("\n--- Summary ---")
-        boards_out = _ok(c.get("/boards", headers=h), "list") or []
-        active = sum(1 for b in boards_out if b.get("active_booking"))
-        print(f"  Devices  : {len(boards_out)}")
+        devices_out = _ok(c.get("/devices", headers=h), "list") or []
+        active = sum(1 for b in devices_out if b.get("active_booking"))
+        print(f"  Devices  : {len(devices_out)}")
         print(f"  Active   : {active}")
         bookings_out = _ok(c.get("/bookings", headers=h), "history") or []
         print(f"  Bookings : {len(bookings_out)} total")

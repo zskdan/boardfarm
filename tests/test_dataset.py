@@ -7,24 +7,24 @@ from tests.dataset import ALICE, BOB, ADMIN, AUTH
 
 
 @pytest.mark.asyncio
-async def test_seeded_boards_present(seeded_client):
-    r = await seeded_client.get("/boards", headers=AUTH)
+async def test_seeded_devices_present(seeded_client):
+    r = await seeded_client.get("/devices", headers=AUTH)
     assert r.status_code == 200
     names = {b["name"] for b in r.json()}
     assert {"zynq-dev-1", "stm32-nucleo-1", "arty-a7"} == names
 
 
 @pytest.mark.asyncio
-async def test_disabled_board_in_inventory(seeded_client):
-    r = await seeded_client.get("/boards", headers=AUTH)
+async def test_disabled_device_in_inventory(seeded_client):
+    r = await seeded_client.get("/devices", headers=AUTH)
     arty = next(b for b in r.json() if b["name"] == "arty-a7")
     assert arty["enabled"] is False
 
 
 @pytest.mark.asyncio
-async def test_tools_attached_to_board(seeded_client):
-    bid = seeded_client.board_ids["zynq-dev-1"]
-    r = await seeded_client.get(f"/boards/{bid}", headers=AUTH)
+async def test_tools_attached_to_device(seeded_client):
+    bid = seeded_client.device_ids["zynq-dev-1"]
+    r = await seeded_client.get(f"/devices/{bid}", headers=AUTH)
     tools = r.json()["tools"]
     types = {t["type"] for t in tools}
     assert "logic_analyzer" in types
@@ -33,8 +33,8 @@ async def test_tools_attached_to_board(seeded_client):
 
 @pytest.mark.asyncio
 async def test_active_booking_visible(seeded_client):
-    bid = seeded_client.board_ids["zynq-dev-1"]
-    r = await seeded_client.get(f"/boards/{bid}", headers=AUTH)
+    bid = seeded_client.device_ids["zynq-dev-1"]
+    r = await seeded_client.get(f"/devices/{bid}", headers=AUTH)
     booking = r.json()["active_booking"]
     assert booking is not None
     assert booking["username"] == "alice"
@@ -50,10 +50,10 @@ async def test_booking_history_contains_past_entries(seeded_client):
 
 
 @pytest.mark.asyncio
-async def test_free_board_can_be_booked(seeded_client):
-    bid = seeded_client.board_ids["stm32-nucleo-1"]
+async def test_free_device_can_be_booked(seeded_client):
+    bid = seeded_client.device_ids["stm32-nucleo-1"]
     r = await seeded_client.post(
-        f"/boards/{bid}/book", json={"duration_hours": 1}, headers=BOB
+        f"/devices/{bid}/book", json={"duration_hours": 1}, headers=BOB
     )
     assert r.status_code == 201
     assert r.json()["username"] == "bob"

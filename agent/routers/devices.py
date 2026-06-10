@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from ..config import config
 from ..services.health import get_health
 
-router = APIRouter(prefix="/boards", tags=["boards"])
+router = APIRouter(prefix="/devices", tags=["devices"])
 
 
 @router.get("")

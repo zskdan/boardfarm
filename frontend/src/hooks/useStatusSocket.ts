@@ -22,8 +22,8 @@ export function useStatusSocket() {
             if (data.type === 'booking_changed' || data.type === 'booking_expired') {
               // Invalidate device queries so UI refreshes immediately
               qc.invalidateQueries({ queryKey: ['devices'] });
-              if (data.board_id) {
-                qc.invalidateQueries({ queryKey: ['device', data.board_id] });
+              if (data.device_id) {
+                qc.invalidateQueries({ queryKey: ['device', data.device_id] });
               }
             }
           } catch { /* ignore parse errors */ }

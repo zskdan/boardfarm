@@ -140,14 +140,6 @@ export async function updateDeviceNotes(id: string, notes: string): Promise<Devi
   return data;
 }
 
-// Backward-compat aliases (used by BookingPage, AgentStatus, etc.)
-export const listBoards = listDevices;
-export const getBoard = getDevice;
-export const createBoard = createDevice;
-export const updateBoard = updateDevice;
-export const deleteBoard = deleteDevice;
-export const updateBoardNotes = updateDeviceNotes;
-
 // ── Bookings ──────────────────────────────────────────────────────────────────
 
 export async function bookDevice(
@@ -156,14 +148,12 @@ export async function bookDevice(
   comment: string,
   username: string,
 ): Promise<BookingInfo> {
-  const { data } = await apiAs(username).post<BookingInfo>(`/boards/${deviceId}/book`, {
+  const { data } = await apiAs(username).post<BookingInfo>(`/devices/${deviceId}/book`, {
     duration_hours: durationHours,
     comment,
   });
   return data;
 }
-
-export const bookBoard = bookDevice;
 
 export async function releaseBooking(bookingId: string, username: string): Promise<BookingInfo> {
   const { data } = await apiAs(username).delete<BookingInfo>(`/bookings/${bookingId}`);
@@ -181,7 +171,7 @@ export async function getCommands(bookingId: string): Promise<CommandsInfo> {
 }
 
 export async function listBookings(params?: {
-  board_id?: string;
+  device_id?: string;
   username?: string;
   active?: boolean;
   skip?: number;
@@ -220,7 +210,7 @@ export async function releaseSetupBooking(id: string, username: string): Promise
 }
 
 export async function listActivity(params?: {
-  board_id?: string;
+  device_ref?: string;
   username?: string;
   action?: string;
   skip?: number;

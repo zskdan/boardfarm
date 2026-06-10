@@ -124,12 +124,12 @@ export default function HistoryPage() {
                       <ActionBadge action={entry.action} />
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-800">
-                      {entry.board_id ? (
+                      {entry.device_ref ? (
                         <Link
-                          to={`/devices/${entry.board_id}`}
+                          to={`/devices/${entry.device_ref}`}
                           className="hover:underline flex flex-col gap-0.5"
                         >
-                          <span>{entry.board_name || entry.board_id}</span>
+                          <span>{entry.device_name || entry.device_ref}</span>
                           {entry.device_id && (
                             <span className="font-mono text-xs font-normal text-gray-400">
                               {entry.device_id}

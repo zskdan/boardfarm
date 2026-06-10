@@ -30,7 +30,7 @@ ADMIN = {"X-Token": "test-token", "X-User": "admin"}
 # Device definitions
 # ---------------------------------------------------------------------------
 
-BOARD_DEFS = [
+DEVICE_DEFS = [
     {
         "name": "zynq-dev-1",
         "description": "Xilinx Zynq-7000 SoC dev board",
@@ -65,7 +65,7 @@ BOARD_DEFS = [
 ]
 
 TOOL_DEFS = [
-    # (board_name, type, model, connection, connection_detail)
+    # (device_name, type, model, connection, connection_detail)
     ("zynq-dev-1", "logic_analyzer", "Saleae Logic 8",   "usb",     "/dev/ttyUSB1"),
     ("zynq-dev-1", "power_supply",   "Rigol DP832",       "network", "192.168.1.30:5000"),
     ("stm32-nucleo-1", "debugger",   "ST-LINK V3",        "usb",     "/dev/ttyACM0"),
@@ -113,14 +113,14 @@ async def seeded_client(seeded_db_engine):
         booking_ids: list[str] = []
 
         # Create devices
-        for bd in BOARD_DEFS:
-            r = await ac.post("/boards", json=bd, headers=AUTH)
+        for bd in DEVICE_DEFS:
+            r = await ac.post("/devices", json=bd, headers=AUTH)
             assert r.status_code == 201, f"device create failed: {r.text}"
             device_ids[bd["name"]] = r.json()["id"]
 
         # Create tools
         for (bname, ttype, model, conn, detail) in TOOL_DEFS:
-            r = await ac.post(f"/boards/{device_ids[bname]}/tools", headers=AUTH, json={
+            r = await ac.post(f"/devices/{device_ids[bname]}/tools", headers=AUTH, json={
                 "type": ttype, "model": model,
                 "connection": conn, "connection_detail": detail, "notes": "",
             })
@@ -128,7 +128,7 @@ async def seeded_client(seeded_db_engine):
             tool_ids[(bname, model)] = r.json()["id"]
 
         # Past booking: alice booked zynq-dev-1, already released
-        r = await ac.post(f"/boards/{device_ids['zynq-dev-1']}/book",
+        r = await ac.post(f"/devices/{device_ids['zynq-dev-1']}/book",
                           json={"duration_hours": 3}, headers=ALICE)
         assert r.status_code == 201
         bk = r.json()
@@ -136,7 +136,7 @@ async def seeded_client(seeded_db_engine):
         await ac.delete(f"/bookings/{bk['id']}", headers=ALICE)
 
         # Past booking: bob booked stm32-nucleo-1, extended, then released
-        r = await ac.post(f"/boards/{device_ids['stm32-nucleo-1']}/book",
+        r = await ac.post(f"/devices/{device_ids['stm32-nucleo-1']}/book",
                           json={"duration_hours": 4}, headers=BOB)
         assert r.status_code == 201
         bk = r.json()
@@ -145,7 +145,7 @@ async def seeded_client(seeded_db_engine):
         await ac.delete(f"/bookings/{bk['id']}", headers=BOB)
 
         # Active booking: alice has zynq-dev-1 right now
-        r = await ac.post(f"/boards/{device_ids['zynq-dev-1']}/book",
+        r = await ac.post(f"/devices/{device_ids['zynq-dev-1']}/book",
                           json={"duration_hours": 2}, headers=ALICE)
         assert r.status_code == 201
         active_booking = r.json()

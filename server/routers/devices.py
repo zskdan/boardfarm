@@ -12,8 +12,8 @@ from sqlalchemy.orm import selectinload
 from ..audit import log_action
 from ..auth import require_user
 from ..database import get_db
-from ..models import Agent, Device, Booking
-from ..schemas import BookingOut, DeviceIn, DeviceOut, DeviceUpdate
+from ..models import Agent, Device, Booking, Tool
+from ..schemas import BookingOut, DeviceIn, DeviceOut, DeviceUpdate, ToolOut
 
 router = APIRouter(prefix="/devices", tags=["devices"])
 
@@ -39,7 +39,7 @@ async def _build_device_out(device: Device, db: AsyncSession) -> DeviceOut:
         if bk.active:
             active_booking = BookingOut(
                 id=bk.id,
-                device_id=bk.board_id,
+                device_id=bk.device_id,
                 device_name=device.name,
                 username=bk.username,
                 start_time=bk.start_time,
@@ -76,6 +76,7 @@ async def _build_device_out(device: Device, db: AsyncSession) -> DeviceOut:
         enabled=device.enabled,
         agent_online=agent_online,
         active_booking=active_booking,
+        tools=[ToolOut.model_validate(t) for t in (device.tools or [])],
     )
 
 
@@ -86,6 +87,7 @@ async def _load_device(device_id: str, db: AsyncSession) -> Device:
         .options(
             selectinload(Device.agent),
             selectinload(Device.bookings),
+            selectinload(Device.tools),
         )
     )
     device = result.scalar_one_or_none()
@@ -102,6 +104,7 @@ async def list_devices(
         select(Device).options(
             selectinload(Device.agent),
             selectinload(Device.bookings),
+            selectinload(Device.tools),
         )
     )
     devices = result.scalars().all()

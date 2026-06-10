@@ -10,8 +10,8 @@ async def log_action(
     db: AsyncSession,
     action: str,
     username: str = "",
-    board_id: str | None = None,
-    board_name: str = "",
+    device_ref: str | None = None,
+    device_name: str = "",
     detail: str = "",
     device_id: str = "",
 ) -> None:
@@ -20,8 +20,8 @@ async def log_action(
         timestamp=datetime.now(timezone.utc).replace(tzinfo=None),
         action=action,
         username=username,
-        board_id=board_id,
-        board_name=board_name,
+        device_ref=device_ref,
+        device_name=device_name,
         device_id=device_id,
         detail=detail,
     )

@@ -11,7 +11,7 @@ router = APIRouter(tags=["activity"])
 
 @router.get("/activity", response_model=list[AuditLogOut])
 async def list_activity(
-    board_id: str | None = Query(default=None),
+    device_ref: str | None = Query(default=None),
     username: str | None = Query(default=None),
     action: str | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
@@ -19,8 +19,8 @@ async def list_activity(
     db: AsyncSession = Depends(get_db),
 ):
     query = select(AuditLog)
-    if board_id:
-        query = query.where(AuditLog.board_id == board_id)
+    if device_ref:
+        query = query.where(AuditLog.device_ref == device_ref)
     if username:
         query = query.where(AuditLog.username == username)
     if action:

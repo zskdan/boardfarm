@@ -27,8 +27,8 @@ _PERMANENT_HOURS = 24 * 365 * 10  # 10 years
 _device_locks: dict[str, asyncio.Lock] = {}
 
 
-def _get_lock(board_id: str) -> asyncio.Lock:
-    return _device_locks.setdefault(board_id, asyncio.Lock())
+def _get_lock(device_id: str) -> asyncio.Lock:
+    return _device_locks.setdefault(device_id, asyncio.Lock())
 
 
 def _now_utc() -> datetime:
@@ -48,10 +48,10 @@ async def _call_agent(
         pass  # Agent offline — booking still proceeds
 
 
-async def _load_device(board_id: str, db: AsyncSession) -> Device:
+async def _load_device(device_id: str, db: AsyncSession) -> Device:
     result = await db.execute(
         select(Device)
-        .where(Device.id == board_id)
+        .where(Device.id == device_id)
         .options(selectinload(Device.bookings), selectinload(Device.agent))
     )
     device = result.scalar_one_or_none()
@@ -75,7 +75,7 @@ async def _load_booking(booking_id: str, db: AsyncSession) -> Booking:
 def _booking_out(bk: Booking) -> BookingOut:
     return BookingOut(
         id=bk.id,
-        device_id=bk.board_id,
+        device_id=bk.device_id,
         device_name=bk.device.name if bk.device else "",
         username=bk.username,
         start_time=bk.start_time,
@@ -86,9 +86,9 @@ def _booking_out(bk: Booking) -> BookingOut:
     )
 
 
-@router.post("/boards/{board_id}/book", response_model=BookingOut, status_code=201)
-async def book_board(
-    board_id: str,
+@router.post("/devices/{device_id}/book", response_model=BookingOut, status_code=201)
+async def book_device(
+    device_id: str,
     body: dict,
     db: AsyncSession = Depends(get_db),
     user: str = Depends(require_user),
@@ -109,8 +109,8 @@ async def book_board(
             )
         effective_hours = duration_hours
 
-    async with _get_lock(board_id):
-        device = await _load_device(board_id, db)
+    async with _get_lock(device_id):
+        device = await _load_device(device_id, db)
 
         if not device.enabled:
             raise HTTPException(status_code=409, detail="Device is disabled")
@@ -125,7 +125,7 @@ async def book_board(
         now = _now_utc()
         booking = Booking(
             id=str(uuid.uuid4()),
-            board_id=board_id,
+            device_id=device_id,
             username=user,
             start_time=now,
             end_time=now + timedelta(hours=effective_hours),
@@ -145,7 +145,7 @@ async def book_board(
         if device.agent and device.agent.url:
             await _call_agent(
                 device.agent.url,
-                f"/boards/{board_id}/services/start",
+                f"/devices/{device_id}/services/start",
                 agent_token=agent_token,
             )
 
@@ -155,10 +155,10 @@ async def book_board(
             .options(selectinload(Booking.device).selectinload(Device.agent))
         )
         booking = result.scalar_one()
-        await log_action(db, "booked", user, board_id, booking.device.name if booking.device else "", f"{effective_hours}h — {comment}", device_id=booking.device.device_id if booking.device else "")
+        await log_action(db, "booked", user, device_id, booking.device.name if booking.device else "", f"{effective_hours}h — {comment}", device_id=booking.device.device_id if booking.device else "")
         await db.commit()
 
-    asyncio.create_task(broadcast({"type": "booking_changed", "board_id": board_id}))
+    asyncio.create_task(broadcast({"type": "booking_changed", "device_id": device_id}))
     return _booking_out(booking)
 
 
@@ -181,7 +181,7 @@ async def release_booking(
 
     booking.active = False
     booking.release_reason = "admin" if is_admin and booking.username != user else "manual"
-    await log_action(db, "released", user, booking.board_id, booking.device.name if booking.device else "", f"reason: {booking.release_reason}", device_id=booking.device.device_id if booking.device else "")
+    await log_action(db, "released", user, booking.device_id, booking.device.name if booking.device else "", f"reason: {booking.release_reason}", device_id=booking.device.device_id if booking.device else "")
     await db.commit()
 
     device = booking.device
@@ -189,13 +189,13 @@ async def release_booking(
     if device and device.agent and device.agent.url:
         await _call_agent(
             device.agent.url,
-            f"/boards/{device.id}/services/stop",
+            f"/devices/{device.id}/services/stop",
             agent_token=agent_token,
         )
 
-    board_id = booking.board_id
+    device_id = booking.device_id
     await db.refresh(booking)
-    asyncio.create_task(broadcast({"type": "booking_changed", "board_id": board_id}))
+    asyncio.create_task(broadcast({"type": "booking_changed", "device_id": device_id}))
     return _booking_out(booking)
 
 
@@ -225,7 +225,7 @@ async def extend_booking(
 
     booking.end_time = new_end
     booking.extended = True
-    await log_action(db, "extended", user, booking.board_id, booking.device.name if booking.device else "", f"+{hours}h", device_id=booking.device.device_id if booking.device else "")
+    await log_action(db, "extended", user, booking.device_id, booking.device.name if booking.device else "", f"+{hours}h", device_id=booking.device.device_id if booking.device else "")
     await db.commit()
     await db.refresh(booking)
     return _booking_out(booking)
@@ -253,13 +253,13 @@ async def get_commands(
             f"EXEC:\"ssh vivado@{agent_ip} socat - {device.uart_device},rawer\""
         ) if (device.uart_device and device.host_ip) else "",
         ssh=f"ssh {device.ssh_user}@{ssh_ip} -p {device.ssh_port}" if device.ssh_port else "",
-        power_on=f"# Use the boardfarm UI or API: POST /boards/{device.id}/power {{\"action\":\"on\"}}",
+        power_on=f"# Use the boardfarm UI or API: POST /devices/{device.id}/power {{\"action\":\"on\"}}",
     )
 
 
 @router.get("/bookings", response_model=list[BookingOut])
 async def list_bookings(
-    board_id: str | None = Query(default=None),
+    device_id: str | None = Query(default=None),
     username: str | None = Query(default=None),
     active: bool | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
@@ -269,8 +269,8 @@ async def list_bookings(
     query = select(Booking).options(
         selectinload(Booking.device).selectinload(Device.agent)
     )
-    if board_id:
-        query = query.where(Booking.board_id == board_id)
+    if device_id:
+        query = query.where(Booking.device_id == device_id)
     if username:
         query = query.where(Booking.username == username)
     if active is not None:

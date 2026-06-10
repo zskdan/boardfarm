@@ -253,11 +253,11 @@ Filter by user or action category (Bookings / Device changes).
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/boards/{id}/book` | Book a single device `{duration_hours, comment}` |
+| POST | `/devices/{id}/book` | Book a single device `{duration_hours, comment}` |
 | DELETE | `/bookings/{id}` | Release booking (admin can release any) |
 | PATCH | `/bookings/{id}/extend` | Extend by N hours (once per booking) |
 | GET | `/bookings/{id}/commands` | SSH / UART / JTAG / power command strings |
-| GET | `/bookings` | Booking history (`board_id`, `username`, `active`, `limit`) |
+| GET | `/bookings` | Booking history (`device_id`, `username`, `active`, `limit`) |
 
 **Setups**
 
@@ -277,7 +277,7 @@ Filter by user or action category (Bookings / Device changes).
 | GET | `/agents` | List registered agents (online / offline) |
 | POST | `/agents/register` | Agent startup registration |
 | POST | `/agents/heartbeat` | Agent keep-alive (every 30 s) |
-| GET | `/activity` | Audit log (`board_id`, `username`, `action`, `limit`) |
+| GET | `/activity` | Audit log (`device_ref`, `username`, `action`, `limit`) |
 | GET | `/health` | Liveness check + server config |
 
 ### Agent endpoints (`http://agent:8766`)
@@ -285,10 +285,10 @@ Filter by user or action category (Bookings / Device changes).
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Liveness + version |
-| GET | `/boards` | Devices managed by this agent |
-| POST | `/boards/{id}/services/start` | Start hw_server + UART proxy |
-| POST | `/boards/{id}/services/stop` | Stop services |
-| POST | `/boards/{id}/power` | Power action `{action: on\|off\|reset}` |
+| GET | `/devices` | Devices managed by this agent |
+| POST | `/devices/{id}/services/start` | Start hw_server + UART proxy |
+| POST | `/devices/{id}/services/stop` | Stop services |
+| POST | `/devices/{id}/power` | Power action `{action: on\|off\|reset}` |
 
 ---
 

@@ -99,6 +99,26 @@ class BookingOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ToolIn(BaseModel):
+    type: str
+    model: str = ""
+    connection: str = "usb"
+    connection_detail: str = ""
+    notes: str = ""
+
+
+class ToolOut(BaseModel):
+    id: str
+    board_id: str
+    type: str
+    model: str
+    connection: str
+    connection_detail: str
+    notes: str
+
+    model_config = {"from_attributes": True}
+
+
 class DeviceOut(BaseModel):
     id: str
     device_id: str = ""
@@ -125,6 +145,7 @@ class DeviceOut(BaseModel):
     enabled: bool
     agent_online: bool = False
     active_booking: BookingOut | None = None
+    tools: list[ToolOut] = []
 
     @field_validator("features", "power_args", mode="before")
     @classmethod
@@ -204,8 +225,8 @@ class AuditLogOut(BaseModel):
     timestamp: datetime
     action: str
     username: str
-    board_id: str | None
-    board_name: str
+    device_ref: str | None
+    device_name: str
     device_id: str = ""
     detail: str
 

@@ -34,8 +34,6 @@ export default function App() {
               </RequireAuth>
             }
           />
-          {/* Legacy /boards route redirect */}
-          <Route path="/boards" element={<Navigate to="/devices" replace />} />
           <Route
             path="/devices/:id"
             element={
@@ -44,8 +42,6 @@ export default function App() {
               </RequireAuth>
             }
           />
-          {/* Legacy /boards/:id redirect */}
-          <Route path="/boards/:id" element={<Navigate to="/devices" replace />} />
           <Route
             path="/history"
             element={
