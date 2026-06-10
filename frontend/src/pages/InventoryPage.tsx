@@ -78,7 +78,7 @@ const DEFAULT_DEVICE: DeviceCreate = {
   name: '', serial_number: '', revision: '', description: '',
   location: '', device_ip: '', host_ip: '', features: {}, jtag_port: 3121,
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
-  usb_device: '', uart_device: '', sdmux_control: '', sdmux_sdcard: '', enabled: true, current_notes: '',
+  usb_device: '', uart_device: '', sdmux_control: '/dev/sg0', sdmux_sdcard: '', access_control: '', enabled: true, current_notes: '',
 };
 
 function limitLabel(l: BookingLimit): string {
@@ -152,12 +152,20 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
   const [hasJtag, setHasJtag] = useState(false);
   const [hasPower, setHasPower] = useState(false);
   const [hasSdmux, setHasSdmux] = useState(false);
+  const [hasAccessControl, setHasAccessControl] = useState(false);
 
   const mut = useMutation({
     mutationFn: () => {
+      const baseFeatures: Record<string, unknown> = (() => { try { return JSON.parse(featuresRaw); } catch { return {}; } })();
+      if (hasAgent && hasJtag) baseFeatures.jtag = true; else delete baseFeatures.jtag;
+      if (hasAgent && hasUart) baseFeatures.uart = true; else delete baseFeatures.uart;
+      if (hasAgent && hasUsb) baseFeatures.usb = true; else delete baseFeatures.usb;
+      if (hasAgent && hasPower) baseFeatures.power_ctrl = true; else delete baseFeatures.power_ctrl;
+      if (hasAgent && hasSdmux) baseFeatures.sdmux = true; else delete baseFeatures.sdmux;
+      if (hasAgent && hasAccessControl) baseFeatures.access_control = true; else delete baseFeatures.access_control;
       const payload: DeviceCreate = {
         ...form,
-        features: (() => { try { return JSON.parse(featuresRaw); } catch { return {}; } })(),
+        features: baseFeatures,
         device_ip: hasEthernet ? form.device_ip ?? '' : '',
         ssh_user: hasEthernet && hasSsh ? form.ssh_user : 'root',
         ssh_port: hasEthernet && hasSsh ? form.ssh_port : 0,
@@ -169,6 +177,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
         uart_device: hasAgent && hasUart ? form.uart_device ?? '' : '',
         sdmux_control: hasAgent && hasSdmux ? form.sdmux_control ?? '' : '',
         sdmux_sdcard: hasAgent && hasSdmux ? form.sdmux_sdcard ?? '' : '',
+        access_control: hasAgent && hasAccessControl ? form.access_control ?? '' : '',
       };
       return createDevice(payload, username);
     },
@@ -236,7 +245,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
             <input type="checkbox" className="accent-blue-600" checked={hasAgent}
               onChange={(e) => setHasAgent(e.target.checked)} />
-            Has hardware agent
+            Hardware agent
           </label>
           {hasAgent && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-200">
@@ -331,6 +340,22 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
                   </Field>
                 </div>
               )}
+              {/* Access Control sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-rose-500" checked={hasAccessControl}
+                  onChange={(e) => setHasAccessControl(e.target.checked)} />
+                Access Control
+              </label>
+              {hasAccessControl && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-rose-100">
+                  <Field label="Access control device">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /dev/ttyACM0"
+                      value={form.access_control ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, access_control: e.target.value }))} />
+                  </Field>
+                </div>
+              )}
             </div>
           )}
 
@@ -374,25 +399,32 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
     uart_device: device.uart_device ?? '',
     sdmux_control: device.sdmux_control ?? '',
     sdmux_sdcard: device.sdmux_sdcard ?? '',
+    access_control: device.access_control ?? '',
     enabled: device.enabled,
   });
   const [featuresRaw, setFeaturesRaw] = useState(JSON.stringify(device.features, null, 2));
   const [hasEthernet, setHasEthernet] = useState(!!(device.device_ip || device.ssh_port));
   const [hasSsh, setHasSsh] = useState(!!device.ssh_port);
-  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.power_script || device.usb_device || device.uart_device || device.sdmux_control));
+  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.power_script || device.usb_device || device.uart_device || device.sdmux_control || device.access_control));
   const [hasUsb, setHasUsb] = useState(!!device.usb_device);
   const [hasUart, setHasUart] = useState(!!device.uart_device);
   const [hasJtag, setHasJtag] = useState(!!device.jtag_port);
   const [hasPower, setHasPower] = useState(!!device.power_script);
   const [hasSdmux, setHasSdmux] = useState(!!device.sdmux_control);
+  const [hasAccessControl, setHasAccessControl] = useState(!!device.access_control);
 
   const updateMut = useMutation({
     mutationFn: () => {
-      let features = device.features;
-      try { features = JSON.parse(featuresRaw); } catch { /* keep old */ }
+      const baseFeatures: Record<string, unknown> = (() => { try { return JSON.parse(featuresRaw); } catch { return device.features; } })();
+      if (hasAgent && hasJtag) baseFeatures.jtag = true; else delete baseFeatures.jtag;
+      if (hasAgent && hasUart) baseFeatures.uart = true; else delete baseFeatures.uart;
+      if (hasAgent && hasUsb) baseFeatures.usb = true; else delete baseFeatures.usb;
+      if (hasAgent && hasPower) baseFeatures.power_ctrl = true; else delete baseFeatures.power_ctrl;
+      if (hasAgent && hasSdmux) baseFeatures.sdmux = true; else delete baseFeatures.sdmux;
+      if (hasAgent && hasAccessControl) baseFeatures.access_control = true; else delete baseFeatures.access_control;
       return updateDevice(device.id, {
         ...form,
-        features,
+        features: baseFeatures,
         device_ip: hasEthernet ? form.device_ip : '',
         ssh_user: hasEthernet && hasSsh ? form.ssh_user : 'root',
         ssh_port: hasEthernet && hasSsh ? form.ssh_port : 0,
@@ -404,6 +436,7 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
         uart_device: hasAgent && hasUart ? form.uart_device : '',
         sdmux_control: hasAgent && hasSdmux ? form.sdmux_control : '',
         sdmux_sdcard: hasAgent && hasSdmux ? form.sdmux_sdcard : '',
+        access_control: hasAgent && hasAccessControl ? form.access_control : '',
       }, username);
     },
     onSuccess: () => { setDefaultUser(username); qc.invalidateQueries({ queryKey: ['devices'] }); onClose(); },
@@ -471,7 +504,7 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700 border-t pt-3">
             <input type="checkbox" className="accent-blue-600" checked={hasAgent}
               onChange={(e) => setHasAgent(e.target.checked)} />
-            Has hardware agent
+            Hardware agent
           </label>
           {hasAgent && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-200">
@@ -563,6 +596,22 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
                       placeholder="ex: /dev/disk/by-path/..."
                       value={form.sdmux_sdcard ?? ''}
                       onChange={(e) => setForm(f => ({ ...f, sdmux_sdcard: e.target.value }))} />
+                  </Field>
+                </div>
+              )}
+              {/* Access Control sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-rose-500" checked={hasAccessControl}
+                  onChange={(e) => setHasAccessControl(e.target.checked)} />
+                Access Control
+              </label>
+              {hasAccessControl && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-rose-100">
+                  <Field label="Access control device">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /dev/ttyACM0"
+                      value={form.access_control ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, access_control: e.target.value }))} />
                   </Field>
                 </div>
               )}
@@ -969,14 +1018,14 @@ export default function InventoryPage() {
                     )}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <Link to={`/devices/${d.id}`} className="font-medium text-gray-900 hover:text-blue-600 hover:underline">
-                          {d.name}
-                        </Link>
                         {d.device_id && (
                           <span className="font-mono text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border">
                             {d.device_id}
                           </span>
                         )}
+                        <Link to={`/devices/${d.id}`} className="font-medium text-gray-900 hover:text-blue-600 hover:underline">
+                          {d.name}
+                        </Link>
                       </div>
                       {d.description && (
                         <p className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{d.description}</p>

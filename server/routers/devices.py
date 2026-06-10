@@ -72,6 +72,7 @@ async def _build_device_out(device: Device, db: AsyncSession) -> DeviceOut:
         uart_device=device.uart_device or "",
         sdmux_control=device.sdmux_control or "",
         sdmux_sdcard=device.sdmux_sdcard or "",
+        access_control=device.access_control or "",
         enabled=device.enabled,
         agent_online=agent_online,
         active_booking=active_booking,
@@ -143,6 +144,7 @@ async def create_device(
         uart_device=body.uart_device,
         sdmux_control=body.sdmux_control,
         sdmux_sdcard=body.sdmux_sdcard,
+        access_control=body.access_control,
         enabled=body.enabled,
     )
     db.add(device)

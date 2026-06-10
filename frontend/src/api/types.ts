@@ -76,6 +76,7 @@ export interface DeviceInfo {
   uart_device: string;
   sdmux_control: string;
   sdmux_sdcard: string;
+  access_control: string;
   enabled: boolean;
   agent_online: boolean;
   active_booking: BookingInfo | null;
@@ -103,6 +104,7 @@ export interface DeviceCreate {
   uart_device?: string;
   sdmux_control?: string;
   sdmux_sdcard?: string;
+  access_control?: string;
   enabled: boolean;
   current_notes: string;
 }

@@ -47,6 +47,7 @@ class DeviceIn(BaseModel):
     uart_device: str = ""
     sdmux_control: str = ""
     sdmux_sdcard: str = ""
+    access_control: str = ""
     enabled: bool = True
 
 
@@ -69,6 +70,7 @@ class DeviceUpdate(BaseModel):
     uart_device: str | None = None
     sdmux_control: str | None = None
     sdmux_sdcard: str | None = None
+    access_control: str | None = None
     enabled: bool | None = None
 
 
@@ -119,6 +121,7 @@ class DeviceOut(BaseModel):
     uart_device: str = ""
     sdmux_control: str = ""
     sdmux_sdcard: str = ""
+    access_control: str = ""
     enabled: bool
     agent_online: bool = False
     active_booking: BookingOut | None = None

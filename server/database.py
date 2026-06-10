@@ -47,6 +47,7 @@ async def init_db() -> None:
             "ALTER TABLE boards ADD COLUMN uart_device TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE boards ADD COLUMN sdmux_control TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE boards ADD COLUMN sdmux_sdcard TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE boards ADD COLUMN access_control TEXT NOT NULL DEFAULT ''",
         ):
             try:
                 await conn.execute(text(col_def))
