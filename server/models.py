@@ -17,10 +17,10 @@ class Setup(Base):
 
 
 class SetupDevice(Base):
-    __tablename__ = "setup_boards"
+    __tablename__ = "setup_devices"
 
     setup_id: Mapped[str] = mapped_column(String, ForeignKey("setups.id", ondelete="CASCADE"), primary_key=True)
-    device_id: Mapped[str] = mapped_column("board_id", String, ForeignKey("boards.id", ondelete="CASCADE"), primary_key=True)
+    device_id: Mapped[str] = mapped_column(String, ForeignKey("devices.id", ondelete="CASCADE"), primary_key=True)
     setup: Mapped["Setup"] = relationship("Setup", back_populates="setup_devices")
     device: Mapped["Device"] = relationship("Device")
 
@@ -32,8 +32,8 @@ class AuditLog(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     action: Mapped[str] = mapped_column(String, nullable=False)
     username: Mapped[str] = mapped_column(String, default="")
-    device_ref: Mapped[str | None] = mapped_column("board_id", String, nullable=True)
-    device_name: Mapped[str] = mapped_column("board_name", String, default="")
+    device_ref: Mapped[str | None] = mapped_column(String, nullable=True)
+    device_name: Mapped[str] = mapped_column(String, default="")
     device_id: Mapped[str] = mapped_column(String, default="")
     detail: Mapped[str] = mapped_column(String, default="")
 
@@ -51,7 +51,7 @@ class Agent(Base):
 
 
 class Device(Base):
-    __tablename__ = "boards"
+    __tablename__ = "devices"
     __table_args__ = (
         Index("uq_device_id", "device_id", unique=True, sqlite_where=text("device_id != ''")),
     )
@@ -84,7 +84,7 @@ class Device(Base):
 
     agent: Mapped["Agent | None"] = relationship("Agent", back_populates="devices")
     bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="device")
-    tools: Mapped[list["Tool"]] = relationship("Tool", back_populates="device", cascade="all, delete-orphan", foreign_keys="Tool.board_id")
+    tools: Mapped[list["Tool"]] = relationship("Tool", back_populates="device", cascade="all, delete-orphan", foreign_keys="Tool.device_id")
 
 
 class Booking(Base):
@@ -93,7 +93,7 @@ class Booking(Base):
     __table_args__ = (
         Index(
             "uq_active_booking",
-            "board_id",
+            "device_id",
             unique=True,
             sqlite_where=text("active = 1"),
         ),
@@ -101,7 +101,7 @@ class Booking(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     device_id: Mapped[str] = mapped_column(
-        "board_id", String, ForeignKey("boards.id"), nullable=False
+        String, ForeignKey("devices.id"), nullable=False
     )
     username: Mapped[str] = mapped_column(String, nullable=False)
     start_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -120,7 +120,7 @@ class Tool(Base):
     __tablename__ = "tools"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    device_id: Mapped[str] = mapped_column("board_id", String, ForeignKey("boards.id", ondelete="CASCADE"), nullable=False)
+    device_id: Mapped[str] = mapped_column(String, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False)
     type: Mapped[str] = mapped_column(String, nullable=False)
     model: Mapped[str] = mapped_column(String, default="")
     connection: Mapped[str] = mapped_column(String, default="usb")

@@ -19,7 +19,7 @@ router = APIRouter(prefix="/devices", tags=["devices"])
 
 
 def _raise_uniqueness_error(exc_str: str) -> None:
-    if "boards.device_id" in exc_str or "uq_device_id" in exc_str:
+    if "devices.device_id" in exc_str or "uq_device_id" in exc_str:
         raise HTTPException(status_code=422, detail="Device ID is already in use by another device")
     raise HTTPException(status_code=422, detail="Device name is already in use")
 
