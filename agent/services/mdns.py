@@ -60,7 +60,7 @@ async def start(agent_name: str, host_ip: str, port: int, device_count: int) -> 
     )
 
     await _zeroconf.async_register_service(_service_info)
-    AsyncServiceBrowser(_zeroconf.zeroconf, SERVICE_TYPE, handlers=[_Listener()])
+    AsyncServiceBrowser(_zeroconf.zeroconf, SERVICE_TYPE, listener=_Listener())
     logger.info("mDNS: advertising %s at %s:%d", agent_name, host_ip, port)
 
 
