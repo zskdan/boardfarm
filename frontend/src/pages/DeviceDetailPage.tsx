@@ -69,30 +69,33 @@ function sdcardScript(host: string, deviceId: string): string {
 set -eu
 # Pre-configured for ${deviceId}
 
-HOST="${host}"
-LOCAL_MNT="$HOME/sdcard-${deviceId}"
+AGENT_HOST="${host}"
+DEVICE_ID="${deviceId}"
+ACTION="\${1:?Usage: \$0 open|close}"
 
-case "$1" in
+LOCAL_MNT="\$HOME/sdcard-\${DEVICE_ID}"
+
+case "\$ACTION" in
   open)
-    mkdir -p "$LOCAL_MNT"
-    REMOTE_MNT="$(ssh "$HOST" sudo /opt/boardfarm/agent/sdcard-acquire | tail -n 1)"
-    sshfs "$HOST:$REMOTE_MNT" "$LOCAL_MNT" \\
+    mkdir -p "\$LOCAL_MNT"
+    REMOTE_MNT="\$(ssh "\$AGENT_HOST" sudo /opt/boardfarm/agent/sdcard-acquire | tail -n 1)"
+    sshfs "\$AGENT_HOST:\$REMOTE_MNT" "\$LOCAL_MNT" \\
       -o reconnect \\
       -o ServerAliveInterval=15 \\
       -o ServerAliveCountMax=3
-    echo "SD card available at $LOCAL_MNT"
+    echo "SD card available at \$LOCAL_MNT"
     ;;
 
   close)
-    if mountpoint -q "$LOCAL_MNT"; then
-        fusermount -u "$LOCAL_MNT" 2>/dev/null || fusermount3 -u "$LOCAL_MNT"
+    if mountpoint -q "\$LOCAL_MNT"; then
+      fusermount -u "\$LOCAL_MNT" 2>/dev/null || fusermount3 -u "\$LOCAL_MNT"
     fi
-    ssh "$HOST" sudo /opt/boardfarm/agent/sdcard-release
+    ssh "\$AGENT_HOST" sudo /opt/boardfarm/agent/sdcard-release
     echo "SD card released to DUT"
     ;;
 
   *)
-    echo "Usage: $0 open|close"
+    echo "Usage: \$0 open|close" >&2
     exit 1
     ;;
 esac

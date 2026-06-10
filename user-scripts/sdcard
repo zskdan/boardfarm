@@ -1,35 +1,43 @@
 #!/bin/sh
 set -eu
+# Mount or unmount a device's SD card via the agent host.
+#
+# 'open'  acquires the SD card on the agent, then mounts it locally via sshfs.
+# 'close' unmounts the local sshfs mount and releases the card back to the DUT.
+#
+# Usage: sdcard <agent_host> <device_id> open|close
+#
+# Example:
+#   sdcard vivado@192.168.1.5 DEV-A3F9C1 open
+#   sdcard vivado@192.168.1.5 DEV-A3F9C1 close
 
-HOST="vivado@agent_ip"
-LOCAL_MNT="$HOME/sdcard"
+AGENT_HOST="${1:?Usage: $0 <agent_host> <device_id> open|close}"
+DEVICE_ID="${2:?Usage: $0 <agent_host> <device_id> open|close}"
+ACTION="${3:?Usage: $0 <agent_host> <device_id> open|close}"
 
-case "$1" in
+LOCAL_MNT="$HOME/sdcard-${DEVICE_ID}"
+
+case "$ACTION" in
   open)
     mkdir -p "$LOCAL_MNT"
-
-    REMOTE_MNT="$(ssh "$HOST" sudo /opt/boardfarm/agent/sdcard-acquire | tail -n 1)"
-
-    sshfs "$HOST:$REMOTE_MNT" "$LOCAL_MNT" \
+    REMOTE_MNT="$(ssh "$AGENT_HOST" sudo /opt/boardfarm/agent/sdcard-acquire | tail -n 1)"
+    sshfs "$AGENT_HOST:$REMOTE_MNT" "$LOCAL_MNT" \
       -o reconnect \
       -o ServerAliveInterval=15 \
       -o ServerAliveCountMax=3
-
     echo "SD card available at $LOCAL_MNT"
     ;;
 
   close)
     if mountpoint -q "$LOCAL_MNT"; then
-        fusermount -u "$LOCAL_MNT" 2>/dev/null || fusermount3 -u "$LOCAL_MNT"
+      fusermount -u "$LOCAL_MNT" 2>/dev/null || fusermount3 -u "$LOCAL_MNT"
     fi
-
-    ssh "$HOST" sudo /opt/boardfarm/agent/sdcard-release
-
+    ssh "$AGENT_HOST" sudo /opt/boardfarm/agent/sdcard-release
     echo "SD card released to DUT"
     ;;
 
   *)
-    echo "Usage: $0 open|close"
+    echo "Usage: $0 <agent_host> <device_id> open|close" >&2
     exit 1
     ;;
 esac
