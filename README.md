@@ -116,7 +116,7 @@ agent:
   agent_token: ""            # token agents use to authenticate with server
   host_ip: "192.168.1.5"    # this machine's LAN IP
 
-boards:
+devices:
   - id: "paste-device-uuid-here"
     usb_device: "/dev/bus/usb/001/002"  # raw USB device (optional)
     uart_device: "/dev/ttyUSB0"         # UART serial device (optional)
@@ -264,7 +264,7 @@ Filter by user or action category (Bookings / Device changes).
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/setups` | List all setups with device availability |
-| POST | `/setups` | Create setup `{name, description, board_ids}` |
+| POST | `/setups` | Create setup `{name, description, device_ids}` |
 | PATCH | `/setups/{id}` | Update name / description / device list |
 | DELETE | `/setups/{id}` | Delete setup (fails if actively booked) |
 | POST | `/setups/{id}/book` | Book all devices atomically `{duration_hours, comment}` |

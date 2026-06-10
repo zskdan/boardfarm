@@ -24,8 +24,8 @@ export interface BookingInfo {
 }
 
 export interface SetupBoardInfo {
-  board_id: string;
-  board_name: string;
+  id: string;
+  name: string;
   device_id: string;
   location: string;
   agent_online: boolean;
@@ -52,7 +52,7 @@ export interface SetupInfo {
 export interface SetupCreate {
   name: string;
   description: string;
-  board_ids: string[];
+  device_ids: string[];
 }
 
 export interface DeviceInfo {

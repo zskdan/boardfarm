@@ -46,8 +46,8 @@ async def _build_setup_out(setup: Setup, db: AsyncSession) -> SetupOut:
         b = sb.device
         active_bk = next((bk for bk in b.bookings if bk.active), None)
         board_outs.append(SetupBoardOut(
-            board_id=b.id,
-            board_name=b.name,
+            id=b.id,
+            name=b.name,
             device_id=b.device_id,
             location=b.location,
             agent_online=_device_agent_online(b),
@@ -118,7 +118,7 @@ async def create_setup(
         await db.rollback()
         raise HTTPException(status_code=422, detail="Setup name is already in use")
 
-    for device_id in body.board_ids:
+    for device_id in body.device_ids:
         device_result = await db.execute(select(Device).where(Device.id == device_id))
         if device_result.scalar_one_or_none() is None:
             await db.rollback()
@@ -142,11 +142,11 @@ async def update_setup(
         setup.name = body.name
     if body.description is not None:
         setup.description = body.description
-    if body.board_ids is not None:
+    if body.device_ids is not None:
         for sb in list(setup.setup_devices):
             await db.delete(sb)
         await db.flush()
-        for device_id in body.board_ids:
+        for device_id in body.device_ids:
             device_result = await db.execute(select(Device).where(Device.id == device_id))
             if device_result.scalar_one_or_none() is None:
                 await db.rollback()

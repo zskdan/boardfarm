@@ -7,7 +7,7 @@ router = APIRouter(prefix="/boards", tags=["boards"])
 
 
 @router.get("")
-async def list_boards():
+async def list_devices():
     return [
         {
             "id": b.id,
@@ -16,5 +16,5 @@ async def list_boards():
             "jtag_port": b.jtag_port,
             "healthy": get_health(b.id),
         }
-        for b in config.boards
+        for b in config.devices
     ]

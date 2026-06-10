@@ -18,13 +18,13 @@ logger = logging.getLogger(__name__)
 
 async def _register_with_server() -> None:
     url = f"{config.server_url}/agents/register"
-    board_ids = [b.id for b in config.boards]
+    device_ids = [b.id for b in config.devices]
     agent_url = f"http://{config.host_ip}:{config.port}"
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             await client.post(
                 url,
-                json={"name": config.name, "url": agent_url, "board_ids": board_ids},
+                json={"name": config.name, "url": agent_url, "device_ids": device_ids},
             )
         logger.info("Registered with server at %s", config.server_url)
     except Exception:
@@ -32,7 +32,7 @@ async def _register_with_server() -> None:
 
 
 async def _recover_active_bookings() -> None:
-    """On startup, restart services for any boards that have active bookings."""
+    """On startup, restart services for any devices that have active bookings."""
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(
@@ -43,8 +43,8 @@ async def _recover_active_bookings() -> None:
             if resp.status_code != 200:
                 return
             bookings = resp.json()
-        our_device_ids = {b.id for b in config.boards}
-        device_map = {b.id: b for b in config.boards}
+        our_device_ids = {b.id for b in config.devices}
+        device_map = {b.id: b for b in config.devices}
         for booking in bookings:
             bid = booking["device_id"]
             if bid in our_device_ids:
@@ -57,12 +57,12 @@ async def _recover_active_bookings() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await mdns.start(config.name, config.host_ip, config.port, len(config.boards))
+    await mdns.start(config.name, config.host_ip, config.port, len(config.devices))
     await _register_with_server()
     await _recover_active_bookings()
     agent_url = f"http://{config.host_ip}:{config.port}"
-    hb_task = asyncio.create_task(heartbeat_loop(config.server_url, config.name, agent_url, [b.id for b in config.boards]))
-    health_task = asyncio.create_task(health_svc.probe_loop(config.boards))
+    hb_task = asyncio.create_task(heartbeat_loop(config.server_url, config.name, agent_url, [b.id for b in config.devices]))
+    health_task = asyncio.create_task(health_svc.probe_loop(config.devices))
 
     yield
 
@@ -100,7 +100,7 @@ async def health():
         "status": "ok",
         "version": "0.1.0",
         "agent": config.name,
-        "devices": [b.id for b in config.boards],
+        "devices": [b.id for b in config.devices],
     }
 
 
@@ -110,11 +110,11 @@ async def list_local_agents():
     self_entry = {
         "name": config.name,
         "url": f"http://{config.host_ip}:{config.port}",
-        "board_count": len(config.boards),
+        "device_count": len(config.devices),
         "self": True,
     }
     peers = [
-        {**p, "self": False, "board_count": int(p.get("properties", {}).get("boards", 0))}
+        {**p, "self": False, "device_count": int(p.get("properties", {}).get("devices", 0))}
         for p in mdns.get_discovered()
     ]
     return [self_entry] + peers

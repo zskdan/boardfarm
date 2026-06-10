@@ -10,9 +10,9 @@ from ..services import hw_server, power
 router = APIRouter(tags=["hardware"])
 
 
-def _get_device(board_id: str):
-    for b in config.boards:
-        if b.id == board_id:
+def _get_device(device_id: str):
+    for b in config.devices:
+        if b.id == device_id:
             return b
     raise HTTPException(status_code=404, detail="Device not managed by this agent")
 

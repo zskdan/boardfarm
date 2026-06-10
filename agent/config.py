@@ -26,7 +26,7 @@ class AgentConfig:
     server_token: str = "changeme"
     agent_token: str = "agent-secret"  # Token the agent requires for incoming calls from server
     host_ip: str = "127.0.0.1"
-    boards: list[BoardConfig] = field(default_factory=list)
+    devices: list[BoardConfig] = field(default_factory=list)
 
 
 def load_config(path: str = "config.yaml") -> AgentConfig:
@@ -37,9 +37,9 @@ def load_config(path: str = "config.yaml") -> AgentConfig:
     data = yaml.safe_load(cfg_file.read_text()) or {}
     agent_data = data.get("agent", {})
 
-    boards = []
-    for b in data.get("boards", []):
-        boards.append(
+    devices = []
+    for b in data.get("devices", []):
+        devices.append(
             BoardConfig(
                 id=b["id"],
                 usb_device=b.get("usb_device", ""),
@@ -59,7 +59,7 @@ def load_config(path: str = "config.yaml") -> AgentConfig:
         server_token=agent_data.get("server_token", "changeme"),
         agent_token=agent_data.get("agent_token", "agent-secret"),
         host_ip=agent_data.get("host_ip", "127.0.0.1"),
-        boards=boards,
+        devices=devices,
     )
 
 

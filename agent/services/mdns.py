@@ -40,7 +40,7 @@ class _Listener:
         self.add_service(zc, service_type, name)
 
 
-async def start(agent_name: str, host_ip: str, port: int, board_count: int) -> None:
+async def start(agent_name: str, host_ip: str, port: int, device_count: int) -> None:
     global _zeroconf, _service_info
 
     _zeroconf = AsyncZeroconf(ip_version=IPVersion.V4Only)
@@ -52,7 +52,7 @@ async def start(agent_name: str, host_ip: str, port: int, board_count: int) -> N
         port=port,
         properties={
             "version": "0.1.0",
-            "boards": str(board_count),
+            "devices": str(device_count),
         },
         server=f"{agent_name}.local.",
     )

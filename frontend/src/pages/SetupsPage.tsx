@@ -43,7 +43,7 @@ function DeviceRow({ device }: { device: SetupInfo['boards'][0] }) {
       {device.device_id && (
         <span className="font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border">{device.device_id}</span>
       )}
-      <span className="font-medium text-gray-800">{device.board_name}</span>
+      <span className="font-medium text-gray-800">{device.name}</span>
       {device.location && <span className="text-gray-400">{device.location}</span>}
       {blocked && (
         <span className="text-blue-500 ml-auto">
@@ -70,7 +70,7 @@ function AddSetupModal({ onClose }: { onClose: () => void }) {
 
   const mut = useMutation({
     mutationFn: () =>
-      createSetup({ name, description, board_ids: Array.from(selectedIds) }, username),
+      createSetup({ name, description, device_ids: Array.from(selectedIds) }, username),
     onSuccess: () => {
       setDefaultUser(username);
       qc.invalidateQueries({ queryKey: ['setups'] });
@@ -332,7 +332,7 @@ function SetupCard({ setup }: { setup: SetupInfo }) {
         {setup.boards.length === 0 ? (
           <p className="text-xs text-gray-400 py-2">No devices</p>
         ) : (
-          setup.boards.map((b) => <DeviceRow key={b.board_id} device={b} />)
+          setup.boards.map((b) => <DeviceRow key={b.id} device={b} />)
         )}
       </div>
 

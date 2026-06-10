@@ -145,8 +145,8 @@ class CommandsOut(BaseModel):
 
 
 class SetupBoardOut(BaseModel):
-    board_id: str
-    board_name: str
+    id: str
+    name: str
     device_id: str
     location: str
     agent_online: bool
@@ -185,13 +185,13 @@ class SetupOut(BaseModel):
 class SetupIn(BaseModel):
     name: str
     description: str = ""
-    board_ids: list[str]
+    device_ids: list[str]
 
 
 class SetupUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
-    board_ids: list[str] | None = None
+    device_ids: list[str] | None = None
 
 
 class BookSetupIn(BaseModel):

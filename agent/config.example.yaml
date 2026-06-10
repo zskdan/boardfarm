@@ -6,7 +6,7 @@ agent:
   agent_token: "agent-secret-change-me"
   host_ip: "192.168.1.5"    # this machine's LAN IP
 
-boards:
+devices:
   - id: "paste-device-uuid-here"
     usb_device: "/dev/bus/usb/001/002"  # raw USB device (optional)
     uart_device: "/dev/ttyUSB0"         # UART serial device (optional)

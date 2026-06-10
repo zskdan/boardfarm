@@ -25,7 +25,7 @@ async def register_agent(
 ):
     name = body["name"]
     url = body["url"]
-    board_ids: list[str] = body.get("board_ids", [])
+    device_ids: list[str] = body.get("device_ids", [])
 
     result = await db.execute(select(Agent).where(Agent.name == name))
     agent = result.scalar_one_or_none()
@@ -43,11 +43,11 @@ async def register_agent(
     await db.flush()
 
     # Claim devices: link them to this agent
-    if board_ids:
+    if device_ids:
         host_ip = url.split("//")[-1].split(":")[0]
         await db.execute(
             update(Device)
-            .where(Device.id.in_(board_ids))
+            .where(Device.id.in_(device_ids))
             .values(agent_id=agent.id, host_ip=host_ip)
         )
 
