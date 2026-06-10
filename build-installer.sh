@@ -67,7 +67,7 @@ PIP_ARGS=(
     download
     --quiet
     --dest "$PKG/wheels"
-    --python-version "3.11"
+    --python-version "3.8"
     --only-binary ":all:"
     -r "$REPO_ROOT/agent/requirements.txt"
 )
