@@ -201,7 +201,7 @@ Each device has a detail page with:
 
   | Service | Command |
   |---------|---------|
-  | SSH | `$ ssh root@<device_ip> -p <port>` |
+  | SSH | `$ ssh -J vivado@<agent_ip> root@<device_ip> -p <port>` (checkbox toggles the `-J` jump host; on by default when an agent is present) |
   | UART | `$ sudo socat pty,link=/dev/ttyDEV-XXXX,rawer EXEC:"ssh vivado@<agent_ip> socat - /dev/ttyUSB0,rawer"` |
   | JTAG | `$ connect_hw_server -url tcp:<agent_ip>:<jtag_port>` |
   | Power | `$ python3 <power_script> --action on` |
@@ -209,7 +209,7 @@ Each device has a detail page with:
 - **Notes** — freeform notes, editable inline
 - **Booking** — book / extend / release with a live countdown timer
 
-When you have an active booking, a **Connection Commands** section appears at the bottom with the full command set for that booking (including Vivado TCL).
+The **SD Card** entry provides a downloadable helper script that calls `sdcard-acquire` / `sdcard-release` from `/opt/boardfarm/agent/` on the agent host and mounts the card locally via `sshfs`.
 
 ### Setups (`/setups`)
 

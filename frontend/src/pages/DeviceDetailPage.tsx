@@ -75,7 +75,7 @@ LOCAL_MNT="$HOME/sdcard-${deviceId}"
 case "$1" in
   open)
     mkdir -p "$LOCAL_MNT"
-    REMOTE_MNT="$(ssh "$HOST" sudo /usr/local/sbin/sdcard-acquire | tail -n 1)"
+    REMOTE_MNT="$(ssh "$HOST" sudo /opt/boardfarm/agent/sdcard-acquire | tail -n 1)"
     sshfs "$HOST:$REMOTE_MNT" "$LOCAL_MNT" \\
       -o reconnect \\
       -o ServerAliveInterval=15 \\
@@ -87,7 +87,7 @@ case "$1" in
     if mountpoint -q "$LOCAL_MNT"; then
         fusermount -u "$LOCAL_MNT" 2>/dev/null || fusermount3 -u "$LOCAL_MNT"
     fi
-    ssh "$HOST" sudo /usr/local/sbin/sdcard-release
+    ssh "$HOST" sudo /opt/boardfarm/agent/sdcard-release
     echo "SD card released to DUT"
     ;;
 
