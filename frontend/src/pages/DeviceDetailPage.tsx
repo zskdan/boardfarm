@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, Copy, MapPin, Usb, Wifi, WifiOff } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Download, MapPin, Usb, Wifi, WifiOff } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -15,7 +15,75 @@ import BookingTimer from '../components/BookingTimer';
 import ConnectionCommands from '../components/ConnectionCommands';
 import StatusBadge from '../components/StatusBadge';
 
-function ShellLine({ label, cmd }: { label: string; cmd: string }) {
+function downloadFile(filename: string, content: string) {
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function uartConnectScript(agentHost: string, uartDevice: string, deviceId: string): string {
+  const localPty = `/dev/tty${deviceId}`;
+  return `#!/bin/sh
+set -eu
+# Pre-configured for ${deviceId}
+
+echo "Bridging ${agentHost}:${uartDevice} -> ${localPty}"
+echo "Press Ctrl-C to disconnect."
+
+exec sudo socat \\
+    "pty,link=${localPty},rawer" \\
+    "EXEC:ssh ${agentHost} socat - ${uartDevice}\\,rawer"
+`;
+}
+
+function sdcardScript(host: string, deviceId: string): string {
+  return `#!/bin/sh
+set -eu
+# Pre-configured for ${deviceId}
+
+HOST="${host}"
+LOCAL_MNT="$HOME/sdcard-${deviceId}"
+
+case "$1" in
+  open)
+    mkdir -p "$LOCAL_MNT"
+    REMOTE_MNT="$(ssh "$HOST" sudo /usr/local/sbin/sdcard-acquire | tail -n 1)"
+    sshfs "$HOST:$REMOTE_MNT" "$LOCAL_MNT" \\
+      -o reconnect \\
+      -o ServerAliveInterval=15 \\
+      -o ServerAliveCountMax=3
+    echo "SD card available at $LOCAL_MNT"
+    ;;
+
+  close)
+    if mountpoint -q "$LOCAL_MNT"; then
+        fusermount -u "$LOCAL_MNT" 2>/dev/null || fusermount3 -u "$LOCAL_MNT"
+    fi
+    ssh "$HOST" sudo /usr/local/sbin/sdcard-release
+    echo "SD card released to DUT"
+    ;;
+
+  *)
+    echo "Usage: $0 open|close"
+    exit 1
+    ;;
+esac
+`;
+}
+
+function ShellLine({
+  label,
+  cmd,
+  download,
+}: {
+  label: string;
+  cmd: string;
+  download?: { filename: string; content: string };
+}) {
   const [copied, setCopied] = useState(false);
   function copy() {
     navigator.clipboard.writeText(cmd).then(() => {
@@ -27,13 +95,24 @@ function ShellLine({ label, cmd }: { label: string; cmd: string }) {
     <div className="bg-gray-900 rounded-xl overflow-hidden">
       <div className="flex items-center justify-between px-4 pt-2.5 pb-1.5 border-b border-gray-800">
         <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</span>
-        <button
-          onClick={copy}
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-0.5 rounded hover:bg-gray-700"
-          title="Copy"
-        >
-          {copied ? <><Check size={12} className="text-green-400" /><span className="text-green-400">Copied</span></> : <><Copy size={12} /><span>Copy</span></>}
-        </button>
+        <div className="flex items-center gap-1">
+          {download && (
+            <button
+              onClick={() => downloadFile(download.filename, download.content)}
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-0.5 rounded hover:bg-gray-700"
+              title="Download script"
+            >
+              <Download size={12} /><span>Script</span>
+            </button>
+          )}
+          <button
+            onClick={copy}
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-0.5 rounded hover:bg-gray-700"
+            title="Copy"
+          >
+            {copied ? <><Check size={12} className="text-green-400" /><span className="text-green-400">Copied</span></> : <><Copy size={12} /><span>Copy</span></>}
+          </button>
+        </div>
       </div>
       <div className="flex items-start gap-2 px-4 py-3">
         <span className="text-gray-600 select-none font-mono text-sm mt-0.5">$</span>
@@ -201,7 +280,7 @@ export default function DeviceDetailPage() {
         )}
 
         {/* Connectivity */}
-        {(device.ssh_port > 0 || (device.uart_device && device.host_ip) || device.jtag_port > 0 || device.power_script) && (
+        {(device.ssh_port > 0 || (device.uart_device && device.host_ip) || device.jtag_port > 0 || device.power_script || !!device.host_ip) && (
           <div className="bg-white rounded-xl border p-5 mb-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Connectivity</h2>
             <div className="flex flex-col gap-2">
@@ -215,6 +294,10 @@ export default function DeviceDetailPage() {
                 <ShellLine
                   label="UART"
                   cmd={`sudo socat pty,link=/dev/tty${device.device_id},rawer EXEC:"ssh vivado@${device.host_ip} socat - ${device.uart_device},rawer"`}
+                  download={{
+                    filename: `uart-connect-${device.device_id}`,
+                    content: uartConnectScript(`vivado@${device.host_ip}`, device.uart_device, device.device_id),
+                  }}
                 />
               )}
               {device.jtag_port > 0 && (
@@ -227,6 +310,16 @@ export default function DeviceDetailPage() {
                 <ShellLine
                   label="Power"
                   cmd={`python3 ${device.power_script} --action on`}
+                />
+              )}
+              {device.host_ip && (
+                <ShellLine
+                  label="SD Card"
+                  cmd="sdcard open|close"
+                  download={{
+                    filename: `sdcard-${device.device_id}`,
+                    content: sdcardScript(`vivado@${device.host_ip}`, device.device_id),
+                  }}
                 />
               )}
             </div>
