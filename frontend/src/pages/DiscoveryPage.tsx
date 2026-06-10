@@ -61,7 +61,7 @@ export default function DiscoveryPage() {
               placeholder="alice"
             />
             <p className="text-xs text-gray-400 mt-1">
-              Used to identify you when booking or modifying boards. No password needed.
+              Used to identify you when booking or modifying devices. No password needed.
             </p>
           </div>
 

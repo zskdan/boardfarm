@@ -35,7 +35,7 @@ function SetupStatusBadge({ setup, me }: { setup: SetupInfo; me: string }) {
   return <span className="px-2 py-0.5 text-xs rounded-full font-medium bg-amber-100 text-amber-700">Partially unavailable</span>;
 }
 
-function DeviceRow({ device }: { device: SetupInfo['boards'][0] }) {
+function DeviceRow({ device }: { device: SetupInfo['devices'][0] }) {
   const blocked = !!device.active_booking_username;
   return (
     <div className="flex items-center gap-2 text-xs py-1">
@@ -66,7 +66,7 @@ function AddSetupModal({ onClose }: { onClose: () => void }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
 
-  const { data: boards = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices });
+  const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices });
 
   const mut = useMutation({
     mutationFn: () =>
@@ -87,7 +87,7 @@ function AddSetupModal({ onClose }: { onClose: () => void }) {
   }
 
   const q = search.toLowerCase();
-  const filtered = boards.filter(
+  const filtered = devices.filter(
     (b) =>
       !selectedIds.has(b.id) && (
         !q ||
@@ -96,7 +96,7 @@ function AddSetupModal({ onClose }: { onClose: () => void }) {
         b.location.toLowerCase().includes(q)
       ),
   );
-  const selected = boards.filter((b) => selectedIds.has(b.id));
+  const selected = devices.filter((b) => selectedIds.has(b.id));
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
@@ -164,10 +164,10 @@ function AddSetupModal({ onClose }: { onClose: () => void }) {
 
             {/* Filtered list */}
             <div className="border rounded-lg divide-y max-h-52 overflow-y-auto">
-              {boards.length === 0 && (
+              {devices.length === 0 && (
                 <p className="text-xs text-gray-400 px-3 py-2">No devices in inventory</p>
               )}
-              {boards.length > 0 && filtered.length === 0 && (
+              {devices.length > 0 && filtered.length === 0 && (
                 <p className="text-xs text-gray-400 px-3 py-2">
                   {search ? 'No devices match your search' : 'All devices already selected'}
                 </p>
@@ -259,7 +259,7 @@ function BookSetupModal({ setup, onClose }: { setup: SetupInfo; onClose: () => v
           </label>
 
           <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
-            This will book all {setup.boards.length} device{setup.boards.length !== 1 ? 's' : ''} atomically.
+            This will book all {setup.devices.length} device{setup.devices.length !== 1 ? 's' : ''} atomically.
             If any device is unavailable the entire booking will fail.
           </div>
 
@@ -329,10 +329,10 @@ function SetupCard({ setup }: { setup: SetupInfo }) {
 
       {/* Device list */}
       <div className="border rounded-lg px-3 py-1 mb-3 divide-y divide-gray-50">
-        {setup.boards.length === 0 ? (
+        {setup.devices.length === 0 ? (
           <p className="text-xs text-gray-400 py-2">No devices</p>
         ) : (
-          setup.boards.map((b) => <DeviceRow key={b.id} device={b} />)
+          setup.devices.map((b) => <DeviceRow key={b.id} device={b} />)
         )}
       </div>
 

@@ -150,7 +150,7 @@ Custom controllers: subclass `power.base.PowerController`.
 
 | Device detail (shell commands) | Booking history |
 |-------------------------------|----------------|
-| ![Device detail with SSH/UART/JTAG shell commands](screenshots/board-detail.png) | ![History page with audit log](screenshots/history.png) |
+| ![Device detail with SSH/UART/JTAG shell commands](screenshots/device-detail.png) | ![History page with audit log](screenshots/history.png) |
 
 | Settings | Add Setup (device picker) |
 |----------|--------------------------|

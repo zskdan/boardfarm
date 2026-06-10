@@ -144,7 +144,7 @@ class CommandsOut(BaseModel):
     power_on: str
 
 
-class SetupBoardOut(BaseModel):
+class SetupDeviceOut(BaseModel):
     id: str
     name: str
     device_id: str
@@ -173,7 +173,7 @@ class SetupOut(BaseModel):
     name: str
     description: str
     created_at: datetime
-    boards: list[SetupBoardOut]
+    devices: list[SetupDeviceOut]
     all_available: bool
     active_booking: SetupBookingOut | None = None
 

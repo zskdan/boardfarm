@@ -23,7 +23,7 @@ export interface BookingInfo {
   setup_name: string;
 }
 
-export interface SetupBoardInfo {
+export interface SetupDeviceInfo {
   id: string;
   name: string;
   device_id: string;
@@ -44,7 +44,7 @@ export interface SetupInfo {
   name: string;
   description: string;
   created_at: string;
-  boards: SetupBoardInfo[];
+  devices: SetupDeviceInfo[];
   all_available: boolean;
   active_booking: SetupBookingInfo | null;
 }

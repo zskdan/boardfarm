@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from ..auth import require_user
 from ..database import get_db
 from ..models import Device, Booking, Setup, SetupDevice
-from ..schemas import BookSetupIn, BookingOut, SetupBoardOut, SetupBookingOut, SetupIn, SetupOut, SetupUpdate
+from ..schemas import BookSetupIn, BookingOut, SetupDeviceOut, SetupBookingOut, SetupIn, SetupOut, SetupUpdate
 
 router = APIRouter(prefix="/setups", tags=["setups"])
 
@@ -41,11 +41,11 @@ def _device_agent_online(device: Device) -> bool:
 
 
 async def _build_setup_out(setup: Setup, db: AsyncSession) -> SetupOut:
-    board_outs = []
+    device_outs = []
     for sb in setup.setup_devices:
         b = sb.device
         active_bk = next((bk for bk in b.bookings if bk.active), None)
-        board_outs.append(SetupBoardOut(
+        device_outs.append(SetupDeviceOut(
             id=b.id,
             name=b.name,
             device_id=b.device_id,
@@ -57,7 +57,7 @@ async def _build_setup_out(setup: Setup, db: AsyncSession) -> SetupOut:
 
     all_available = all(
         bof.active_booking_username is None and bof.agent_online
-        for bof in board_outs
+        for bof in device_outs
     )
 
     result = await db.execute(
@@ -81,7 +81,7 @@ async def _build_setup_out(setup: Setup, db: AsyncSession) -> SetupOut:
         name=setup.name,
         description=setup.description,
         created_at=setup.created_at,
-        boards=board_outs,
+        devices=device_outs,
         all_available=all_available,
         active_booking=active_booking_out,
     )

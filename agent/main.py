@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import config
 from .heartbeat import heartbeat_loop
-from .routers import boards, hardware
+from .routers import devices as boards_router, hardware
 from .services import health as health_svc
 from .services import hw_server, mdns
 
@@ -90,7 +90,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(boards.router)
+app.include_router(boards_router.router)
 app.include_router(hardware.router)
 
 

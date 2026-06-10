@@ -7,7 +7,7 @@ import yaml
 
 
 @dataclass
-class BoardConfig:
+class DeviceConfig:
     id: str
     usb_device: str = ""
     uart_device: str = ""
@@ -26,7 +26,7 @@ class AgentConfig:
     server_token: str = "changeme"
     agent_token: str = "agent-secret"  # Token the agent requires for incoming calls from server
     host_ip: str = "127.0.0.1"
-    devices: list[BoardConfig] = field(default_factory=list)
+    devices: list[DeviceConfig] = field(default_factory=list)
 
 
 def load_config(path: str = "config.yaml") -> AgentConfig:
@@ -40,7 +40,7 @@ def load_config(path: str = "config.yaml") -> AgentConfig:
     devices = []
     for b in data.get("devices", []):
         devices.append(
-            BoardConfig(
+            DeviceConfig(
                 id=b["id"],
                 usb_device=b.get("usb_device", ""),
                 uart_device=b.get("uart_device", ""),
