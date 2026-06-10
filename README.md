@@ -24,12 +24,15 @@ A development device booking and inventory system for shared hardware labs. Team
 
 ## Repository layout
 
-| Directory | Description |
-|-----------|-------------|
+| Path | Description |
+|------|-------------|
 | `server/` | Central inventory & booking API (FastAPI, SQLite) |
-| `agent/`  | Hardware agent per device-host PC (FastAPI + mDNS) |
-| `power/`  | Power control scripts (USB relay, GPIO, dummy) |
+| `agent/` | Hardware agent per device-host PC (FastAPI + mDNS) |
+| `agent/scripts/` | Server-side helper scripts installed to `/opt/boardfarm/agent/` |
+| `power/` | Power control scripts (USB relay, GPIO, dummy) |
 | `frontend/` | React + Vite SPA |
+| `user-scripts/` | Client-side helper scripts (`uart-connect`, `sdcard`) |
+| `build-installer.sh` | Builds a self-contained offline agent installer tarball |
 
 ---
 
@@ -86,6 +89,32 @@ server:
 
 The agent needs direct access to USB/serial devices — run it natively, not in Docker.
 
+**Production install (offline, recommended)**
+
+Build the installer on any machine that has Python and internet access:
+
+```bash
+./build-installer.sh
+# → boardfarm-agent-YYYYMMDD.tar.gz
+
+# Cross-architecture (e.g. building for an ARM host from an x86 machine):
+./build-installer.sh --platform manylinux2014_aarch64
+```
+
+Transfer the tarball to the target host (USB, SCP, etc.), then:
+
+```bash
+tar xzf boardfarm-agent-YYYYMMDD.tar.gz
+sudo boardfarm-agent/install.sh
+# Edit /opt/boardfarm/agent/config.yaml
+sudo systemctl start boardfarm-agent
+sudo journalctl -u boardfarm-agent -f
+```
+
+The installer creates a `boardfarm` system user, installs a Python virtualenv with all dependencies from the bundled wheels (no internet needed on the target), copies `sdcard-acquire` / `sdcard-release` to `/opt/boardfarm/agent/`, and registers a systemd service.
+
+**Development (requires internet)**
+
 ```bash
 cd agent
 pip install -r requirements.txt
@@ -105,7 +134,9 @@ npm run dev
 
 ---
 
-## Agent config (`agent/config.yaml`)
+## Agent config (`/opt/boardfarm/agent/config.yaml`)
+
+Edit this file before starting the service. A template is created automatically by the installer at `/opt/boardfarm/agent/config.yaml`.
 
 ```yaml
 agent:
@@ -114,17 +145,57 @@ agent:
   server_url: "http://192.168.1.100:8765"
   server_token: ""           # match server/config.yaml token
   agent_token: ""            # token agents use to authenticate with server
-  host_ip: "192.168.1.5"    # this machine's LAN IP
+  host_ip: "192.168.1.5"    # this machine's LAN IP (used by clients to reach JTAG/UART)
 
 devices:
-  - id: "paste-device-uuid-here"
+  - id: "paste-device-uuid-here"   # copy from the server's device detail page
     usb_device: "/dev/bus/usb/001/002"  # raw USB device (optional)
     uart_device: "/dev/ttyUSB0"         # UART serial device (optional)
-    jtag_port: 3121                     # hw_server port (optional)
-    power_script: "../power/usb_relay.py"
+    jtag_port: 3121                     # hw_server listen port (optional)
+    power_script: "/opt/boardfarm/agent/power/usb_relay.py"
     power_args:
       relay_id: 1
 ```
+
+After editing, apply with:
+
+```bash
+sudo systemctl restart boardfarm-agent
+```
+
+---
+
+## User scripts (`user-scripts/`)
+
+Client-side helpers for developers. Copy or symlink them into your `PATH`.
+
+### `uart-connect`
+
+Bridges a device's UART (on the agent host) to a local PTY via SSH.
+
+```bash
+uart-connect vivado@<agent_ip> <uart_device> <device_id>
+
+# Example (values shown on the device detail page):
+uart-connect vivado@192.168.1.5 /dev/ttyUSB0 DEV-A3F9C1
+screen /dev/ttyDEV-A3F9C1
+```
+
+### `sdcard`
+
+Mounts or unmounts a device's SD card locally via `sshfs`. Requires `sshfs` on the client.
+
+```bash
+sdcard vivado@<agent_ip> <device_id> open|close
+
+# Example:
+sdcard vivado@192.168.1.5 DEV-A3F9C1 open
+# → SD card available at ~/sdcard-DEV-A3F9C1
+
+sdcard vivado@192.168.1.5 DEV-A3F9C1 close
+```
+
+The device detail page also offers a **Script** download button for both commands, pre-filled with the correct agent IP and device ID.
 
 ---
 
