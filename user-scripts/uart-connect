@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eu
+# Connect to a device's UART via the agent host.
+#
+# Creates a local PTY at /dev/tty<DEVICE_ID> and bridges it over SSH
+# to the UART device on the agent host. Use screen, minicom, picocom,
+# etc. on the local PTY once this is running.
+#
+# Usage: uart-connect <agent_host> <uart_device> <device_id>
+#
+# Example:
+#   uart-connect vivado@192.168.1.5 /dev/ttyUSB0 DEV-A3F9C1
+#   screen /dev/ttyDEV-A3F9C1
+
+AGENT_HOST="${1:?Usage: $0 <agent_host> <uart_device> <device_id>}"
+UART_DEVICE="${2:?Usage: $0 <agent_host> <uart_device> <device_id>}"
+DEVICE_ID="${3:?Usage: $0 <agent_host> <uart_device> <device_id>}"
+
+LOCAL_PTY="/dev/tty${DEVICE_ID}"
+
+echo "Bridging ${AGENT_HOST}:${UART_DEVICE} → ${LOCAL_PTY}"
+echo "Press Ctrl-C to disconnect."
+
+exec sudo socat \
+    "pty,link=${LOCAL_PTY},rawer" \
+    "EXEC:ssh ${AGENT_HOST} socat - ${UART_DEVICE}\\,rawer"
