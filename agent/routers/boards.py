@@ -11,6 +11,7 @@ async def list_boards():
     return [
         {
             "id": b.id,
+            "usb_device": b.usb_device,
             "uart_device": b.uart_device,
             "jtag_port": b.jtag_port,
             "healthy": get_health(b.id),

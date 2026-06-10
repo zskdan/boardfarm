@@ -182,12 +182,14 @@ The **Filter** box searches by device name, device ID, location, username, or fe
 **Add Device** form sections, all collapsed by default:
 
 - **Ethernet** — reveals Device IP, then SSH sub-checkbox (on by default):
-  - **SSH** — reveals SSH User, SSH Port
-- **Has hardware agent** — reveals Agent Host IP and capability sub-checkboxes (all off by default):
+  - **SSH** — reveals SSH User (default `root`), SSH Port (default `22`)
+- **Hardware agent** — reveals Agent Host IP and capability sub-checkboxes (all off by default). Enabling any sub-checkbox automatically adds the matching key to the device's Features map:
   - **USB** — reveals USB device path (e.g. `/dev/bus/usb/001/002`)
   - **UART** — reveals UART device path (e.g. `/dev/ttyUSB0`)
-  - **JTAG** — reveals JTAG Port
+  - **JTAG** — reveals JTAG Port (default `3121`)
   - **Power Control** — reveals Power Script, Power Script Args
+  - **SDMux** — reveals SDMux control device (default `/dev/sg0`) and SD card path
+  - **Access Control** — reveals Access Control device path (e.g. `/dev/ttyACM0`)
 
 ### Device detail (`/devices/:id`)
 
@@ -303,10 +305,13 @@ Filter by user or action category (Bookings / Device changes).
 | `location` | string | Physical location (e.g. `Lab A / Rack 3 / Slot 1`) |
 | `device_ip` | string | Device's own IP address (SSH target) |
 | `host_ip` | string | IP of the agent's host PC (JTAG / UART / power) |
-| `ssh_user` / `ssh_port` | string / int | SSH access (shown when Ethernet + SSH enabled) |
+| `ssh_user` / `ssh_port` | string / int | SSH access (default `root` / `22`) |
 | `usb_device` | string | Raw USB device path on agent host (e.g. `/dev/bus/usb/001/002`) |
 | `uart_device` | string | UART serial device path on agent host (e.g. `/dev/ttyUSB0`) |
-| `jtag_port` | int | hw_server port |
+| `jtag_port` | int | hw_server port (default `3121`) |
 | `power_script` | string | Path to power control script |
-| `features` | JSON | Arbitrary key/value capability map |
+| `sdmux_control` | string | SDMux control device path on agent host (e.g. `/dev/sg0`) |
+| `sdmux_sdcard` | string | SD card block device path (e.g. `/dev/disk/by-path/...`) |
+| `access_control` | string | Access control device path on agent host (e.g. `/dev/ttyACM0`) |
+| `features` | JSON | Arbitrary key/value capability map; auto-populated from enabled hardware options |
 | `enabled` | bool | Disabled devices cannot be booked |

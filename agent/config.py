@@ -9,6 +9,7 @@ import yaml
 @dataclass
 class BoardConfig:
     id: str
+    usb_device: str = ""
     uart_device: str = ""
     jtag_port: int = 3121
     power_script: str = ""
@@ -41,6 +42,7 @@ def load_config(path: str = "config.yaml") -> AgentConfig:
         boards.append(
             BoardConfig(
                 id=b["id"],
+                usb_device=b.get("usb_device", ""),
                 uart_device=b.get("uart_device", ""),
                 jtag_port=b.get("jtag_port", 3121),
                 power_script=b.get("power_script", ""),
