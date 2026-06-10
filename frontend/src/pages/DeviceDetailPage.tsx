@@ -150,6 +150,7 @@ export default function DeviceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const [duration, setDuration] = useState(4);
+  const [sshViaAgent, setSshViaAgent] = useState(true);
   const me = getUsername();
 
   const { data: device, isLoading } = useQuery({
@@ -306,10 +307,26 @@ export default function DeviceDetailPage() {
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Connectivity</h2>
             <div className="flex flex-col gap-2">
               {device.ssh_port > 0 && (
-                <ShellLine
-                  label="SSH"
-                  cmd={`ssh ${device.ssh_user}@${device.device_ip || device.host_ip || 'DEVICE_IP'} -p ${device.ssh_port}`}
-                />
+                <div className="flex flex-col gap-1.5">
+                  {device.host_ip && (
+                    <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none px-0.5">
+                      <input
+                        type="checkbox"
+                        checked={sshViaAgent}
+                        onChange={(e) => setSshViaAgent(e.target.checked)}
+                        className="rounded"
+                      />
+                      Through agent
+                    </label>
+                  )}
+                  <ShellLine
+                    label="SSH"
+                    cmd={sshViaAgent && device.host_ip
+                      ? `ssh -J vivado@${device.host_ip} ${device.ssh_user}@${device.device_ip || 'DEVICE_IP'} -p ${device.ssh_port}`
+                      : `ssh ${device.ssh_user}@${device.device_ip || device.host_ip || 'DEVICE_IP'} -p ${device.ssh_port}`
+                    }
+                  />
+                </div>
               )}
               {device.uart_device && device.host_ip && (
                 <ShellLine
