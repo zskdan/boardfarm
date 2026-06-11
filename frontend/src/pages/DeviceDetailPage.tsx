@@ -310,78 +310,6 @@ export default function DeviceDetailPage() {
           </div>
         )}
 
-        {/* Connectivity */}
-        {(device.ssh_port > 0 || (device.uart_device && device.host_ip) || device.jtag_port > 0 || device.power_script || !!device.sdmux_control) && (
-          <div className="bg-white rounded-xl border p-5 mb-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">Connectivity</h2>
-            <div className="flex flex-col gap-2">
-              {device.ssh_port > 0 && (
-                <div className="flex flex-col gap-1.5">
-                  {device.host_ip && (
-                    <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none px-0.5">
-                      <input
-                        type="checkbox"
-                        checked={sshViaAgent}
-                        onChange={(e) => setSshViaAgent(e.target.checked)}
-                        className="rounded"
-                      />
-                      Through agent
-                    </label>
-                  )}
-                  <ShellLine
-                    label="SSH"
-                    cmd={sshViaAgent && device.host_ip
-                      ? `ssh -J vivado@${device.host_ip} ${device.ssh_user}@${device.device_ip || 'DEVICE_IP'} -p ${device.ssh_port}`
-                      : `ssh ${device.ssh_user}@${device.device_ip || device.host_ip || 'DEVICE_IP'} -p ${device.ssh_port}`
-                    }
-                  />
-                </div>
-              )}
-              {device.uart_device && device.host_ip && (
-                <ShellLine
-                  label="UART"
-                  cmd={`sudo socat pty,link=/dev/tty${device.device_id},rawer EXEC:"ssh vivado@${device.host_ip} socat - ${device.uart_device},rawer"`}
-                  download={{
-                    filename: `uart-connect-${device.device_id}`,
-                    content: uartConnectScript(`vivado@${device.host_ip}`, device.uart_device, device.device_id),
-                  }}
-                />
-              )}
-              {device.jtag_port > 0 && (
-                <ShellLine
-                  label="JTAG"
-                  cmd={`connect_hw_server -url tcp:${device.host_ip ?? 'AGENT_IP'}:${device.jtag_port}`}
-                />
-              )}
-              {device.power_script && (
-                <ShellLine
-                  label="Power"
-                  cmd={`python3 ${device.power_script} --action on`}
-                />
-              )}
-              {device.sdmux_control && device.host_ip && (
-                <ShellLine
-                  label="SD Card"
-                  cmd="sdcard open|close"
-                  download={{
-                    filename: `sdcard-${device.device_id}`,
-                    content: sdcardScript(`vivado@${device.host_ip}`, device.device_id),
-                  }}
-                />
-              )}
-              {commands?.vivado_tcl && (
-                <ShellLine label="Vivado TCL" cmd={commands.vivado_tcl} />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Notes */}
-        <div className="bg-white rounded-xl border p-5 mb-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-2">Notes</h2>
-          <DeviceNotes deviceId={device.id} notes={device.current_notes ?? ''} />
-        </div>
-
         {/* Booking section */}
         <div className="bg-white rounded-xl border p-5 mb-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Booking</h2>
@@ -438,6 +366,81 @@ export default function DeviceDetailPage() {
           ) : (
             <p className="text-sm text-gray-400">Device is disabled</p>
           )}
+        </div>
+
+        {/* Connectivity */}
+        {(device.ssh_port > 0 || (device.uart_device && device.host_ip) || device.jtag_port > 0 || device.power_script || !!device.sdmux_control) && (
+          <div className="bg-white rounded-xl border p-5 mb-4">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">Connectivity</h2>
+            <div className="flex flex-col gap-2">
+              {device.ssh_port > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  {device.host_ip && (
+                    <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none px-0.5">
+                      <input
+                        type="checkbox"
+                        checked={sshViaAgent}
+                        onChange={(e) => setSshViaAgent(e.target.checked)}
+                        className="rounded"
+                      />
+                      Through agent
+                    </label>
+                  )}
+                  <ShellLine
+                    label="SSH"
+                    cmd={sshViaAgent && device.host_ip
+                      ? `ssh -J vivado@${device.host_ip} ${device.ssh_user}@${device.device_ip || 'DEVICE_IP'} -p ${device.ssh_port}`
+                      : `ssh ${device.ssh_user}@${device.device_ip || device.host_ip || 'DEVICE_IP'} -p ${device.ssh_port}`
+                    }
+                  />
+                </div>
+              )}
+              {device.uart_device && device.host_ip && (
+                <>
+                  <ShellLine
+                    label="UART (socat)"
+                    cmd={`sudo socat pty,link=/dev/tty${device.device_id},rawer EXEC:"ssh vivado@${device.host_ip} socat - ${device.uart_device},rawer"`}
+                  />
+                  <ShellLine
+                    label="UART (script)"
+                    cmd={`./uart-connect-${device.device_id}`}
+                    download={{
+                      filename: `uart-connect-${device.device_id}`,
+                      content: uartConnectScript(`vivado@${device.host_ip}`, device.uart_device, device.device_id),
+                    }}
+                  />
+                </>
+              )}
+              {device.jtag_port > 0 && (
+                <ShellLine
+                  label="JTAG"
+                  cmd={`connect_hw_server -url tcp:${device.host_ip ?? 'AGENT_IP'}:${device.jtag_port}`}
+                />
+              )}
+              {device.power_script && (
+                <ShellLine
+                  label="Power"
+                  cmd={`python3 ${device.power_script} --action on`}
+                />
+              )}
+              {device.sdmux_control && device.host_ip && (
+                <ShellLine
+                  label="SD Card"
+                  cmd="sdcard open|close"
+                  download={{
+                    filename: `sdcard-${device.device_id}`,
+                    content: sdcardScript(`vivado@${device.host_ip}`, device.device_id),
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Notes */}
+        <div className="bg-white rounded-xl border p-5 mb-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-2">Notes</h2>
+          <DeviceNotes deviceId={device.id} notes={device.current_notes ?? ''} />
         </div>
 
       </div>
