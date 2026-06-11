@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -9,7 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from ..auth import require_user
 from ..database import get_db
-from ..models import Device, Booking, Setup, SetupDevice
+from ..models import Agent, Device, Booking, Setup, SetupDevice
 from ..schemas import BookSetupIn, BookingOut, SetupDeviceOut, SetupBookingOut, SetupIn, SetupOut, SetupUpdate
 
 router = APIRouter(prefix="/setups", tags=["setups"])
@@ -34,13 +36,20 @@ async def _load_setup(setup_id: str, db: AsyncSession) -> Setup:
     return setup
 
 
-def _device_agent_online(device: Device) -> bool:
-    if not device.agent:
-        return False
-    return (_now_utc() - device.agent.last_seen).total_seconds() < 90
+def _device_agent_online(device: Device, agents_by_ip: dict[str, Agent] | None = None) -> bool:
+    if not device.host_ip:
+        return True  # No agent configured — treat as always accessible
+    if device.agent:
+        return (_now_utc() - device.agent.last_seen).total_seconds() < 90
+    # No FK link — check by IP
+    if agents_by_ip:
+        ag = agents_by_ip.get(device.host_ip)
+        if ag:
+            return (_now_utc() - ag.last_seen).total_seconds() < 90
+    return False
 
 
-async def _build_setup_out(setup: Setup, db: AsyncSession) -> SetupOut:
+async def _build_setup_out(setup: Setup, db: AsyncSession, agents_by_ip: dict[str, Agent] | None = None) -> SetupOut:
     device_outs = []
     for sb in setup.setup_devices:
         b = sb.device
@@ -50,7 +59,7 @@ async def _build_setup_out(setup: Setup, db: AsyncSession) -> SetupOut:
             name=b.name,
             device_id=b.device_id,
             location=b.location,
-            agent_online=_device_agent_online(b),
+            agent_online=_device_agent_online(b, agents_by_ip),
             active_booking_username=active_bk.username if active_bk else None,
             active_booking_setup_name=active_bk.setup_name if active_bk else None,
         ))
@@ -87,6 +96,11 @@ async def _build_setup_out(setup: Setup, db: AsyncSession) -> SetupOut:
     )
 
 
+async def _load_agents_by_ip(db: AsyncSession) -> dict[str, Agent]:
+    result = await db.execute(select(Agent))
+    return {a.url.split("//")[-1].split(":")[0]: a for a in result.scalars().all()}
+
+
 @router.get("", response_model=list[SetupOut])
 async def list_setups(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -96,7 +110,8 @@ async def list_setups(db: AsyncSession = Depends(get_db)):
         )
     )
     setups = result.scalars().all()
-    return [await _build_setup_out(s, db) for s in setups]
+    agents_by_ip = await _load_agents_by_ip(db)
+    return [await _build_setup_out(s, db, agents_by_ip) for s in setups]
 
 
 @router.post("", response_model=SetupOut, status_code=201)
@@ -127,7 +142,7 @@ async def create_setup(
 
     await db.commit()
     setup = await _load_setup(setup.id, db)
-    return await _build_setup_out(setup, db)
+    return await _build_setup_out(setup, db, await _load_agents_by_ip(db))
 
 
 @router.patch("/{setup_id}", response_model=SetupOut)
@@ -158,7 +173,7 @@ async def update_setup(
         await db.rollback()
         raise HTTPException(status_code=422, detail="Setup name is already in use")
     setup = await _load_setup(setup_id, db)
-    return await _build_setup_out(setup, db)
+    return await _build_setup_out(setup, db, await _load_agents_by_ip(db))
 
 
 @router.delete("/{setup_id}", status_code=204)

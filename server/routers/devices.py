@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import secrets
 import uuid
@@ -28,11 +30,27 @@ def _now_utc():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-async def _build_device_out(device: Device, db: AsyncSession) -> DeviceOut:
+async def _build_device_out(
+    device: Device,
+    db: AsyncSession,
+    agents_by_ip: dict[str, Agent] | None = None,
+) -> DeviceOut:
     agent_online = False
     if device.agent:
         delta = (_now_utc() - device.agent.last_seen).total_seconds()
         agent_online = delta < 90
+    elif device.host_ip:
+        # No FK link yet — check if an agent with this IP is currently online
+        if agents_by_ip is not None:
+            ag = agents_by_ip.get(device.host_ip)
+        else:
+            res = await db.execute(
+                select(Agent).where(Agent.url.like(f"http://{device.host_ip}:%"))
+            )
+            ag = res.scalar_one_or_none()
+        if ag:
+            delta = (_now_utc() - ag.last_seen).total_seconds()
+            agent_online = delta < 90
 
     active_booking = None
     for bk in device.bookings:
@@ -108,7 +126,14 @@ async def list_devices(
         )
     )
     devices = result.scalars().all()
-    return [await _build_device_out(d, db) for d in devices]
+
+    agents_result = await db.execute(select(Agent))
+    agents_by_ip: dict[str, Agent] = {
+        a.url.split("//")[-1].split(":")[0]: a
+        for a in agents_result.scalars().all()
+    }
+
+    return [await _build_device_out(d, db, agents_by_ip) for d in devices]
 
 
 @router.get("/{device_id}", response_model=DeviceOut)

@@ -42,14 +42,22 @@ async def register_agent(
 
     await db.flush()
 
-    # Claim devices: link them to this agent
+    host_ip = url.split("//")[-1].split(":")[0]
+
+    # Link explicitly configured devices (also updates host_ip to match)
     if device_ids:
-        host_ip = url.split("//")[-1].split(":")[0]
         await db.execute(
             update(Device)
             .where(Device.id.in_(device_ids))
             .values(agent_id=agent.id, host_ip=host_ip)
         )
+
+    # Auto-claim any unlinked devices whose host_ip already matches this agent
+    await db.execute(
+        update(Device)
+        .where(Device.host_ip == host_ip, Device.agent_id.is_(None))
+        .values(agent_id=agent.id)
+    )
 
     await db.commit()
     await db.refresh(agent)
