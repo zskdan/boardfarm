@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import socket
 from typing import Any
 
 from zeroconf import IPVersion, ServiceInfo, Zeroconf
-from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf
+from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 logger = logging.getLogger(__name__)
 
@@ -16,30 +17,38 @@ _service_info: ServiceInfo | None = None
 _discovered: dict[str, dict[str, Any]] = {}
 
 
+async def _fetch_service_info(zc: Zeroconf, service_type: str, name: str) -> None:
+    """Async lookup for a discovered service — safe to call from the event loop."""
+    info = AsyncServiceInfo(service_type, name)
+    await info.async_request(zc, 3000)
+    if not info.addresses:
+        return
+    address = socket.inet_ntoa(info.addresses[0])
+    url = f"http://{address}:{info.port}" if info.port else None
+    agent_name = name.replace(f".{SERVICE_TYPE}", "").replace("._boardfarm._tcp.local.", "")
+    _discovered[name] = {
+        "name": agent_name,
+        "url": url,
+        "properties": {
+            (k.decode() if isinstance(k, bytes) else k): (v.decode() if isinstance(v, bytes) else v)
+            for k, v in (info.properties or {}).items()
+        },
+    }
+    logger.info("Discovered agent: %s at %s", agent_name, url)
+
+
 class _Listener:
+    """ServiceListener that schedules async info lookups instead of blocking."""
+
     def add_service(self, zc: Zeroconf, service_type: str, name: str) -> None:
-        info = zc.get_service_info(service_type, name)
-        if info:
-            addresses = [socket.inet_ntoa(a) for a in info.addresses]
-            url = f"http://{addresses[0]}:{info.port}" if addresses else None
-            agent_name = name.replace(f".{SERVICE_TYPE}", "").replace(
-                f"._boardfarm._tcp.local.", ""
-            )
-            _discovered[name] = {
-                "name": agent_name,
-                "url": url,
-                "properties": {
-                    k.decode(): v.decode() for k, v in (info.properties or {}).items()
-                },
-            }
-            logger.info("Discovered agent: %s at %s", agent_name, url)
+        asyncio.ensure_future(_fetch_service_info(zc, service_type, name))
 
     def remove_service(self, zc: Zeroconf, service_type: str, name: str) -> None:
         _discovered.pop(name, None)
         logger.info("Agent left: %s", name)
 
     def update_service(self, zc: Zeroconf, service_type: str, name: str) -> None:
-        self.add_service(zc, service_type, name)
+        asyncio.ensure_future(_fetch_service_info(zc, service_type, name))
 
 
 async def start(agent_name: str, host_ip: str, port: int, device_count: int) -> None:

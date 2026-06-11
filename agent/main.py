@@ -52,7 +52,7 @@ async def _recover_active_bookings() -> None:
                 logger.info("Recovering services for device %s (active booking: %s)", bid, booking["id"])
                 await hw_server.start(bid, b.jtag_port)
     except Exception:
-        logger.exception("Error during booking recovery")
+        logger.warning("Could not recover active bookings from server (will retry on next booking event)")
 
 
 @asynccontextmanager
