@@ -5,7 +5,6 @@ import { Link, useParams } from 'react-router-dom';
 import {
   bookDevice,
   extendBooking,
-  getCommands,
   getDevice,
   getUsername,
   releaseBooking,
@@ -165,12 +164,6 @@ export default function DeviceDetailPage() {
   const myBooking =
     device?.active_booking?.username === me ? device.active_booking : null;
 
-  const { data: commands } = useQuery({
-    queryKey: ['commands', myBooking?.id],
-    queryFn: () => getCommands(myBooking!.id),
-    enabled: !!myBooking,
-  });
-
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['device', id] });
     qc.invalidateQueries({ queryKey: ['devices'] });
@@ -183,10 +176,7 @@ export default function DeviceDetailPage() {
 
   const releaseMut = useMutation({
     mutationFn: () => releaseBooking(myBooking!.id, me),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['commands', myBooking?.id] });
-      invalidate();
-    },
+    onSuccess: invalidate,
   });
 
   const extendMut = useMutation({
