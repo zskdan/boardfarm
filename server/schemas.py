@@ -49,6 +49,8 @@ class DeviceIn(BaseModel):
     sdmux_sdcard: str = ""
     access_control: str = ""
     enabled: bool = True
+    version_script: str = ""
+    version_poll_interval: int = 0
 
 
 class DeviceUpdate(BaseModel):
@@ -72,6 +74,8 @@ class DeviceUpdate(BaseModel):
     sdmux_sdcard: str | None = None
     access_control: str | None = None
     enabled: bool | None = None
+    version_script: str | None = None
+    version_poll_interval: int | None = None
 
 
 class BookingOut(BaseModel):
@@ -145,6 +149,8 @@ class DeviceOut(BaseModel):
     enabled: bool
     agent_online: bool = False
     deployed_version: str = ""
+    version_script: str = ""
+    version_poll_interval: int = 0
     active_booking: BookingOut | None = None
     tools: list[ToolOut] = []
 

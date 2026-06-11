@@ -83,6 +83,8 @@ export interface DeviceInfo {
   deployed_version: string;
   active_booking: BookingInfo | null;
   current_notes: string;
+  version_script: string;
+  version_poll_interval: number;
 }
 
 
@@ -107,6 +109,8 @@ export interface DeviceCreate {
   access_control?: string;
   enabled: boolean;
   current_notes: string;
+  version_script?: string;
+  version_poll_interval?: number;
 }
 
 

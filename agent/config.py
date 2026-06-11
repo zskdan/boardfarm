@@ -18,7 +18,8 @@ class DeviceConfig:
     power_args: dict = field(default_factory=dict)
     host_check_ip: str = ""
     host_check_port: int = 22
-    version_script: str = ""  # script whose stdout gives the deployed version string
+    version_script: str = ""
+    version_poll_interval: int = 0  # 0 = use agent-level default; >0 = per-device override
 
 
 @dataclass
@@ -54,6 +55,7 @@ def load_config(path: str = "config.yaml") -> AgentConfig:
                 host_check_ip=b.get("host_check_ip", ""),
                 host_check_port=b.get("host_check_port", 22),
                 version_script=b.get("version_script", ""),
+                version_poll_interval=b.get("version_poll_interval", 0),
             )
         )
 

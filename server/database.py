@@ -17,6 +17,8 @@ Base = declarative_base()
 
 _MIGRATIONS = [
     "ALTER TABLE devices ADD COLUMN deployed_version TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE devices ADD COLUMN version_script TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE devices ADD COLUMN version_poll_interval INTEGER NOT NULL DEFAULT 0",
 ]
 
 

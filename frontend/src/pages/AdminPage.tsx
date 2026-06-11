@@ -57,6 +57,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
   const [uart, setUart] = useState({ enabled: true, addr: '' });
   const [jtag, setJtag] = useState({ enabled: true, addr: '' });
   const [power, setPower] = useState({ enabled: false, script: '', args: '{}' });
+  const [version, setVersion] = useState({ enabled: false, script: '', interval: '30' });
 
   const mut = useMutation({
     mutationFn: () => {
@@ -80,6 +81,8 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           jtag_port: jtagP.port,
           power_script: power.enabled ? power.script : '',
           power_args: power.enabled ? JSON.parse(power.args || '{}') : {},
+          version_script: version.enabled ? version.script : '',
+          version_poll_interval: version.enabled ? (parseInt(version.interval) || 30) : 0,
         },
         username,
       );
@@ -200,6 +203,26 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
               value={power.args}
               onChange={(e) => setPower((s) => ({ ...s, args: e.target.value }))}
             />
+          </ServiceSection>
+
+          <ServiceSection label="Version Tracking" enabled={version.enabled} onToggle={(v) => setVersion((s) => ({ ...s, enabled: v }))}>
+            <input
+              type="text"
+              className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+              placeholder="Version script path (e.g. /opt/scripts/get-version.sh)"
+              value={version.script}
+              onChange={(e) => setVersion((s) => ({ ...s, script: e.target.value }))}
+            />
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="1"
+                className="border rounded px-2 py-1.5 text-sm w-24"
+                value={version.interval}
+                onChange={(e) => setVersion((s) => ({ ...s, interval: e.target.value }))}
+              />
+              <span className="text-xs text-gray-500">seconds between checks (default 30)</span>
+            </div>
           </ServiceSection>
 
           <label className="flex flex-col gap-1">

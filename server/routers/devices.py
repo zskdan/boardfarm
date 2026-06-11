@@ -96,6 +96,8 @@ async def _build_device_out(
         enabled=device.enabled,
         agent_online=agent_online,
         deployed_version=device.deployed_version or "",
+        version_script=device.version_script or "",
+        version_poll_interval=device.version_poll_interval or 0,
         active_booking=active_booking,
         tools=[ToolOut.model_validate(t) for t in (device.tools or [])],
     )
@@ -177,6 +179,8 @@ async def create_device(
         sdmux_sdcard=body.sdmux_sdcard,
         access_control=body.access_control,
         enabled=body.enabled,
+        version_script=body.version_script,
+        version_poll_interval=body.version_poll_interval,
     )
     db.add(device)
     try:

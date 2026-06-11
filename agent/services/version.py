@@ -46,13 +46,21 @@ async def push_version(server_url: str, server_token: str, device_id: str, versi
         logger.debug("Could not push version for device %s", device_id)
 
 
-async def version_loop(server_url: str, server_token: str, devices: list, interval: int = 300) -> None:
-    """Periodically run each device's version_script and push the result to the server."""
+async def _device_loop(server_url: str, server_token: str, device, interval: int) -> None:
     while True:
         await asyncio.sleep(interval)
-        for device in devices:
-            if not device.version_script:
-                continue
-            version = await run_script(device.version_script)
-            if version is not None:
-                await push_version(server_url, server_token, device.id, version)
+        version = await run_script(device.version_script)
+        if version is not None:
+            await push_version(server_url, server_token, device.id, version)
+
+
+async def version_loop(server_url: str, server_token: str, devices: list, default_interval: int = 300) -> None:
+    """Spawn one polling loop per device that has a version_script configured."""
+    tasks = []
+    for device in devices:
+        if not device.version_script:
+            continue
+        interval = device.version_poll_interval if device.version_poll_interval > 0 else default_interval
+        tasks.append(_device_loop(server_url, server_token, device, interval))
+    if tasks:
+        await asyncio.gather(*tasks)
