@@ -188,23 +188,6 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
             />
           </ServiceSection>
 
-          <ServiceSection label="Power Control" enabled={power.enabled} onToggle={(v) => setPower((s) => ({ ...s, enabled: v }))}>
-            <input
-              type="text"
-              className="border rounded px-2 py-1.5 text-sm w-full"
-              placeholder="Script path (e.g. power/usb_relay.py)"
-              value={power.script}
-              onChange={(e) => setPower((s) => ({ ...s, script: e.target.value }))}
-            />
-            <textarea
-              className="border rounded px-2 py-1.5 text-sm font-mono w-full"
-              rows={2}
-              placeholder='{"relay_id": 1}'
-              value={power.args}
-              onChange={(e) => setPower((s) => ({ ...s, args: e.target.value }))}
-            />
-          </ServiceSection>
-
           <ServiceSection label="Version Tracking" enabled={version.enabled} onToggle={(v) => setVersion((s) => ({ ...s, enabled: v }))}>
             <input
               type="text"
@@ -223,6 +206,23 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
               />
               <span className="text-xs text-gray-500">seconds between checks (default 30)</span>
             </div>
+          </ServiceSection>
+
+          <ServiceSection label="Power Control" enabled={power.enabled} onToggle={(v) => setPower((s) => ({ ...s, enabled: v }))}>
+            <input
+              type="text"
+              className="border rounded px-2 py-1.5 text-sm w-full"
+              placeholder="Script path (e.g. power/usb_relay.py)"
+              value={power.script}
+              onChange={(e) => setPower((s) => ({ ...s, script: e.target.value }))}
+            />
+            <textarea
+              className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+              rows={2}
+              placeholder='{"relay_id": 1}'
+              value={power.args}
+              onChange={(e) => setPower((s) => ({ ...s, args: e.target.value }))}
+            />
           </ServiceSection>
 
           <label className="flex flex-col gap-1">
