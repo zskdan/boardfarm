@@ -11,6 +11,7 @@ from .heartbeat import heartbeat_loop
 from .routers import devices as boards_router, hardware
 from .services import health as health_svc
 from .services import hw_server, mdns
+from .services import version as version_svc
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -63,19 +64,19 @@ async def lifespan(app: FastAPI):
     agent_url = f"http://{config.host_ip}:{config.port}"
     hb_task = asyncio.create_task(heartbeat_loop(config.server_url, config.name, agent_url, [b.id for b in config.devices]))
     health_task = asyncio.create_task(health_svc.probe_loop(config.devices))
+    version_task = asyncio.create_task(
+        version_svc.version_loop(config.server_url, config.server_token, config.devices, config.version_poll_interval)
+    )
 
     yield
 
-    hb_task.cancel()
-    health_task.cancel()
-    try:
-        await hb_task
-    except asyncio.CancelledError:
-        pass
-    try:
-        await health_task
-    except asyncio.CancelledError:
-        pass
+    for task in (hb_task, health_task, version_task):
+        task.cancel()
+    for task in (hb_task, health_task, version_task):
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
     await hw_server.stop_all()
     await mdns.stop()
 

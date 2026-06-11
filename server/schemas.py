@@ -144,6 +144,7 @@ class DeviceOut(BaseModel):
     access_control: str = ""
     enabled: bool
     agent_online: bool = False
+    deployed_version: str = ""
     active_booking: BookingOut | None = None
     tools: list[ToolOut] = []
 
@@ -171,6 +172,7 @@ class SetupDeviceOut(BaseModel):
     device_id: str
     location: str
     agent_online: bool
+    deployed_version: str = ""
     active_booking_username: str | None = None
     active_booking_setup_name: str | None = None
 

@@ -29,6 +29,7 @@ export interface SetupDeviceInfo {
   device_id: string;
   location: string;
   agent_online: boolean;
+  deployed_version: string;
   active_booking_username: string | null;
   active_booking_setup_name: string | null;
 }
@@ -79,6 +80,7 @@ export interface DeviceInfo {
   access_control: string;
   enabled: boolean;
   agent_online: boolean;
+  deployed_version: string;
   active_booking: BookingInfo | null;
   current_notes: string;
 }

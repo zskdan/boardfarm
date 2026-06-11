@@ -5,7 +5,8 @@ import secrets
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from ..audit import log_action
 from ..auth import require_user
+from ..config import settings
 from ..database import get_db
 from ..models import Agent, Device, Booking, Tool
 from ..schemas import BookingOut, DeviceIn, DeviceOut, DeviceUpdate, ToolOut
@@ -93,6 +95,7 @@ async def _build_device_out(
         access_control=device.access_control or "",
         enabled=device.enabled,
         agent_online=agent_online,
+        deployed_version=device.deployed_version or "",
         active_booking=active_booking,
         tools=[ToolOut.model_validate(t) for t in (device.tools or [])],
     )
@@ -226,4 +229,26 @@ async def delete_device(
             )
     await log_action(db, "device_deleted", user, device.id, device.name, "", device_id=device.device_id)
     await db.delete(device)
+    await db.commit()
+
+
+class _VersionReport(BaseModel):
+    version: str
+
+
+@router.patch("/{device_id}/version", status_code=204)
+async def report_device_version(
+    device_id: str,
+    body: _VersionReport,
+    db: AsyncSession = Depends(get_db),
+    x_token: str | None = Header(default=None, alias="X-Token"),
+):
+    """Called by agents to report the deployed software version on a device."""
+    if settings.token and not secrets.compare_digest(x_token or "", settings.token):
+        raise HTTPException(status_code=401, detail="Invalid token")
+    result = await db.execute(select(Device).where(Device.id == device_id))
+    device = result.scalar_one_or_none()
+    if device is None:
+        raise HTTPException(status_code=404, detail="Device not found")
+    device.deployed_version = body.version.strip()[:200]
     await db.commit()

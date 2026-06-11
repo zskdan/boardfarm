@@ -81,6 +81,7 @@ class Device(Base):
     sdmux_sdcard: Mapped[str] = mapped_column(String, default="")
     access_control: Mapped[str] = mapped_column(String, default="")
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    deployed_version: Mapped[str] = mapped_column(String, default="")
 
     agent: Mapped["Agent | None"] = relationship("Agent", back_populates="devices")
     bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="device")

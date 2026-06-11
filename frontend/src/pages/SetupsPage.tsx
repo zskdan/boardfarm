@@ -45,6 +45,9 @@ function DeviceRow({ device }: { device: SetupInfo['devices'][0] }) {
       )}
       <span className="font-medium text-gray-800">{device.name}</span>
       {device.location && <span className="text-gray-400">{device.location}</span>}
+      {device.deployed_version && (
+        <span className="font-mono bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200">{device.deployed_version}</span>
+      )}
       {blocked && (
         <span className="text-blue-500 ml-auto">
           booked by {device.active_booking_username}

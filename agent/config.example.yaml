@@ -5,12 +5,14 @@ agent:
   server_token: ""           # match server/config.yaml token
   agent_token: "agent-secret-change-me"
   host_ip: "192.168.1.5"    # this machine's LAN IP
+  version_poll_interval: 300 # seconds between version checks (default 300)
 
 devices:
   - id: "paste-device-uuid-here"
     usb_device: "/dev/bus/usb/001/002"  # raw USB device (optional)
     uart_device: "/dev/ttyUSB0"         # UART serial device (optional)
     jtag_port: 3121                     # hw_server port (optional)
-    power_script: "../../power/usb_relay.py"
+    power_script: "/path/to/power/usb_relay.py"
     power_args:
       relay_id: 1
+    version_script: "/path/to/get-version.sh"  # stdout → deployed version string (optional)

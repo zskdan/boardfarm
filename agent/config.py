@@ -18,6 +18,7 @@ class DeviceConfig:
     power_args: dict = field(default_factory=dict)
     host_check_ip: str = ""
     host_check_port: int = 22
+    version_script: str = ""  # script whose stdout gives the deployed version string
 
 
 @dataclass
@@ -28,6 +29,7 @@ class AgentConfig:
     server_token: str = "changeme"
     agent_token: str = "agent-secret"  # Token the agent requires for incoming calls from server
     host_ip: str = "127.0.0.1"
+    version_poll_interval: int = 300  # seconds between version checks
     devices: list[DeviceConfig] = field(default_factory=list)
 
 
@@ -51,6 +53,7 @@ def load_config(path: str = "config.yaml") -> AgentConfig:
                 power_args=b.get("power_args", {}),
                 host_check_ip=b.get("host_check_ip", ""),
                 host_check_port=b.get("host_check_port", 22),
+                version_script=b.get("version_script", ""),
             )
         )
 
@@ -61,6 +64,7 @@ def load_config(path: str = "config.yaml") -> AgentConfig:
         server_token=agent_data.get("server_token", "changeme"),
         agent_token=agent_data.get("agent_token", "agent-secret"),
         host_ip=agent_data.get("host_ip", "127.0.0.1"),
+        version_poll_interval=agent_data.get("version_poll_interval", 300),
         devices=devices,
     )
 

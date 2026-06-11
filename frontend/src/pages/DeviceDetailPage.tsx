@@ -287,6 +287,12 @@ export default function DeviceDetailPage() {
                 <span>{device.revision}</span>
               </div>
             )}
+            {device.deployed_version && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-semibold text-gray-400 uppercase">Deployed</span>
+                <span className="font-mono text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200">{device.deployed_version}</span>
+              </div>
+            )}
           </div>
         </div>
 
