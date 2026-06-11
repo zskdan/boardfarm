@@ -5,5 +5,3 @@ aiosqlite
 pydantic-settings
 pyyaml
 httpx
-zeroconf>=0.115
-alembic
