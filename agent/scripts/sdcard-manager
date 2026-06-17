@@ -27,6 +27,7 @@ case "$ACTION" in
     trap cleanup EXIT INT TERM
 
     usbsdmux "$SDMUX_DEV" host
+    sleep 2
 
     DEV=""
     for i in $(seq 1 50); do
