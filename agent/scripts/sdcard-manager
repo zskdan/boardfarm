@@ -26,7 +26,7 @@ case "$ACTION" in
     cleanup() { rm -rf "$LOCKDIR"; }
     trap cleanup EXIT INT TERM
 
-    usbsdmux "$SDMUX_DEV" HOST
+    usbsdmux "$SDMUX_DEV" host
 
     DEV=""
     for i in $(seq 1 50); do
@@ -78,7 +78,7 @@ case "$ACTION" in
 
     blockdev --flushbufs "$DEV" 2>/dev/null || true
 
-    usbsdmux "$SDMUX_DEV" DUT
+    usbsdmux "$SDMUX_DEV" dut
 
     rmdir "$MNT_PATH" 2>/dev/null || true
     rm -rf "$LOCKDIR"
