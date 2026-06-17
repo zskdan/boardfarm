@@ -3,9 +3,12 @@ set -eu
 # SD card manager for boardfarm agent.
 # Called via SSH by the sdcard user script.
 #
-# Usage: sdcard-manager open|close|status
+# Usage:
+#   sdcard-manager open <sdmux_control_device>
+#   sdcard-manager close
+#   sdcard-manager status
 
-ACTION="${1:?Usage: $0 open|close|status}"
+ACTION="${1:?Usage: $0 open <sdmux_control_device> | close | status}"
 
 LOCKDIR=/run/sdmux-sdcard
 MNT=/mnt/sdmux-sdcard
@@ -13,6 +16,8 @@ BYPATH_GLOB="/dev/disk/by-path/*usb*"
 
 case "$ACTION" in
   open)
+    SDMUX_DEV="${2:?Usage: $0 open <sdmux_control_device>}"
+
     mkdir "$LOCKDIR" 2>/dev/null || {
         echo "SD card already acquired"
         exit 1
@@ -21,7 +26,7 @@ case "$ACTION" in
     cleanup() { rm -rf "$LOCKDIR"; }
     trap cleanup EXIT INT TERM
 
-    sdmux host
+    usbsdmux "$SDMUX_DEV" HOST
 
     DEV=""
     for i in $(seq 1 50); do
@@ -46,8 +51,9 @@ case "$ACTION" in
     done
 
     mount "$DEV" "$MNT"
-    echo "$REAL_DEV" > "$LOCKDIR/dev"
-    echo "$MNT" > "$LOCKDIR/mountpoint"
+    echo "$REAL_DEV"  > "$LOCKDIR/dev"
+    echo "$MNT"       > "$LOCKDIR/mountpoint"
+    echo "$SDMUX_DEV" > "$LOCKDIR/sdmux"
 
     trap - EXIT INT TERM
 
@@ -62,6 +68,7 @@ case "$ACTION" in
 
     MNT_PATH="$(cat "$LOCKDIR/mountpoint")"
     DEV="$(cat "$LOCKDIR/dev")"
+    SDMUX_DEV="$(cat "$LOCKDIR/sdmux")"
 
     sync
 
@@ -71,7 +78,7 @@ case "$ACTION" in
 
     blockdev --flushbufs "$DEV" 2>/dev/null || true
 
-    sdmux dut
+    usbsdmux "$SDMUX_DEV" DUT
 
     rmdir "$MNT_PATH" 2>/dev/null || true
     rm -rf "$LOCKDIR"
@@ -89,7 +96,7 @@ case "$ACTION" in
     ;;
 
   *)
-    echo "Usage: $0 open|close|status" >&2
+    echo "Usage: $0 open <sdmux_control_device> | close | status" >&2
     exit 1
     ;;
 esac

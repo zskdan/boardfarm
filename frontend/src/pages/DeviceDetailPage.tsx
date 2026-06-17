@@ -63,14 +63,15 @@ exec sudo socat \\
 `;
 }
 
-function sdcardScript(host: string, deviceId: string): string {
+function sdcardScript(host: string, deviceId: string, sdmuxControl: string): string {
   return `#!/bin/sh
 set -eu
 # Pre-configured for ${deviceId}
-# Override at runtime: AGENT_HOST=... DEVICE_ID=... ./sdcard-${deviceId} open
+# Override at runtime: AGENT_HOST=... DEVICE_ID=... SDMUX_CONTROL=... ./sdcard-${deviceId} open
 
 AGENT_HOST="\${AGENT_HOST:-${host}}"
 DEVICE_ID="\${DEVICE_ID:-${deviceId}}"
+SDMUX_CONTROL="\${SDMUX_CONTROL:-${sdmuxControl}}"
 ACTION="\${1:?Usage: \$0 open|close|status}"
 
 LOCAL_MNT="\$HOME/sdcard-\${DEVICE_ID}"
@@ -78,7 +79,7 @@ LOCAL_MNT="\$HOME/sdcard-\${DEVICE_ID}"
 case "\$ACTION" in
   open)
     mkdir -p "\$LOCAL_MNT"
-    REMOTE_MNT="\$(ssh "\$AGENT_HOST" sudo /opt/boardfarm/agent/sdcard-manager open | tail -n 1)"
+    REMOTE_MNT="\$(ssh "\$AGENT_HOST" sudo /opt/boardfarm/agent/sdcard-manager open "\$SDMUX_CONTROL" | tail -n 1)"
     sshfs "\$AGENT_HOST:\$REMOTE_MNT" "\$LOCAL_MNT" \\
       -o reconnect \\
       -o ServerAliveInterval=15 \\
@@ -428,7 +429,7 @@ export default function DeviceDetailPage() {
                   cmd={`./sdcard-${device.device_id} open|close|status`}
                   download={{
                     filename: `sdcard-${device.device_id}`,
-                    content: sdcardScript(`vivado@${device.host_ip}`, device.device_id),
+                    content: sdcardScript(`vivado@${device.host_ip}`, device.device_id, device.sdmux_control),
                   }}
                 />
               )}
