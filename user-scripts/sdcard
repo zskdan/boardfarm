@@ -2,25 +2,26 @@
 set -eu
 # Mount or unmount a device's SD card via the agent host.
 #
-# 'open'  acquires the SD card on the agent, then mounts it locally via sshfs.
-# 'close' unmounts the local sshfs mount and releases the card back to the DUT.
+# Reads AGENT_HOST and DEVICE_ID from the environment.
+# Set them in your shell profile or inline:
 #
-# Usage: sdcard <agent_host> <device_id> open|close
+#   export AGENT_HOST=vivado@192.168.1.5
+#   export DEVICE_ID=DEV-A3F9C1
+#   sdcard open
 #
-# Example:
-#   sdcard vivado@192.168.1.5 DEV-A3F9C1 open
-#   sdcard vivado@192.168.1.5 DEV-A3F9C1 close
+# Or inline:
+#   AGENT_HOST=vivado@192.168.1.5 DEVICE_ID=DEV-A3F9C1 sdcard open
 
-AGENT_HOST="${1:?Usage: $0 <agent_host> <device_id> open|close}"
-DEVICE_ID="${2:?Usage: $0 <agent_host> <device_id> open|close}"
-ACTION="${3:?Usage: $0 <agent_host> <device_id> open|close}"
+AGENT_HOST="${AGENT_HOST:?AGENT_HOST env var required (e.g. vivado@192.168.1.5)}"
+DEVICE_ID="${DEVICE_ID:?DEVICE_ID env var required (e.g. DEV-A3F9C1)}"
+ACTION="${1:?Usage: $0 open|close|status}"
 
 LOCAL_MNT="$HOME/sdcard-${DEVICE_ID}"
 
 case "$ACTION" in
   open)
     mkdir -p "$LOCAL_MNT"
-    REMOTE_MNT="$(ssh "$AGENT_HOST" sudo /opt/boardfarm/agent/sdcard-acquire | tail -n 1)"
+    REMOTE_MNT="$(ssh "$AGENT_HOST" sudo /opt/boardfarm/agent/sdcard-manager open | tail -n 1)"
     sshfs "$AGENT_HOST:$REMOTE_MNT" "$LOCAL_MNT" \
       -o reconnect \
       -o ServerAliveInterval=15 \
@@ -29,15 +30,23 @@ case "$ACTION" in
     ;;
 
   close)
-    if mountpoint -q "$LOCAL_MNT"; then
+    if mountpoint -q "$LOCAL_MNT" 2>/dev/null; then
       fusermount -u "$LOCAL_MNT" 2>/dev/null || fusermount3 -u "$LOCAL_MNT"
     fi
-    ssh "$AGENT_HOST" sudo /opt/boardfarm/agent/sdcard-release
+    ssh "$AGENT_HOST" sudo /opt/boardfarm/agent/sdcard-manager close
     echo "SD card released to DUT"
     ;;
 
+  status)
+    if mountpoint -q "$LOCAL_MNT" 2>/dev/null; then
+      echo "open — mounted at $LOCAL_MNT"
+    else
+      echo "closed"
+    fi
+    ;;
+
   *)
-    echo "Usage: $0 <agent_host> <device_id> open|close" >&2
+    echo "Usage: AGENT_HOST=... DEVICE_ID=... $0 open|close|status" >&2
     exit 1
     ;;
 esac
