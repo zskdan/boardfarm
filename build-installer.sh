@@ -53,8 +53,7 @@ chmod +x "$PKG/install.sh"
 
 # helper scripts
 mkdir -p "$PKG/scripts"
-cp "$REPO_ROOT/agent/scripts/sdcard-acquire" "$PKG/scripts/"
-cp "$REPO_ROOT/agent/scripts/sdcard-release" "$PKG/scripts/"
+cp "$REPO_ROOT/agent/scripts/sdcard-manager" "$PKG/scripts/"
 chmod +x "$PKG/scripts/"*
 
 # strip __pycache__
