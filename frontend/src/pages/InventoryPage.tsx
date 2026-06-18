@@ -78,7 +78,8 @@ const DEFAULT_DEVICE: DeviceCreate = {
   name: '', serial_number: '', revision: '', description: '',
   location: '', device_ip: '', host_ip: '', features: {}, jtag_port: 3121,
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
-  usb_device: '', uart_device: '', sdmux_control: '/dev/sg0', sdmux_sdcard: '', access_control: '', enabled: true, current_notes: '',
+  usb_device: '', uart_device: '', sdmux_control: '/dev/sg0', sdmux_sdcard: '', access_control: '',
+  version_script: '', version_poll_interval: 30, enabled: true, current_notes: '',
 };
 
 function limitLabel(l: BookingLimit): string {
@@ -153,6 +154,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
   const [hasPower, setHasPower] = useState(false);
   const [hasSdmux, setHasSdmux] = useState(false);
   const [hasAccessControl, setHasAccessControl] = useState(false);
+  const [hasVersion, setHasVersion] = useState(false);
 
   const mut = useMutation({
     mutationFn: () => {
@@ -178,6 +180,8 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
         sdmux_control: hasAgent && hasSdmux ? form.sdmux_control ?? '' : '',
         sdmux_sdcard: hasAgent && hasSdmux ? form.sdmux_sdcard ?? '' : '',
         access_control: hasAgent && hasAccessControl ? form.access_control ?? '' : '',
+        version_script: hasAgent && hasVersion ? form.version_script ?? '' : '',
+        version_poll_interval: hasAgent && hasVersion ? form.version_poll_interval ?? 30 : 0,
       };
       return createDevice(payload, username);
     },
@@ -301,25 +305,6 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
                   </Field>
                 </div>
               )}
-              {/* Power Control sub-checkbox */}
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                <input type="checkbox" className="accent-orange-500" checked={hasPower}
-                  onChange={(e) => setHasPower(e.target.checked)} />
-                Power Control
-              </label>
-              {hasPower && (
-                <div className="flex flex-col gap-3 pl-3 border-l-2 border-orange-100">
-                  <Field label="Power Script">
-                    <input type="text" className={inputCls} value={form.power_script ?? ''}
-                      onChange={(e) => setForm(f => ({ ...f, power_script: e.target.value }))} />
-                  </Field>
-                  <Field label="Power Script Args (JSON)">
-                    <textarea className={`${inputCls} font-mono`} rows={2}
-                      value={JSON.stringify(form.power_args ?? {})}
-                      onChange={(e) => { try { setForm(f => ({ ...f, power_args: JSON.parse(e.target.value) })); } catch { /* ignore */ } }} />
-                  </Field>
-                </div>
-              )}
               {/* SDMux sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-teal-500" checked={hasSdmux}
@@ -346,6 +331,25 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
                   </Field>
                 </div>
               )}
+              {/* Power Control sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-orange-500" checked={hasPower}
+                  onChange={(e) => setHasPower(e.target.checked)} />
+                Power Control
+              </label>
+              {hasPower && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-orange-100">
+                  <Field label="Power Script">
+                    <input type="text" className={inputCls} value={form.power_script ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, power_script: e.target.value }))} />
+                  </Field>
+                  <Field label="Power Script Args (JSON)">
+                    <textarea className={`${inputCls} font-mono`} rows={2}
+                      value={JSON.stringify(form.power_args ?? {})}
+                      onChange={(e) => { try { setForm(f => ({ ...f, power_args: JSON.parse(e.target.value) })); } catch { /* ignore */ } }} />
+                  </Field>
+                </div>
+              )}
               {/* Access Control sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-rose-500" checked={hasAccessControl}
@@ -359,6 +363,26 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
                       placeholder="ex: /dev/ttyACM0"
                       value={form.access_control ?? ''}
                       onChange={(e) => setForm(f => ({ ...f, access_control: e.target.value }))} />
+                  </Field>
+                </div>
+              )}
+              {/* Version Control sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-violet-500" checked={hasVersion}
+                  onChange={(e) => setHasVersion(e.target.checked)} />
+                Version Control
+              </label>
+              {hasVersion && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-violet-100">
+                  <Field label="Version script path">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /opt/scripts/get-version.sh"
+                      value={form.version_script ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, version_script: e.target.value }))} />
+                  </Field>
+                  <Field label="Check interval (seconds)">
+                    <input type="number" min={1} className={inputCls} value={form.version_poll_interval ?? 30}
+                      onChange={(e) => setForm(f => ({ ...f, version_poll_interval: Number(e.target.value) }))} />
                   </Field>
                 </div>
               )}
@@ -406,18 +430,21 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
     sdmux_control: device.sdmux_control ?? '',
     sdmux_sdcard: device.sdmux_sdcard ?? '',
     access_control: device.access_control ?? '',
+    version_script: device.version_script ?? '',
+    version_poll_interval: device.version_poll_interval ?? 30,
     enabled: device.enabled,
   });
   const [featuresRaw, setFeaturesRaw] = useState(JSON.stringify(device.features, null, 2));
   const [hasEthernet, setHasEthernet] = useState(!!(device.device_ip || device.ssh_port));
   const [hasSsh, setHasSsh] = useState(!!device.ssh_port);
-  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.power_script || device.usb_device || device.uart_device || device.sdmux_control || device.access_control));
+  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.power_script || device.usb_device || device.uart_device || device.sdmux_control || device.access_control || device.version_script));
   const [hasUsb, setHasUsb] = useState(!!device.usb_device);
   const [hasUart, setHasUart] = useState(!!device.uart_device);
   const [hasJtag, setHasJtag] = useState(!!device.jtag_port);
   const [hasPower, setHasPower] = useState(!!device.power_script);
   const [hasSdmux, setHasSdmux] = useState(!!device.sdmux_control);
   const [hasAccessControl, setHasAccessControl] = useState(!!device.access_control);
+  const [hasVersion, setHasVersion] = useState(!!device.version_script);
 
   const updateMut = useMutation({
     mutationFn: () => {
@@ -443,6 +470,8 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
         sdmux_control: hasAgent && hasSdmux ? form.sdmux_control : '',
         sdmux_sdcard: hasAgent && hasSdmux ? form.sdmux_sdcard : '',
         access_control: hasAgent && hasAccessControl ? form.access_control : '',
+        version_script: hasAgent && hasVersion ? form.version_script : '',
+        version_poll_interval: hasAgent && hasVersion ? form.version_poll_interval : 0,
       }, username);
     },
     onSuccess: () => { setDefaultUser(username); qc.invalidateQueries({ queryKey: ['devices'] }); onClose(); },
@@ -566,25 +595,6 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
                   </Field>
                 </div>
               )}
-              {/* Power Control sub-checkbox */}
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                <input type="checkbox" className="accent-orange-500" checked={hasPower}
-                  onChange={(e) => setHasPower(e.target.checked)} />
-                Power Control
-              </label>
-              {hasPower && (
-                <div className="flex flex-col gap-3 pl-3 border-l-2 border-orange-100">
-                  <Field label="Power Script">
-                    <input type="text" className={inputCls} value={form.power_script ?? ''}
-                      onChange={(e) => setForm(f => ({ ...f, power_script: e.target.value }))} />
-                  </Field>
-                  <Field label="Power Script Args (JSON)">
-                    <textarea className={`${inputCls} font-mono`} rows={2}
-                      value={JSON.stringify(form.power_args ?? {})}
-                      onChange={(e) => { try { setForm(f => ({ ...f, power_args: JSON.parse(e.target.value) })); } catch { /* ignore */ } }} />
-                  </Field>
-                </div>
-              )}
               {/* SDMux sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-teal-500" checked={hasSdmux}
@@ -611,6 +621,25 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
                   </Field>
                 </div>
               )}
+              {/* Power Control sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-orange-500" checked={hasPower}
+                  onChange={(e) => setHasPower(e.target.checked)} />
+                Power Control
+              </label>
+              {hasPower && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-orange-100">
+                  <Field label="Power Script">
+                    <input type="text" className={inputCls} value={form.power_script ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, power_script: e.target.value }))} />
+                  </Field>
+                  <Field label="Power Script Args (JSON)">
+                    <textarea className={`${inputCls} font-mono`} rows={2}
+                      value={JSON.stringify(form.power_args ?? {})}
+                      onChange={(e) => { try { setForm(f => ({ ...f, power_args: JSON.parse(e.target.value) })); } catch { /* ignore */ } }} />
+                  </Field>
+                </div>
+              )}
               {/* Access Control sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-rose-500" checked={hasAccessControl}
@@ -624,6 +653,26 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
                       placeholder="ex: /dev/ttyACM0"
                       value={form.access_control ?? ''}
                       onChange={(e) => setForm(f => ({ ...f, access_control: e.target.value }))} />
+                  </Field>
+                </div>
+              )}
+              {/* Version Control sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-violet-500" checked={hasVersion}
+                  onChange={(e) => setHasVersion(e.target.checked)} />
+                Version Control
+              </label>
+              {hasVersion && (
+                <div className="flex flex-col gap-3 pl-3 border-l-2 border-violet-100">
+                  <Field label="Version script path">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="ex: /opt/scripts/get-version.sh"
+                      value={form.version_script ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, version_script: e.target.value }))} />
+                  </Field>
+                  <Field label="Check interval (seconds)">
+                    <input type="number" min={1} className={inputCls} value={form.version_poll_interval ?? 30}
+                      onChange={(e) => setForm(f => ({ ...f, version_poll_interval: Number(e.target.value) }))} />
                   </Field>
                 </div>
               )}

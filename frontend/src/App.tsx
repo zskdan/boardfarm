@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './index.css';
 import { getUsername } from './api/client';
-import AdminPage from './pages/AdminPage';
 import DeviceDetailPage from './pages/DeviceDetailPage';
 import DiscoveryPage from './pages/DiscoveryPage';
 import HistoryPage from './pages/HistoryPage';
@@ -58,14 +57,7 @@ export default function App() {
               </RequireAuth>
             }
           />
-          <Route
-            path="/admin"
-            element={
-              <RequireAuth>
-                <AdminPage />
-              </RequireAuth>
-            }
-          />
+          <Route path="/admin" element={<Navigate to="/devices" replace />} />
           <Route path="*" element={<Navigate to="/devices" replace />} />
         </Routes>
       </Router>
