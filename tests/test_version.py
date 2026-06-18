@@ -215,6 +215,123 @@ async def test_run_script_returns_none_for_missing_script():
 
 # ── bash script format tests ──────────────────────────────────────────────────
 
+@pytest.mark.asyncio
+async def test_report_version_added_line(client):
+    """A line present in current but absent from reference shows as +line in stored diff."""
+    device = await _create_device(client)
+    payload = textwrap.dedent("""\
+        b3c4d5e6:dirty:a1b2c3d4
+        --- /opt/sca/ref-version.txt
+        +++ /tmp/current_version.txt
+        @@ -1,5 +1,5 @@
+         kernel 6.6.30
+        -glibc 2.38
+         openssl 3.2.1
+         busybox 1.36.1
+         python3 3.11.8
+        +musl-libc 1.2.5""")
+    resp = await client.patch(
+        f"/devices/{device['id']}/version",
+        json={"version": payload},
+        headers=AGENT_HEADERS,
+    )
+    assert resp.status_code == 204
+
+    stored = (await client.get(f"/devices/{device['id']}", headers=AUTH_HEADERS)).json()[
+        "deployed_version"
+    ]
+    # Added line (pure addition — no preceding - line)
+    assert "+musl-libc 1.2.5" in stored
+    # Removed line (pure deletion — no following + line)
+    assert "-glibc 2.38" in stored
+    # glibc must not appear as an addition
+    assert "+glibc" not in stored
+    # musl must not appear as a deletion
+    assert "-musl" not in stored
+
+
+@pytest.mark.skipif(not SCRIPT_PATH.exists(), reason="Script not installed")
+def test_script_line_added_to_current():
+    """A line in current that has no counterpart in reference emits a bare +line."""
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        (d / "ref-version.txt").write_text("kernel 6.6.30\nopenssl 3.2.1\n")
+        get_ver = d / "get_version.sh"
+        # current has an extra line at the end
+        get_ver.write_text(
+            "#!/bin/sh\nprintf 'kernel 6.6.30\\nopenssl 3.2.1\\nmusl-libc 1.2.5\\n'\n"
+        )
+        get_ver.chmod(0o755)
+
+        script = _patch_script(d)
+        proc = subprocess.run([str(script)], capture_output=True, text=True)
+        assert proc.returncode == 0
+        assert proc.stdout.split("\n")[0].endswith(":dirty:" + proc.stdout.split("\n")[0].split(":")[-1])
+
+        output_lines = proc.stdout.split("\n")
+        # The added line must appear with + prefix
+        assert any(l == "+musl-libc 1.2.5" for l in output_lines), \
+            f"Expected '+musl-libc 1.2.5' in output:\n{proc.stdout}"
+        # No corresponding deletion of musl
+        assert not any(l == "-musl-libc 1.2.5" for l in output_lines)
+
+
+@pytest.mark.skipif(not SCRIPT_PATH.exists(), reason="Script not installed")
+def test_script_line_removed_from_current():
+    """A line in reference that has no counterpart in current emits a bare -line."""
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        (d / "ref-version.txt").write_text("kernel 6.6.30\nglibc 2.38\nopenssl 3.2.1\n")
+        get_ver = d / "get_version.sh"
+        # current is missing glibc
+        get_ver.write_text(
+            "#!/bin/sh\nprintf 'kernel 6.6.30\\nopenssl 3.2.1\\n'\n"
+        )
+        get_ver.chmod(0o755)
+
+        script = _patch_script(d)
+        proc = subprocess.run([str(script)], capture_output=True, text=True)
+        assert proc.returncode == 0
+
+        output_lines = proc.stdout.split("\n")
+        # Removed line must appear with - prefix
+        assert any(l == "-glibc 2.38" for l in output_lines), \
+            f"Expected '-glibc 2.38' in output:\n{proc.stdout}"
+        # No corresponding addition of glibc
+        assert not any(l == "+glibc 2.38" for l in output_lines)
+
+
+@pytest.mark.skipif(not SCRIPT_PATH.exists(), reason="Script not installed")
+def test_script_mixed_add_remove_change():
+    """Combined add, remove, and change all produce correct diff markers."""
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        (d / "ref-version.txt").write_text(
+            "kernel 6.6.30\nglibc 2.38\nopenssl 3.2.1\nbusybox 1.36.1\npython3 3.11.8\n"
+        )
+        get_ver = d / "get_version.sh"
+        # glibc removed, openssl version changed, musl-libc added
+        get_ver.write_text(
+            "#!/bin/sh\nprintf 'kernel 6.6.30\\nopenssl 3.3.0\\nbusybox 1.36.1\\npython3 3.11.8\\nmusl-libc 1.2.5\\n'\n"
+        )
+        get_ver.chmod(0o755)
+
+        script = _patch_script(d)
+        proc = subprocess.run([str(script)], capture_output=True, text=True)
+        assert proc.returncode == 0
+        lines = proc.stdout.split("\n")
+
+        # removed: glibc
+        assert any(l == "-glibc 2.38" for l in lines)
+        assert not any(l == "+glibc 2.38" for l in lines)
+        # changed: openssl (both - and + must be present)
+        assert any(l == "-openssl 3.2.1" for l in lines)
+        assert any(l == "+openssl 3.3.0" for l in lines)
+        # added: musl-libc
+        assert any(l == "+musl-libc 1.2.5" for l in lines)
+        assert not any(l == "-musl-libc 1.2.5" for l in lines)
+
+
 @pytest.mark.skipif(not SCRIPT_PATH.exists(), reason="Script not installed")
 def test_script_clean_output():
     with tempfile.TemporaryDirectory() as td:

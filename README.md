@@ -34,6 +34,15 @@ When a device has a version script configured, the agent polls it periodically a
 
 In the dirty diff view, lines that differ from the reference are **highlighted red** with the reference value shown in small italic text beneath each changed line.
 
+The diff view also handles lines that appear or disappear entirely between the reference and the current snapshot:
+
+| Added & removed lines |
+|-----------------------|
+| ![Modal showing glibc 2.38 struck-through (removed) and musl-libc 1.2.5 in red (added)](screenshots/version-dirty-add-remove.png) |
+
+- **Removed line** (`glibc 2.38`) — present in reference but absent from current: rendered as ~~strikethrough~~ gray text (no red highlight because nothing replaced it).
+- **Added line** (`musl-libc 1.2.5`) — present in current but absent from reference: rendered as a red line with no "ref:" annotation below (there is no reference value to compare against).
+
 ---
 
 ## Architecture
