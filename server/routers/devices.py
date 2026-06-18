@@ -254,5 +254,5 @@ async def report_device_version(
     device = result.scalar_one_or_none()
     if device is None:
         raise HTTPException(status_code=404, detail="Device not found")
-    device.deployed_version = body.version.strip()[:200]
+    device.deployed_version = body.version.strip()[:16384]
     await db.commit()

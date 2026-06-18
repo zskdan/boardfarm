@@ -79,7 +79,7 @@ const DEFAULT_DEVICE: DeviceCreate = {
   location: '', device_ip: '', host_ip: '', features: {}, jtag_port: 3121,
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
   usb_device: '', uart_device: '', sdmux_control: '/dev/sg0', sdmux_sdcard: '', access_control: '',
-  version_script: '', version_poll_interval: 30, enabled: true, current_notes: '',
+  version_script: '/opt/boardfarm/agent/scripts/get-deployed-version', version_poll_interval: 30, enabled: true, current_notes: '',
 };
 
 function limitLabel(l: BookingLimit): string {

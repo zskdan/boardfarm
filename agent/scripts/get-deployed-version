@@ -1,0 +1,31 @@
+#!/bin/sh
+set -eu
+# Boardfarm version reporter for SCA (Software Component Analysis).
+# Compares the currently deployed software against a reference snapshot.
+#
+# Outputs (first line consumed by boardfarm agent):
+#   <sha8>:clean           — deployed matches reference
+#   <sha8cur>:dirty:<sha8ref>  — deployed differs from reference
+# Remaining lines: full content (clean) or unified diff (dirty).
+#
+# Dependencies: sha1sum, diff, /opt/sca/get_version.sh, /opt/sca/ref-version.txt
+
+REF_FILE=/opt/sca/ref-version.txt
+GET_SCRIPT=/opt/sca/get_version.sh
+CURRENT_FILE=/tmp/current_version.txt
+
+ref_sha=$(sha1sum "$REF_FILE" | cut -c1-8)
+
+"$GET_SCRIPT" > "$CURRENT_FILE"
+
+cur_sha=$(sha1sum "$CURRENT_FILE" | cut -c1-8)
+
+if [ "$cur_sha" = "$ref_sha" ]; then
+    printf '%s:clean\n' "$cur_sha"
+    cat "$CURRENT_FILE"
+else
+    printf '%s:dirty:%s\n' "$cur_sha" "$ref_sha"
+    # Full-context unified diff so the UI can reconstruct the complete annotated view.
+    # The exit code is 1 when files differ — suppress it so set -e does not abort.
+    diff -U 99999 "$REF_FILE" "$CURRENT_FILE" || true
+fi

@@ -80,7 +80,8 @@ find "$INSTALL_DIR/agent" -name '__pycache__' -exec rm -rf {} + 2>/dev/null || t
 
 # Helper scripts
 info "Installing helper scripts..."
-install -m 0755 "$SCRIPTS_SRC/sdcard-manager" "$INSTALL_DIR/sdcard-manager"
+install -m 0755 "$SCRIPTS_SRC/sdcard-manager"        "$INSTALL_DIR/sdcard-manager"
+install -m 0755 "$SCRIPTS_SRC/get-deployed-version"  "$INSTALL_DIR/get-deployed-version"
 
 # sudoers — allow the service user to run sdcard-manager as root without a password
 info "Installing sudoers rule..."

@@ -10,7 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 async def run_script(script_path: str) -> str | None:
-    """Run a version script and return its first line of stdout, or None on failure."""
+    """Run a version script and return its full stdout, or None on failure.
+
+    The first line of stdout is used as the version badge; subsequent lines
+    carry content or diff details displayed in the UI.
+    """
     path = Path(script_path)
     if not path.exists():
         logger.warning("Version script not found: %s", script_path)
@@ -25,7 +29,7 @@ async def run_script(script_path: str) -> str | None:
         if proc.returncode != 0:
             logger.warning("Version script failed (rc=%d): %s", proc.returncode, stderr.decode().strip())
             return None
-        version = stdout.decode().strip().split("\n")[0]
+        version = stdout.decode().strip()
         return version or None
     except asyncio.TimeoutError:
         logger.warning("Version script timed out: %s", script_path)

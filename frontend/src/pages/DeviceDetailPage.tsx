@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, Copy, Download, MapPin, Usb, Wifi, WifiOff } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Download, MapPin, Usb, Wifi, WifiOff, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -158,11 +158,119 @@ function ShellLine({
   );
 }
 
+// ─── Version parsing helpers ─────────────────────────────────────────────────
+
+interface ParsedVersion {
+  curSha: string;
+  isClean: boolean | null;
+  refSha: string | undefined;
+  detail: string;
+}
+
+function parseDeployedVersion(raw: string): ParsedVersion {
+  const nl = raw.indexOf('\n');
+  const firstLine = nl === -1 ? raw : raw.slice(0, nl);
+  const detail = nl === -1 ? '' : raw.slice(nl + 1);
+  const parts = firstLine.split(':');
+  if (parts.length >= 2 && (parts[1] === 'clean' || parts[1] === 'dirty')) {
+    return {
+      curSha: parts[0],
+      isClean: parts[1] === 'clean',
+      refSha: parts[2],
+      detail,
+    };
+  }
+  return { curSha: firstLine, isClean: null, refSha: undefined, detail };
+}
+
+function DiffContent({ isClean, detail }: { isClean: boolean | null; detail: string }) {
+  if (!detail) {
+    return <p className="text-sm text-gray-400 italic">No content available.</p>;
+  }
+
+  if (isClean !== false) {
+    return (
+      <pre className="text-sm font-mono text-gray-700 whitespace-pre-wrap break-all leading-relaxed">
+        {detail}
+      </pre>
+    );
+  }
+
+  // Parse unified diff produced by `diff -U 99999 ref current`
+  const lines = detail.split('\n');
+  const hunkStart = lines.findIndex(l => l.startsWith('@@'));
+  const diffLines = hunkStart >= 0 ? lines.slice(hunkStart + 1) : lines;
+
+  const nodes: React.ReactNode[] = [];
+  let i = 0;
+  while (i < diffLines.length) {
+    const line = diffLines[i];
+    if (line.startsWith(' ')) {
+      nodes.push(
+        <div key={i} className="font-mono text-sm text-gray-700 px-2 py-px leading-5">
+          {line.slice(1)}
+        </div>,
+      );
+      i++;
+    } else if (line.startsWith('-')) {
+      const removed: string[] = [];
+      while (i < diffLines.length && diffLines[i].startsWith('-')) {
+        removed.push(diffLines[i].slice(1));
+        i++;
+      }
+      const added: string[] = [];
+      while (i < diffLines.length && diffLines[i].startsWith('+')) {
+        added.push(diffLines[i].slice(1));
+        i++;
+      }
+      const maxLen = Math.max(removed.length, added.length);
+      for (let j = 0; j < maxLen; j++) {
+        const cur = j < added.length ? added[j] : undefined;
+        const ref = j < removed.length ? removed[j] : undefined;
+        if (cur !== undefined) {
+          nodes.push(
+            <div key={`a${i}-${j}`} className="flex flex-col">
+              <div className="font-mono text-sm bg-red-50 text-red-700 px-2 py-px leading-5 border-l-2 border-red-400">
+                {cur}
+              </div>
+              {ref !== undefined && (
+                <div className="font-mono text-xs text-gray-400 italic px-4 py-0 leading-4">
+                  ref: {ref}
+                </div>
+              )}
+            </div>,
+          );
+        } else if (ref !== undefined) {
+          nodes.push(
+            <div key={`d${i}-${j}`} className="font-mono text-sm text-gray-400 line-through px-2 py-px leading-5 opacity-60">
+              {ref}
+            </div>,
+          );
+        }
+      }
+    } else if (line.startsWith('+')) {
+      nodes.push(
+        <div key={i} className="font-mono text-sm bg-red-50 text-red-700 px-2 py-px leading-5 border-l-2 border-red-400">
+          {line.slice(1)}
+        </div>,
+      );
+      i++;
+    } else {
+      i++;
+    }
+  }
+
+  return <div className="flex flex-col">{nodes}</div>;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function DeviceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const [duration, setDuration] = useState(4);
   const [sshViaAgent, setSshViaAgent] = useState(true);
+  const [showVersionDetail, setShowVersionDetail] = useState(false);
   const me = getUsername();
 
   const { data: device, isLoading } = useQuery({
@@ -287,12 +395,35 @@ export default function DeviceDetailPage() {
                 <span>{device.revision}</span>
               </div>
             )}
-            {device.deployed_version && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs font-semibold text-gray-400 uppercase">Deployed</span>
-                <span className="font-mono text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200">{device.deployed_version}</span>
-              </div>
-            )}
+            {device.deployed_version && (() => {
+              const vp = parseDeployedVersion(device.deployed_version);
+              const badgeCls = vp.isClean === true
+                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                : vp.isClean === false
+                  ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                  : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
+              return (
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-semibold text-gray-400 uppercase">Deployed</span>
+                  <button
+                    onClick={() => setShowVersionDetail(true)}
+                    className={`font-mono text-xs px-1.5 py-0.5 rounded border flex items-center gap-1 transition-colors ${badgeCls}`}
+                    title="Click to view version details"
+                  >
+                    {vp.curSha}
+                    {vp.isClean === true && <span className="text-green-600">✓</span>}
+                    {vp.isClean === false && (
+                      <>
+                        <span className="text-red-600">✗</span>
+                        {vp.refSha && (
+                          <span className="opacity-60 text-xs">ref:{vp.refSha}</span>
+                        )}
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -444,6 +575,39 @@ export default function DeviceDetailPage() {
         </div>
 
       </div>
+
+      {/* Version detail modal */}
+      {showVersionDetail && device.deployed_version && (() => {
+        const vp = parseDeployedVersion(device.deployed_version);
+        return (
+          <div
+            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowVersionDetail(false); }}
+          >
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Version details</h2>
+                  <p className="text-sm text-gray-500 font-mono mt-0.5">{device.name}</p>
+                </div>
+                <button onClick={() => setShowVersionDetail(false)} className="text-gray-400 hover:text-gray-600 mt-0.5">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="flex items-center gap-2 mb-4 pb-4 border-b">
+                <span className={`text-sm font-semibold px-2 py-0.5 rounded ${vp.isClean ? 'bg-green-100 text-green-700' : vp.isClean === false ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                  {vp.isClean === true ? '✓ clean' : vp.isClean === false ? '✗ dirty' : 'version'}
+                </span>
+                <span className="font-mono text-xs text-gray-500">current: {vp.curSha}</span>
+                {vp.refSha && (
+                  <span className="font-mono text-xs text-gray-400">ref: {vp.refSha}</span>
+                )}
+              </div>
+              <DiffContent isClean={vp.isClean} detail={vp.detail} />
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
