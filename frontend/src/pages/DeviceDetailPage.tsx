@@ -242,7 +242,7 @@ function DiffContent({ isClean, detail }: { isClean: boolean | null; detail: str
           );
         } else if (ref !== undefined) {
           nodes.push(
-            <div key={`d${i}-${j}`} className="font-mono text-sm text-gray-400 line-through px-2 py-px leading-5 opacity-60">
+            <div key={`d${i}-${j}`} className="font-mono text-sm text-red-400 line-through px-2 py-px leading-5 border-l-2 border-red-200 opacity-70">
               {ref}
             </div>,
           );
