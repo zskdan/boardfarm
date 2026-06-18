@@ -155,6 +155,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
   const [hasSdmux, setHasSdmux] = useState(false);
   const [hasAccessControl, setHasAccessControl] = useState(false);
   const [hasVersion, setHasVersion] = useState(false);
+  const [agentSelfHosted, setAgentSelfHosted] = useState(false);
 
   const mut = useMutation({
     mutationFn: () => {
@@ -171,7 +172,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
         device_ip: hasEthernet ? form.device_ip ?? '' : '',
         ssh_user: hasEthernet && hasSsh ? form.ssh_user : 'root',
         ssh_port: hasEthernet && hasSsh ? form.ssh_port : 0,
-        host_ip: hasAgent ? form.host_ip : '',
+        host_ip: hasAgent ? (agentSelfHosted ? form.device_ip ?? '' : form.host_ip ?? '') : '',
         jtag_port: hasAgent && hasJtag ? form.jtag_port : 0,
         power_script: hasAgent && hasPower ? form.power_script : '',
         power_args: hasAgent && hasPower ? form.power_args : {},
@@ -220,8 +221,11 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           </label>
           {hasEthernet && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-green-200">
-              <Field label="Device IP">
-                <input type="text" className={inputCls} value={form.device_ip ?? ''}
+              <Field label={<>Device IP <span className="text-red-500">*</span></>}>
+                <input type="text"
+                  className={`${inputCls} ${!form.device_ip?.trim() ? 'border-red-300 focus:ring-red-400' : ''}`}
+                  value={form.device_ip ?? ''}
+                  placeholder="Required"
                   onChange={(e) => setForm(f => ({ ...f, device_ip: e.target.value }))} />
               </Field>
               {/* SSH sub-checkbox */}
@@ -253,12 +257,24 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           </label>
           {hasAgent && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-200">
-              <Field label={<>Hardware agent IP <span className="text-red-500">*</span></>}>
-                <input type="text" className={`${inputCls} ${!form.host_ip?.trim() ? 'border-red-300 focus:ring-red-400' : ''}`}
-                  value={form.host_ip ?? ''}
-                  onChange={(e) => setForm(f => ({ ...f, host_ip: e.target.value }))}
-                  placeholder="Required" />
-              </Field>
+              {/* Self hosted sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-blue-400" checked={agentSelfHosted}
+                  onChange={(e) => setAgentSelfHosted(e.target.checked)} />
+                Self hosted (agent runs on the device itself)
+              </label>
+              {agentSelfHosted ? (
+                <p className="text-xs text-gray-400 pl-1">
+                  Agent IP will use the device IP{form.device_ip?.trim() ? ` (${form.device_ip})` : ' — set device IP above'}
+                </p>
+              ) : (
+                <Field label={<>Hardware agent IP <span className="text-red-500">*</span></>}>
+                  <input type="text" className={`${inputCls} ${!form.host_ip?.trim() ? 'border-red-300 focus:ring-red-400' : ''}`}
+                    value={form.host_ip ?? ''}
+                    onChange={(e) => setForm(f => ({ ...f, host_ip: e.target.value }))}
+                    placeholder="Required" />
+                </Field>
+              )}
               {/* USB sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-purple-600" checked={hasUsb}
@@ -397,7 +413,9 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           {mut.error && <p className="text-xs text-red-600">{(mut.error as Error).message}</p>}
           <ModalActions onCancel={onClose} onConfirm={() => mut.mutate()}
             confirmLabel={mut.isPending ? 'Creating…' : 'Create'}
-            confirmDisabled={mut.isPending || !form.name || !username || (hasAgent && !form.host_ip?.trim())} />
+            confirmDisabled={mut.isPending || !form.name || !username
+              || (hasEthernet && !form.device_ip?.trim())
+              || (hasAgent && !agentSelfHosted && !form.host_ip?.trim())} />
         </div>
       </ModalCard>
     </Overlay>
@@ -445,6 +463,9 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
   const [hasSdmux, setHasSdmux] = useState(!!device.sdmux_control);
   const [hasAccessControl, setHasAccessControl] = useState(!!device.access_control);
   const [hasVersion, setHasVersion] = useState(!!device.version_script);
+  const [agentSelfHosted, setAgentSelfHosted] = useState(
+    !!(device.host_ip && device.device_ip && device.host_ip === device.device_ip)
+  );
 
   const updateMut = useMutation({
     mutationFn: () => {
@@ -461,7 +482,7 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
         device_ip: hasEthernet ? form.device_ip : '',
         ssh_user: hasEthernet && hasSsh ? form.ssh_user : 'root',
         ssh_port: hasEthernet && hasSsh ? form.ssh_port : 0,
-        host_ip: hasAgent ? form.host_ip : '',
+        host_ip: hasAgent ? (agentSelfHosted ? form.device_ip : form.host_ip) : '',
         jtag_port: hasAgent && hasJtag ? form.jtag_port : 0,
         power_script: hasAgent && hasPower ? form.power_script : '',
         power_args: hasAgent && hasPower ? form.power_args : {},
@@ -511,8 +532,11 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
           </label>
           {hasEthernet && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-green-200">
-              <Field label="Device IP">
-                <input type="text" className={inputCls} value={form.device_ip ?? ''}
+              <Field label={<>Device IP <span className="text-red-500">*</span></>}>
+                <input type="text"
+                  className={`${inputCls} ${!form.device_ip?.trim() ? 'border-red-300 focus:ring-red-400' : ''}`}
+                  value={form.device_ip ?? ''}
+                  placeholder="Required"
                   onChange={(e) => setForm(f => ({ ...f, device_ip: e.target.value }))} />
               </Field>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
@@ -543,12 +567,24 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
           </label>
           {hasAgent && (
             <div className="flex flex-col gap-3 pl-3 border-l-2 border-blue-200">
-              <Field label={<>Hardware agent IP <span className="text-red-500">*</span></>}>
-                <input type="text" className={`${inputCls} ${!form.host_ip?.trim() ? 'border-red-300 focus:ring-red-400' : ''}`}
-                  value={form.host_ip ?? ''}
-                  onChange={(e) => setForm(f => ({ ...f, host_ip: e.target.value }))}
-                  placeholder="Required" />
-              </Field>
+              {/* Self hosted sub-checkbox */}
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input type="checkbox" className="accent-blue-400" checked={agentSelfHosted}
+                  onChange={(e) => setAgentSelfHosted(e.target.checked)} />
+                Self hosted (agent runs on the device itself)
+              </label>
+              {agentSelfHosted ? (
+                <p className="text-xs text-gray-400 pl-1">
+                  Agent IP will use the device IP{form.device_ip?.trim() ? ` (${form.device_ip})` : ' — set device IP above'}
+                </p>
+              ) : (
+                <Field label={<>Hardware agent IP <span className="text-red-500">*</span></>}>
+                  <input type="text" className={`${inputCls} ${!form.host_ip?.trim() ? 'border-red-300 focus:ring-red-400' : ''}`}
+                    value={form.host_ip ?? ''}
+                    onChange={(e) => setForm(f => ({ ...f, host_ip: e.target.value }))}
+                    placeholder="Required" />
+                </Field>
+              )}
               {/* USB sub-checkbox */}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-purple-600" checked={hasUsb}
@@ -688,7 +724,9 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
           {updateMut.error && <p className="text-xs text-red-600">{(updateMut.error as Error).message}</p>}
           <ModalActions onCancel={onClose} onConfirm={() => updateMut.mutate()}
             confirmLabel={updateMut.isPending ? 'Saving…' : 'Save changes'}
-            confirmDisabled={updateMut.isPending || !form.name || !username || (hasAgent && !form.host_ip?.trim())} />
+            confirmDisabled={updateMut.isPending || !form.name || !username
+              || (hasEthernet && !form.device_ip?.trim())
+              || (hasAgent && !agentSelfHosted && !form.host_ip?.trim())} />
         </div>
       </ModalCard>
     </Overlay>
