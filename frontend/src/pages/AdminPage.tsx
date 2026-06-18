@@ -53,18 +53,19 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
   const [featuresRaw, setFeaturesRaw] = useState('{}');
   const [enabled, setEnabled] = useState(true);
 
-  const [ssh, setSsh] = useState({ enabled: true, addr: '', user: 'root' });
-  const [uart, setUart] = useState({ enabled: true, addr: '' });
-  const [jtag, setJtag] = useState({ enabled: true, addr: '' });
+  const [ssh, setSsh] = useState({ enabled: false, addr: '', user: 'root' });
+  const [agent, setAgent] = useState({ enabled: false, host_ip: '' });
+  const [usb, setUsb] = useState({ enabled: false, device: '' });
+  const [uart, setUart] = useState({ enabled: false, device: '' });
+  const [jtag, setJtag] = useState({ enabled: false, port: '3121' });
+  const [sdmux, setSdmux] = useState({ enabled: false, control: '', sdcard: '' });
   const [power, setPower] = useState({ enabled: false, script: '', args: '{}' });
+  const [accessControl, setAccessControl] = useState({ enabled: false, value: '' });
   const [version, setVersion] = useState({ enabled: false, script: '', interval: '30' });
 
   const mut = useMutation({
     mutationFn: () => {
       const sshP = ssh.enabled ? parseAddr(ssh.addr, 22) : { ip: '', port: 0 };
-      const uartP = uart.enabled ? parseAddr(uart.addr, 5555) : { ip: '', port: 0 };
-      const jtagP = jtag.enabled ? parseAddr(jtag.addr, 3121) : { ip: '', port: 0 };
-      const host_ip = sshP.ip || uartP.ip || jtagP.ip || undefined;
       return createDevice(
         {
           name,
@@ -73,16 +74,22 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           description,
           location,
           current_notes: notes,
-          host_ip,
+          device_ip: sshP.ip,
+          host_ip: agent.enabled ? (agent.host_ip || undefined) : undefined,
           features: JSON.parse(featuresRaw || '{}'),
           enabled,
           ssh_user: ssh.enabled ? ssh.user || 'root' : 'root',
           ssh_port: sshP.port,
-          jtag_port: jtagP.port,
-          power_script: power.enabled ? power.script : '',
-          power_args: power.enabled ? JSON.parse(power.args || '{}') : {},
-          version_script: version.enabled ? version.script : '',
-          version_poll_interval: version.enabled ? (parseInt(version.interval) || 30) : 0,
+          usb_device: agent.enabled && usb.enabled ? usb.device : '',
+          uart_device: agent.enabled && uart.enabled ? uart.device : '',
+          jtag_port: agent.enabled && jtag.enabled ? parseInt(jtag.port) || 3121 : 0,
+          sdmux_control: agent.enabled && sdmux.enabled ? sdmux.control : '',
+          sdmux_sdcard: agent.enabled && sdmux.enabled ? sdmux.sdcard : '',
+          power_script: agent.enabled && power.enabled ? power.script : '',
+          power_args: agent.enabled && power.enabled ? JSON.parse(power.args || '{}') : {},
+          access_control: agent.enabled && accessControl.enabled ? accessControl.value : '',
+          version_script: agent.enabled && version.enabled ? version.script : '',
+          version_poll_interval: agent.enabled && version.enabled ? parseInt(version.interval) || 30 : 0,
         },
         username,
       );
@@ -148,14 +155,14 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           </label>
 
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide pt-1">
-            Services
+            Connectivity
           </span>
 
           <ServiceSection label="SSH" enabled={ssh.enabled} onToggle={(v) => setSsh((s) => ({ ...s, enabled: v }))}>
             <input
               type="text"
               className="border rounded px-2 py-1.5 text-sm font-mono w-full"
-              placeholder="192.168.1.5:22"
+              placeholder="Device IP:port (e.g. 192.168.1.10:22)"
               value={ssh.addr}
               onChange={(e) => setSsh((s) => ({ ...s, addr: e.target.value }))}
             />
@@ -168,61 +175,108 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
             />
           </ServiceSection>
 
-          <ServiceSection label="UART" enabled={uart.enabled} onToggle={(v) => setUart((s) => ({ ...s, enabled: v }))}>
+          <ServiceSection label="Hardware Agent" enabled={agent.enabled} onToggle={(v) => setAgent((s) => ({ ...s, enabled: v }))}>
             <input
               type="text"
               className="border rounded px-2 py-1.5 text-sm font-mono w-full"
-              placeholder="192.168.1.5:5555"
-              value={uart.addr}
-              onChange={(e) => setUart((s) => ({ ...s, addr: e.target.value }))}
+              placeholder="Agent host IP (e.g. 192.168.1.5)"
+              value={agent.host_ip}
+              onChange={(e) => setAgent((s) => ({ ...s, host_ip: e.target.value }))}
             />
-          </ServiceSection>
 
-          <ServiceSection label="JTAG" enabled={jtag.enabled} onToggle={(v) => setJtag((s) => ({ ...s, enabled: v }))}>
-            <input
-              type="text"
-              className="border rounded px-2 py-1.5 text-sm font-mono w-full"
-              placeholder="192.168.1.5:3121"
-              value={jtag.addr}
-              onChange={(e) => setJtag((s) => ({ ...s, addr: e.target.value }))}
-            />
-          </ServiceSection>
+            <ServiceSection label="USB" enabled={usb.enabled} onToggle={(v) => setUsb((s) => ({ ...s, enabled: v }))}>
+              <input
+                type="text"
+                className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+                placeholder="/dev/bus/usb/001/002"
+                value={usb.device}
+                onChange={(e) => setUsb((s) => ({ ...s, device: e.target.value }))}
+              />
+            </ServiceSection>
 
-          <ServiceSection label="Version Tracking" enabled={version.enabled} onToggle={(v) => setVersion((s) => ({ ...s, enabled: v }))}>
-            <input
-              type="text"
-              className="border rounded px-2 py-1.5 text-sm font-mono w-full"
-              placeholder="Version script path (e.g. /opt/scripts/get-version.sh)"
-              value={version.script}
-              onChange={(e) => setVersion((s) => ({ ...s, script: e.target.value }))}
-            />
-            <div className="flex items-center gap-2">
+            <ServiceSection label="UART" enabled={uart.enabled} onToggle={(v) => setUart((s) => ({ ...s, enabled: v }))}>
+              <input
+                type="text"
+                className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+                placeholder="/dev/ttyUSB0"
+                value={uart.device}
+                onChange={(e) => setUart((s) => ({ ...s, device: e.target.value }))}
+              />
+            </ServiceSection>
+
+            <ServiceSection label="JTAG" enabled={jtag.enabled} onToggle={(v) => setJtag((s) => ({ ...s, enabled: v }))}>
               <input
                 type="number"
-                min="1"
-                className="border rounded px-2 py-1.5 text-sm w-24"
-                value={version.interval}
-                onChange={(e) => setVersion((s) => ({ ...s, interval: e.target.value }))}
+                className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+                placeholder="Port (default: 3121)"
+                value={jtag.port}
+                onChange={(e) => setJtag((s) => ({ ...s, port: e.target.value }))}
               />
-              <span className="text-xs text-gray-500">seconds between checks (default 30)</span>
-            </div>
-          </ServiceSection>
+            </ServiceSection>
 
-          <ServiceSection label="Power Control" enabled={power.enabled} onToggle={(v) => setPower((s) => ({ ...s, enabled: v }))}>
-            <input
-              type="text"
-              className="border rounded px-2 py-1.5 text-sm w-full"
-              placeholder="Script path (e.g. power/usb_relay.py)"
-              value={power.script}
-              onChange={(e) => setPower((s) => ({ ...s, script: e.target.value }))}
-            />
-            <textarea
-              className="border rounded px-2 py-1.5 text-sm font-mono w-full"
-              rows={2}
-              placeholder='{"relay_id": 1}'
-              value={power.args}
-              onChange={(e) => setPower((s) => ({ ...s, args: e.target.value }))}
-            />
+            <ServiceSection label="SDMux" enabled={sdmux.enabled} onToggle={(v) => setSdmux((s) => ({ ...s, enabled: v }))}>
+              <input
+                type="text"
+                className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+                placeholder="Control device (e.g. /dev/usb/hidraw0)"
+                value={sdmux.control}
+                onChange={(e) => setSdmux((s) => ({ ...s, control: e.target.value }))}
+              />
+              <input
+                type="text"
+                className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+                placeholder="SD card device (e.g. /dev/sdb)"
+                value={sdmux.sdcard}
+                onChange={(e) => setSdmux((s) => ({ ...s, sdcard: e.target.value }))}
+              />
+            </ServiceSection>
+
+            <ServiceSection label="Power Control" enabled={power.enabled} onToggle={(v) => setPower((s) => ({ ...s, enabled: v }))}>
+              <input
+                type="text"
+                className="border rounded px-2 py-1.5 text-sm w-full"
+                placeholder="Script path (e.g. power/usb_relay.py)"
+                value={power.script}
+                onChange={(e) => setPower((s) => ({ ...s, script: e.target.value }))}
+              />
+              <textarea
+                className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+                rows={2}
+                placeholder='{"relay_id": 1}'
+                value={power.args}
+                onChange={(e) => setPower((s) => ({ ...s, args: e.target.value }))}
+              />
+            </ServiceSection>
+
+            <ServiceSection label="Access Control" enabled={accessControl.enabled} onToggle={(v) => setAccessControl((s) => ({ ...s, enabled: v }))}>
+              <input
+                type="text"
+                className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+                placeholder="Access control value"
+                value={accessControl.value}
+                onChange={(e) => setAccessControl((s) => ({ ...s, value: e.target.value }))}
+              />
+            </ServiceSection>
+
+            <ServiceSection label="Version Control" enabled={version.enabled} onToggle={(v) => setVersion((s) => ({ ...s, enabled: v }))}>
+              <input
+                type="text"
+                className="border rounded px-2 py-1.5 text-sm font-mono w-full"
+                placeholder="Version script path (e.g. /opt/scripts/get-version.sh)"
+                value={version.script}
+                onChange={(e) => setVersion((s) => ({ ...s, script: e.target.value }))}
+              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  className="border rounded px-2 py-1.5 text-sm w-24"
+                  value={version.interval}
+                  onChange={(e) => setVersion((s) => ({ ...s, interval: e.target.value }))}
+                />
+                <span className="text-xs text-gray-500">seconds between checks (default 30)</span>
+              </div>
+            </ServiceSection>
           </ServiceSection>
 
           <label className="flex flex-col gap-1">
