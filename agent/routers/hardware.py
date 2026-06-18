@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from ..auth import require_agent_auth
 from ..config import config
-from ..services import hw_server, power
+from ..services import access_control, hw_server, power
 
 router = APIRouter(tags=["hardware"])
 
@@ -21,13 +21,15 @@ def _get_device(device_id: str):
 async def start_services(device_id: str, _: None = Depends(require_agent_auth)):
     device = _get_device(device_id)
     jtag_ok = await hw_server.start(device_id, device.jtag_port)
+    await access_control.run(device.access_control_script, "unlock")
     return {"jtag_started": jtag_ok}
 
 
 @router.post("/devices/{device_id}/services/stop")
 async def stop_services(device_id: str, _: None = Depends(require_agent_auth)):
-    _get_device(device_id)
+    device = _get_device(device_id)
     await hw_server.stop(device_id)
+    await access_control.run(device.access_control_script, "lock")
     return {"stopped": True}
 
 

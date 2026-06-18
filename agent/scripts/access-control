@@ -1,0 +1,8 @@
+#!/bin/sh
+# Lock or unlock the display session for access control.
+# Usage: access-control lock|unlock
+case "$1" in
+    lock)   loginctl lock-session ;;
+    unlock) loginctl unlock-session ;;
+    *) echo "Usage: $0 lock|unlock" >&2; exit 1 ;;
+esac

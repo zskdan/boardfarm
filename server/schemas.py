@@ -47,7 +47,7 @@ class DeviceIn(BaseModel):
     uart_device: str = ""
     sdmux_control: str = ""
     sdmux_sdcard: str = ""
-    access_control: str = ""
+    access_control_script: str = ""
     enabled: bool = True
     version_script: str = ""
     version_poll_interval: int = 0
@@ -72,7 +72,7 @@ class DeviceUpdate(BaseModel):
     uart_device: str | None = None
     sdmux_control: str | None = None
     sdmux_sdcard: str | None = None
-    access_control: str | None = None
+    access_control_script: str | None = None
     enabled: bool | None = None
     version_script: str | None = None
     version_poll_interval: int | None = None
@@ -145,7 +145,7 @@ class DeviceOut(BaseModel):
     uart_device: str = ""
     sdmux_control: str = ""
     sdmux_sdcard: str = ""
-    access_control: str = ""
+    access_control_script: str = ""
     enabled: bool
     agent_online: bool = False
     deployed_version: str = ""

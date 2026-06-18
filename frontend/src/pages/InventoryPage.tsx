@@ -78,7 +78,7 @@ const DEFAULT_DEVICE: DeviceCreate = {
   name: '', serial_number: '', revision: '', description: '',
   location: '', device_ip: '', host_ip: '', features: {}, jtag_port: 3121,
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
-  usb_device: '', uart_device: '', sdmux_control: '/dev/sg0', sdmux_sdcard: '', access_control: '',
+  usb_device: '', uart_device: '', sdmux_control: '/dev/sg0', sdmux_sdcard: '', access_control_script: '',
   version_script: '/opt/boardfarm/agent/scripts/get-deployed-version', version_poll_interval: 30, enabled: true, current_notes: '',
 };
 
@@ -180,7 +180,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
         uart_device: hasAgent && hasUart ? form.uart_device ?? '' : '',
         sdmux_control: hasAgent && hasSdmux ? form.sdmux_control ?? '' : '',
         sdmux_sdcard: hasAgent && hasSdmux ? form.sdmux_sdcard ?? '' : '',
-        access_control: hasAgent && hasAccessControl ? form.access_control ?? '' : '',
+        access_control_script: hasAgent && hasAccessControl ? form.access_control_script ?? '' : '',
         version_script: hasAgent && hasVersion ? form.version_script ?? '' : '',
         version_poll_interval: hasAgent && hasVersion ? form.version_poll_interval ?? 30 : 0,
       };
@@ -374,11 +374,11 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
               </label>
               {hasAccessControl && (
                 <div className="flex flex-col gap-3 pl-3 border-l-2 border-rose-100">
-                  <Field label="Access control device">
+                  <Field label="Access control script">
                     <input type="text" className={`${inputCls} font-mono`}
-                      placeholder="ex: /dev/ttyACM0"
-                      value={form.access_control ?? ''}
-                      onChange={(e) => setForm(f => ({ ...f, access_control: e.target.value }))} />
+                      placeholder="/opt/boardfarm/agent/scripts/access-control"
+                      value={form.access_control_script ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, access_control_script: e.target.value }))} />
                   </Field>
                 </div>
               )}
@@ -447,7 +447,7 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
     uart_device: device.uart_device ?? '',
     sdmux_control: device.sdmux_control ?? '',
     sdmux_sdcard: device.sdmux_sdcard ?? '',
-    access_control: device.access_control ?? '',
+    access_control_script: device.access_control_script ?? '',
     version_script: device.version_script ?? '',
     version_poll_interval: device.version_poll_interval ?? 30,
     enabled: device.enabled,
@@ -455,13 +455,13 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
   const [featuresRaw, setFeaturesRaw] = useState(JSON.stringify(device.features, null, 2));
   const [hasEthernet, setHasEthernet] = useState(!!(device.device_ip || device.ssh_port));
   const [hasSsh, setHasSsh] = useState(!!device.ssh_port);
-  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.power_script || device.usb_device || device.uart_device || device.sdmux_control || device.access_control || device.version_script));
+  const [hasAgent, setHasAgent] = useState(!!(device.host_ip || device.jtag_port || device.power_script || device.usb_device || device.uart_device || device.sdmux_control || device.access_control_script || device.version_script));
   const [hasUsb, setHasUsb] = useState(!!device.usb_device);
   const [hasUart, setHasUart] = useState(!!device.uart_device);
   const [hasJtag, setHasJtag] = useState(!!device.jtag_port);
   const [hasPower, setHasPower] = useState(!!device.power_script);
   const [hasSdmux, setHasSdmux] = useState(!!device.sdmux_control);
-  const [hasAccessControl, setHasAccessControl] = useState(!!device.access_control);
+  const [hasAccessControl, setHasAccessControl] = useState(!!device.access_control_script);
   const [hasVersion, setHasVersion] = useState(!!device.version_script);
   const [agentSelfHosted, setAgentSelfHosted] = useState(
     !!(device.host_ip && device.device_ip && device.host_ip === device.device_ip)
@@ -490,7 +490,7 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
         uart_device: hasAgent && hasUart ? form.uart_device : '',
         sdmux_control: hasAgent && hasSdmux ? form.sdmux_control : '',
         sdmux_sdcard: hasAgent && hasSdmux ? form.sdmux_sdcard : '',
-        access_control: hasAgent && hasAccessControl ? form.access_control : '',
+        access_control_script: hasAgent && hasAccessControl ? form.access_control_script : '',
         version_script: hasAgent && hasVersion ? form.version_script : '',
         version_poll_interval: hasAgent && hasVersion ? form.version_poll_interval : 0,
       }, username);
@@ -684,11 +684,11 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
               </label>
               {hasAccessControl && (
                 <div className="flex flex-col gap-3 pl-3 border-l-2 border-rose-100">
-                  <Field label="Access control device">
+                  <Field label="Access control script">
                     <input type="text" className={`${inputCls} font-mono`}
-                      placeholder="ex: /dev/ttyACM0"
-                      value={form.access_control ?? ''}
-                      onChange={(e) => setForm(f => ({ ...f, access_control: e.target.value }))} />
+                      placeholder="/opt/boardfarm/agent/scripts/access-control"
+                      value={form.access_control_script ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, access_control_script: e.target.value }))} />
                   </Field>
                 </div>
               )}

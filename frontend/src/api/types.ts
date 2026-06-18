@@ -77,7 +77,7 @@ export interface DeviceInfo {
   uart_device: string;
   sdmux_control: string;
   sdmux_sdcard: string;
-  access_control: string;
+  access_control_script: string;
   enabled: boolean;
   agent_online: boolean;
   deployed_version: string;
@@ -106,7 +106,7 @@ export interface DeviceCreate {
   uart_device?: string;
   sdmux_control?: string;
   sdmux_sdcard?: string;
-  access_control?: string;
+  access_control_script?: string;
   enabled: boolean;
   current_notes: string;
   version_script?: string;

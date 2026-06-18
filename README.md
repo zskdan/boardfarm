@@ -411,6 +411,6 @@ Full audit log: bookings, releases, extensions, device adds/edits/deletes. Filte
 | `power_script` | string | Absolute path to power control script on agent host |
 | `sdmux_control` | string | SDMux control device on agent host (e.g. `/dev/sg0`) |
 | `sdmux_sdcard` | string | SD card block device (e.g. `/dev/disk/by-path/...`) |
-| `access_control` | string | Access control device on agent host (e.g. `/dev/ttyACM0`) |
+| `access_control_script` | string | Path to access control script on agent host (default `/opt/boardfarm/agent/scripts/access-control`) |
 | `features` | JSON | Key/value capability map; auto-populated from enabled hardware options |
 | `enabled` | bool | Disabled devices cannot be booked |

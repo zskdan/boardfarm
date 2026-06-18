@@ -87,7 +87,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
           sdmux_sdcard: agent.enabled && sdmux.enabled ? sdmux.sdcard : '',
           power_script: agent.enabled && power.enabled ? power.script : '',
           power_args: agent.enabled && power.enabled ? JSON.parse(power.args || '{}') : {},
-          access_control: agent.enabled && accessControl.enabled ? accessControl.value : '',
+          access_control_script: agent.enabled && accessControl.enabled ? accessControl.value : '',
           version_script: agent.enabled && version.enabled ? version.script : '',
           version_poll_interval: agent.enabled && version.enabled ? parseInt(version.interval) || 30 : 0,
         },

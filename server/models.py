@@ -79,7 +79,7 @@ class Device(Base):
     uart_device: Mapped[str] = mapped_column(String, default="")
     sdmux_control: Mapped[str] = mapped_column(String, default="")
     sdmux_sdcard: Mapped[str] = mapped_column(String, default="")
-    access_control: Mapped[str] = mapped_column(String, default="")
+    access_control_script: Mapped[str] = mapped_column(String, default="")
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     deployed_version: Mapped[str] = mapped_column(String, default="")
     version_script: Mapped[str] = mapped_column(String, default="")
