@@ -20,6 +20,20 @@ A development device booking and inventory system for shared hardware labs. Team
 |-----------------|-------------------------------------|
 | ![Book setup modal with duration and comment](screenshots/book-setup-modal.png) | ![Add device modal with agent section expanded showing USB, UART, JTAG and Power Control](screenshots/add-device-modal-agent.png) |
 
+### Version Control
+
+When a device has a version script configured, the agent polls it periodically and pushes the result to the server. The badge in the device header turns **green ✓ clean** when the deployed software matches the reference snapshot, or **red ✗ dirty** when it differs. Clicking the badge opens a detail modal.
+
+| Clean — matches reference | Dirty — packages diverged |
+|--------------------------|--------------------------|
+| ![Device header showing green clean badge](screenshots/version-clean-badge.png) | ![Device header showing red dirty badge with ref SHA](screenshots/version-dirty-badge.png) |
+
+| Clean detail modal | Dirty detail modal (diff view) |
+|-------------------|-------------------------------|
+| ![Modal showing current component versions](screenshots/version-clean-modal.png) | ![Modal with changed lines in red and reference values in italic below](screenshots/version-dirty-modal.png) |
+
+In the dirty diff view, lines that differ from the reference are **highlighted red** with the reference value shown in small italic text beneath each changed line.
+
 ---
 
 ## Architecture
