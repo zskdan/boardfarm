@@ -8,21 +8,27 @@ A development device booking and inventory system for shared hardware labs. Team
 |-----------|--------|
 | ![Inventory page showing device list with status badges](screenshots/inventory.png) | ![Setups page with atomic booking cards](screenshots/setups.png) |
 
-| Device detail (shell commands) | Booking history |
-|-------------------------------|----------------|
-| ![Device detail with SSH/UART/JTAG shell commands](screenshots/device-detail.png) | ![History page with audit log](screenshots/history.png) |
+| Device detail (version badge + Redeploy) | Booking history |
+|------------------------------------------|----------------|
+| ![Device detail showing pending version badge and Redeploy button](screenshots/device-detail.png) | ![History page with audit log](screenshots/history.png) |
 
 | Settings | Add Setup (device picker) |
 |----------|--------------------------|
 | ![Settings modal for server URL and username](screenshots/settings-modal.png) | ![Add setup modal with searchable device picker](screenshots/add-setup-modal.png) |
 
-| Book Setup modal | Add device (agent section expanded) |
-|-----------------|-------------------------------------|
-| ![Book setup modal with duration and comment](screenshots/book-setup-modal.png) | ![Add device modal with agent section expanded showing USB, UART, JTAG and Power Control](screenshots/add-device-modal-agent.png) |
+| Book Setup modal | Add device (agent + Version Control expanded) |
+|-----------------|-----------------------------------------------|
+| ![Book setup modal with duration and comment](screenshots/book-setup-modal.png) | ![Add device modal with Ethernet, SSH, Hardware Agent (self-hosted unchecked), and Version Control all expanded showing Get Version Script Path and Reference Version File Path fields](screenshots/add-device-modal-agent.png) |
 
 ### Version Control
 
-When a device has a version script configured, the agent polls it periodically and pushes the result to the server. The badge in the device header turns **green ✓ clean** when the deployed software matches the reference snapshot, or **red ✗ dirty** when it differs. Clicking the badge opens a detail modal.
+When a device has a **Get Version Script Path** configured, the agent runs `check-version <get_script> <ref_file>` on a configurable interval and pushes the result to the server. The **DEPLOYED** badge in the device header shows:
+
+- **`pending…`** (grey) — version script is set but the agent hasn't reported yet
+- **`✓ clean`** (green) — deployed software matches the reference snapshot
+- **`✗ dirty`** (red) — deployed software differs from the reference
+
+Clicking the badge opens a detail modal. When a **Redeployment script path** is configured the **Redeploy** button appears inline next to the badge; clicking it runs the script through the agent and shows the result.
 
 | Clean — matches reference | Dirty — packages diverged |
 |--------------------------|--------------------------|
@@ -78,7 +84,7 @@ Each **agent** runs natively on a host PC that is physically wired to one or mor
 |------|-------------|
 | `server/` | Central inventory & booking API (FastAPI, SQLite) |
 | `agent/` | Hardware agent (FastAPI + mDNS) |
-| `agent/scripts/` | Server-side scripts installed to `/opt/boardfarm/agent/` (`sdcard-acquire`, `sdcard-release`) |
+| `agent/scripts/` | Helper scripts installed to `/opt/boardfarm/agent/scripts/` (`sdcard-manager`, `check-version`, `access-control`) |
 | `power/` | Power control scripts (USB relay, GPIO, dummy) |
 | `frontend/` | React + Vite SPA |
 | `user-scripts/` | Client-side helpers (`uart-connect`, `sdcard`) |
@@ -161,7 +167,7 @@ sudo boardfarm-agent/install.sh
 The installer:
 - Creates a `boardfarm` system user (added to `dialout` and `plugdev`)
 - Installs a Python virtualenv at `/opt/boardfarm/agent/venv/` using only the bundled wheels
-- Copies `sdcard-acquire` / `sdcard-release` to `/opt/boardfarm/agent/`
+- Copies helper scripts to `/opt/boardfarm/agent/scripts/` (`sdcard-manager`, `check-version`, `access-control`)
 - Writes `/opt/boardfarm/agent/config.yaml` from the example (skipped on re-run)
 - Installs and enables the `boardfarm-agent` systemd service
 
@@ -286,19 +292,20 @@ Filter box searches name, device ID, location, username, or feature key.
 **Add Device** form sections (collapsed by default):
 
 - **Ethernet** — Device IP; enables SSH sub-section (SSH User, SSH Port)
-- **Hardware agent** — Agent Host IP (required) and capability sub-sections:
+- **Hardware agent** — **Self hosted** checkbox (agent runs on the device itself) or **Hardware agent IP** field when unchecked; capability sub-sections:
   - **USB** — USB device path
   - **UART** — UART device path
   - **JTAG** — JTAG port (default `3121`)
-  - **Power Control** — power script path and args
   - **SDMux** — SDMux control device (default `/dev/sg0`) and SD card path
-  - **Access Control** — access control device path
+  - **Power Control** — power script path and args
+  - **Access Control** — path to the access control script (default `/opt/boardfarm/agent/scripts/access-control`); run with `unlock` on booking and `lock` on release
+  - **Version Control** — **Get Version Script Path**, **Reference Version File Path**, **Check interval (seconds)**, **Redeployment script path**; the agent polls the version script and shows a badge; a Redeploy button appears on the device detail page when a redeployment script is set
 
 Each enabled sub-section automatically adds the matching key to the device's Features map.
 
 ### Device detail (`/devices/:id`)
 
-- **Hardware info** — device ID, serial number, revision, location, IP addresses, agent status
+- **Hardware info** — device ID, serial number, revision, location, IP addresses, agent status; **DEPLOYED** badge shows `pending…` / `✓ clean` / `✗ dirty` when a version script is configured; **Redeploy** button triggers the redeployment script through the agent
 - **Features** — key/value capability map
 - **Connectivity** — ready-to-run shell commands with **Copy** and **Script** (download) buttons:
 
@@ -385,9 +392,10 @@ Full audit log: bookings, releases, extensions, device adds/edits/deletes. Filte
 |--------|------|-------------|
 | GET | `/health` | Liveness + version |
 | GET | `/devices` | Devices managed by this agent |
-| POST | `/devices/{id}/services/start` | Start hw_server + UART proxy |
-| POST | `/devices/{id}/services/stop` | Stop hw_server + UART proxy |
+| POST | `/devices/{id}/services/start` | Start hw_server + UART proxy (runs access-control unlock) |
+| POST | `/devices/{id}/services/stop` | Stop hw_server + UART proxy (runs access-control lock) |
 | POST | `/devices/{id}/power` | Power action `{action: on\|off\|reset}` |
+| POST | `/devices/{id}/redeploy` | Run the device's redeployment script (proxied via server) |
 
 ---
 
@@ -411,6 +419,10 @@ Full audit log: bookings, releases, extensions, device adds/edits/deletes. Filte
 | `power_script` | string | Absolute path to power control script on agent host |
 | `sdmux_control` | string | SDMux control device on agent host (e.g. `/dev/sg0`) |
 | `sdmux_sdcard` | string | SD card block device (e.g. `/dev/disk/by-path/...`) |
-| `access_control_script` | string | Path to access control script on agent host (default `/opt/boardfarm/agent/scripts/access-control`) |
+| `access_control_script` | string | Path to access control script on agent host (default `/opt/boardfarm/agent/scripts/access-control`); called with `unlock` on booking and `lock` on release |
+| `version_script` | string | Absolute path to the "get version" script on the agent host (e.g. `/opt/sca/get-version.sh`) |
+| `version_ref_file` | string | Absolute path to the reference snapshot file (e.g. `/opt/sca/ref-version.txt`) |
+| `version_poll_interval` | int | Seconds between version checks; `0` = agent default |
+| `redeployment_script` | string | Absolute path to the redeployment script; enables the **Redeploy** button on the device detail page |
 | `features` | JSON | Key/value capability map; auto-populated from enabled hardware options |
 | `enabled` | bool | Disabled devices cannot be booked |
