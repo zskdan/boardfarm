@@ -34,4 +34,4 @@ async def broadcast(event: dict):
             await ws.send_text(msg)
         except Exception:
             dead.add(ws)
-    _connections -= dead
+    _connections.difference_update(dead)
