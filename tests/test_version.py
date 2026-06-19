@@ -2,8 +2,8 @@
 
 Covers:
 - Server  PATCH /devices/{id}/version endpoint (multi-line payload, auth, truncation)
-- Agent   services.version.run_script() returning full stdout
-- Script  agent/scripts/get-deployed-version output format (clean / dirty)
+- Agent   services.version.run_script() returning full stdout via check-version
+- Script  agent/scripts/check-version output format (clean / dirty)
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from agent.services.version import run_script
 AUTH_HEADERS = {"X-Token": "test-token", "X-User": "testuser"}
 AGENT_HEADERS = {"X-Token": "test-token"}
 
-SCRIPT_PATH = Path(__file__).parent.parent / "agent" / "scripts" / "get-deployed-version"
+SCRIPT_PATH = Path(__file__).parent.parent / "agent" / "scripts" / "check-version"
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -58,17 +58,15 @@ def _make_script(body: str) -> str:
 
 
 def _patch_script(dest_dir: Path) -> Path:
-    """Copy get-deployed-version to dest_dir with paths substituted for testing."""
-    ref = dest_dir / "ref-version.txt"
-    get_ver = dest_dir / "get_version.sh"
+    """Copy check-version to dest_dir with CURRENT_FILE substituted for testing.
+
+    GET_SCRIPT and REF_FILE are now positional arguments, so callers must pass
+    them on the command line: subprocess.run([str(script), get_ver, ref_file], ...)
+    """
     current = dest_dir / "current_version.txt"
-
     text = SCRIPT_PATH.read_text()
-    text = text.replace("REF_FILE=/opt/sca/ref-version.txt", f"REF_FILE={ref}")
-    text = text.replace("GET_SCRIPT=/opt/sca/get_version.sh", f"GET_SCRIPT={get_ver}")
     text = text.replace("CURRENT_FILE=/tmp/current_version.txt", f"CURRENT_FILE={current}")
-
-    patched = dest_dir / "get-deployed-version"
+    patched = dest_dir / "check-version"
     patched.write_text(text)
     patched.chmod(0o755)
     return patched
@@ -163,53 +161,63 @@ async def test_report_version_truncates_at_16384(client):
 
 
 # ── agent run_script tests ────────────────────────────────────────────────────
+# run_script(get_script, ref_file) now calls check-version internally.
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not SCRIPT_PATH.exists(), reason="check-version script not found")
 async def test_run_script_returns_full_output():
-    script = _make_script("#!/bin/sh\necho 'line1'\necho 'line2'\necho 'line3'\n")
-    try:
-        result = await run_script(script)
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        content = "line1\nline2\nline3\n"
+        ref = d / "ref.txt"
+        ref.write_text(content)
+        get_ver = d / "get_version.sh"
+        get_ver.write_text(f"#!/bin/sh\nprintf 'line1\\nline2\\nline3\\n'\n")
+        get_ver.chmod(0o755)
+        result = await run_script(str(get_ver), str(ref))
         assert result is not None
-        lines = result.split("\n")
-        assert lines[0] == "line1"
-        assert lines[1] == "line2"
-        assert lines[2] == "line3"
-    finally:
-        os.unlink(script)
+        assert "line1" in result
+        assert "line2" in result
+        assert "line3" in result
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not SCRIPT_PATH.exists(), reason="check-version script not found")
 async def test_run_script_multiline_version_format():
-    body = textwrap.dedent("""\
-        #!/bin/sh
-        printf 'a1b2c3d4:clean\\n'
-        printf 'component1 v1.2.3\\n'
-        printf 'component2 v4.5.6\\n'
-    """)
-    script = _make_script(body)
-    try:
-        result = await run_script(script)
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        content = "component1 v1.2.3\ncomponent2 v4.5.6\n"
+        ref = d / "ref.txt"
+        ref.write_text(content)
+        get_ver = d / "get_version.sh"
+        get_ver.write_text(f"#!/bin/sh\nprintf 'component1 v1.2.3\\ncomponent2 v4.5.6\\n'\n")
+        get_ver.chmod(0o755)
+        result = await run_script(str(get_ver), str(ref))
         assert result is not None
-        assert result.split("\n")[0] == "a1b2c3d4:clean"
         assert "component1 v1.2.3" in result
         assert "component2 v4.5.6" in result
-    finally:
-        os.unlink(script)
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not SCRIPT_PATH.exists(), reason="check-version script not found")
 async def test_run_script_returns_none_on_failure():
-    script = _make_script("#!/bin/sh\nexit 1\n")
+    get_ver = _make_script("#!/bin/sh\nexit 1\n")
     try:
-        result = await run_script(script)
-        assert result is None
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as f:
+            ref = f.name
+            f.write(b"dummy\n")
+        try:
+            result = await run_script(get_ver, ref)
+            assert result is None
+        finally:
+            os.unlink(ref)
     finally:
-        os.unlink(script)
+        os.unlink(get_ver)
 
 
 @pytest.mark.asyncio
 async def test_run_script_returns_none_for_missing_script():
-    result = await run_script("/nonexistent/path/version.sh")
+    result = await run_script("/nonexistent/get_version.sh", "/nonexistent/ref.txt")
     assert result is None
 
 
@@ -255,7 +263,8 @@ def test_script_line_added_to_current():
     """A line in current that has no counterpart in reference emits a bare +line."""
     with tempfile.TemporaryDirectory() as td:
         d = Path(td)
-        (d / "ref-version.txt").write_text("kernel 6.6.30\nopenssl 3.2.1\n")
+        ref = d / "ref-version.txt"
+        ref.write_text("kernel 6.6.30\nopenssl 3.2.1\n")
         get_ver = d / "get_version.sh"
         # current has an extra line at the end
         get_ver.write_text(
@@ -264,7 +273,7 @@ def test_script_line_added_to_current():
         get_ver.chmod(0o755)
 
         script = _patch_script(d)
-        proc = subprocess.run([str(script)], capture_output=True, text=True)
+        proc = subprocess.run([str(script), str(get_ver), str(ref)], capture_output=True, text=True)
         assert proc.returncode == 0
         assert proc.stdout.split("\n")[0].endswith(":dirty:" + proc.stdout.split("\n")[0].split(":")[-1])
 
@@ -281,7 +290,8 @@ def test_script_line_removed_from_current():
     """A line in reference that has no counterpart in current emits a bare -line."""
     with tempfile.TemporaryDirectory() as td:
         d = Path(td)
-        (d / "ref-version.txt").write_text("kernel 6.6.30\nglibc 2.38\nopenssl 3.2.1\n")
+        ref = d / "ref-version.txt"
+        ref.write_text("kernel 6.6.30\nglibc 2.38\nopenssl 3.2.1\n")
         get_ver = d / "get_version.sh"
         # current is missing glibc
         get_ver.write_text(
@@ -290,7 +300,7 @@ def test_script_line_removed_from_current():
         get_ver.chmod(0o755)
 
         script = _patch_script(d)
-        proc = subprocess.run([str(script)], capture_output=True, text=True)
+        proc = subprocess.run([str(script), str(get_ver), str(ref)], capture_output=True, text=True)
         assert proc.returncode == 0
 
         output_lines = proc.stdout.split("\n")
@@ -306,7 +316,8 @@ def test_script_mixed_add_remove_change():
     """Combined add, remove, and change all produce correct diff markers."""
     with tempfile.TemporaryDirectory() as td:
         d = Path(td)
-        (d / "ref-version.txt").write_text(
+        ref = d / "ref-version.txt"
+        ref.write_text(
             "kernel 6.6.30\nglibc 2.38\nopenssl 3.2.1\nbusybox 1.36.1\npython3 3.11.8\n"
         )
         get_ver = d / "get_version.sh"
@@ -317,7 +328,7 @@ def test_script_mixed_add_remove_change():
         get_ver.chmod(0o755)
 
         script = _patch_script(d)
-        proc = subprocess.run([str(script)], capture_output=True, text=True)
+        proc = subprocess.run([str(script), str(get_ver), str(ref)], capture_output=True, text=True)
         assert proc.returncode == 0
         lines = proc.stdout.split("\n")
 
@@ -337,13 +348,14 @@ def test_script_clean_output():
     with tempfile.TemporaryDirectory() as td:
         d = Path(td)
         content = "component1 v1.2.3\ncomponent2 v4.5.6\n"
-        (d / "ref-version.txt").write_text(content)
+        ref = d / "ref-version.txt"
+        ref.write_text(content)
         get_ver = d / "get_version.sh"
-        get_ver.write_text(f"#!/bin/sh\ncat '{d}/ref-version.txt'\n")
+        get_ver.write_text(f"#!/bin/sh\ncat '{ref}'\n")
         get_ver.chmod(0o755)
 
         script = _patch_script(d)
-        proc = subprocess.run([str(script)], capture_output=True, text=True)
+        proc = subprocess.run([str(script), str(get_ver), str(ref)], capture_output=True, text=True)
         assert proc.returncode == 0, f"stderr: {proc.stderr}"
 
         lines = proc.stdout.split("\n")
@@ -360,7 +372,8 @@ def test_script_clean_output():
 def test_script_dirty_output():
     with tempfile.TemporaryDirectory() as td:
         d = Path(td)
-        (d / "ref-version.txt").write_text("component1 v1.2.3\ncomponent2 v4.5.6\n")
+        ref = d / "ref-version.txt"
+        ref.write_text("component1 v1.2.3\ncomponent2 v4.5.6\n")
         get_ver = d / "get_version.sh"
         get_ver.write_text(
             "#!/bin/sh\nprintf 'component1 v1.2.3\\ncomponent2 v4.6.0\\n'\n"
@@ -368,7 +381,7 @@ def test_script_dirty_output():
         get_ver.chmod(0o755)
 
         script = _patch_script(d)
-        proc = subprocess.run([str(script)], capture_output=True, text=True)
+        proc = subprocess.run([str(script), str(get_ver), str(ref)], capture_output=True, text=True)
         assert proc.returncode == 0, f"stderr: {proc.stderr}"
 
         first = proc.stdout.split("\n")[0]
@@ -387,18 +400,20 @@ def test_script_dirty_sha_differs_from_clean():
     """SHA in clean and dirty cases must differ when content differs."""
     with tempfile.TemporaryDirectory() as td:
         d = Path(td)
-        (d / "ref-version.txt").write_text("version 1.0\n")
+        ref = d / "ref-version.txt"
+        ref.write_text("version 1.0\n")
 
         # Clean run
         get_ver = d / "get_version.sh"
         get_ver.write_text("#!/bin/sh\nprintf 'version 1.0\\n'\n")
         get_ver.chmod(0o755)
-        clean_proc = subprocess.run([str(_patch_script(d))], capture_output=True, text=True)
+        script = _patch_script(d)
+        clean_proc = subprocess.run([str(script), str(get_ver), str(ref)], capture_output=True, text=True)
         clean_sha = clean_proc.stdout.split("\n")[0].split(":")[0]
 
         # Dirty run
         get_ver.write_text("#!/bin/sh\nprintf 'version 1.1\\n'\n")
-        dirty_proc = subprocess.run([str(_patch_script(d))], capture_output=True, text=True)
+        dirty_proc = subprocess.run([str(script), str(get_ver), str(ref)], capture_output=True, text=True)
         parts = dirty_proc.stdout.split("\n")[0].split(":")
         cur_sha, _, ref_sha = parts[0], parts[1], parts[2]
 

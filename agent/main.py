@@ -33,7 +33,7 @@ async def _register_with_server() -> None:
 
 
 async def _fetch_device_version_configs() -> None:
-    """Pull version_script and version_poll_interval from the server for each device."""
+    """Pull version fields from the server for each device."""
     for device in config.devices:
         try:
             async with httpx.AsyncClient(timeout=5) as client:
@@ -45,6 +45,8 @@ async def _fetch_device_version_configs() -> None:
                 data = resp.json()
                 if data.get("version_script"):
                     device.version_script = data["version_script"]
+                if data.get("version_ref_file"):
+                    device.version_ref_file = data["version_ref_file"]
                 if data.get("version_poll_interval", 0) > 0:
                     device.version_poll_interval = data["version_poll_interval"]
         except Exception:

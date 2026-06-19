@@ -84,6 +84,7 @@ export interface DeviceInfo {
   active_booking: BookingInfo | null;
   current_notes: string;
   version_script: string;
+  version_ref_file: string;
   version_poll_interval: number;
   redeployment_script: string;
 }
@@ -111,6 +112,7 @@ export interface DeviceCreate {
   enabled: boolean;
   current_notes: string;
   version_script?: string;
+  version_ref_file?: string;
   version_poll_interval?: number;
   redeployment_script?: string;
 }

@@ -50,6 +50,7 @@ class DeviceIn(BaseModel):
     access_control_script: str = ""
     enabled: bool = True
     version_script: str = ""
+    version_ref_file: str = ""
     version_poll_interval: int = 0
     redeployment_script: str = ""
 
@@ -76,6 +77,7 @@ class DeviceUpdate(BaseModel):
     access_control_script: str | None = None
     enabled: bool | None = None
     version_script: str | None = None
+    version_ref_file: str | None = None
     version_poll_interval: int | None = None
     redeployment_script: str | None = None
 
@@ -152,6 +154,7 @@ class DeviceOut(BaseModel):
     agent_online: bool = False
     deployed_version: str = ""
     version_script: str = ""
+    version_ref_file: str = ""
     version_poll_interval: int = 0
     redeployment_script: str = ""
     active_booking: BookingOut | None = None

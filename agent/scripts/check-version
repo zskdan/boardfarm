@@ -3,15 +3,19 @@ set -eu
 # Boardfarm version reporter for SCA (Software Component Analysis).
 # Compares the currently deployed software against a reference snapshot.
 #
+# Usage: check-version [GET_SCRIPT] [REF_VERSION_FILE]
+#   GET_SCRIPT        Script that prints current component versions (default below)
+#   REF_VERSION_FILE  Reference snapshot file to compare against (default below)
+#
 # Outputs (first line consumed by boardfarm agent):
-#   <sha8>:clean           — deployed matches reference
+#   <sha8>:clean               — deployed matches reference
 #   <sha8cur>:dirty:<sha8ref>  — deployed differs from reference
 # Remaining lines: full content (clean) or unified diff (dirty).
 #
-# Dependencies: sha1sum, diff, /opt/sca/get_version.sh, /opt/sca/ref-version.txt
+# Dependencies: sha1sum, diff
 
-REF_FILE=/opt/sca/ref-version.txt
-GET_SCRIPT=/opt/sca/get_version.sh
+GET_SCRIPT="${1:-/opt/boardfarm/agent/tests/get-version.sh}"
+REF_FILE="${2:-/opt/boardfarm/agent/tests/ref-version.txt}"
 CURRENT_FILE=/tmp/current_version.txt
 
 ref_sha=$(sha1sum "$REF_FILE" | cut -c1-8)

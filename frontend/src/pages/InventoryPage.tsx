@@ -79,7 +79,7 @@ const DEFAULT_DEVICE: DeviceCreate = {
   location: '', device_ip: '', host_ip: '', features: {}, jtag_port: 3121,
   ssh_user: 'root', ssh_port: 22, power_script: '', power_args: {},
   usb_device: '', uart_device: '', sdmux_control: '/dev/sg0', sdmux_sdcard: '', access_control_script: '',
-  version_script: '/opt/boardfarm/agent/scripts/get-deployed-version', version_poll_interval: 30, redeployment_script: '', enabled: true, current_notes: '',
+  version_script: '/opt/sca/get-version.sh', version_ref_file: '/opt/sca/ref-version.txt', version_poll_interval: 30, redeployment_script: '', enabled: true, current_notes: '',
 };
 
 function limitLabel(l: BookingLimit): string {
@@ -182,6 +182,7 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
         sdmux_sdcard: hasAgent && hasSdmux ? form.sdmux_sdcard ?? '' : '',
         access_control_script: hasAgent && hasAccessControl ? form.access_control_script ?? '' : '',
         version_script: hasAgent && hasVersion ? form.version_script ?? '' : '',
+        version_ref_file: hasAgent && hasVersion ? form.version_ref_file ?? '' : '',
         version_poll_interval: hasAgent && hasVersion ? form.version_poll_interval ?? 30 : 0,
         redeployment_script: hasAgent && hasVersion ? form.redeployment_script ?? '' : '',
       };
@@ -391,11 +392,17 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
               </label>
               {hasVersion && (
                 <div className="flex flex-col gap-3 pl-3 border-l-2 border-violet-100">
-                  <Field label="Version script path">
+                  <Field label="Get Version Script Path">
                     <input type="text" className={`${inputCls} font-mono`}
-                      placeholder="ex: /opt/scripts/get-version.sh"
+                      placeholder="/opt/sca/get-version.sh"
                       value={form.version_script ?? ''}
                       onChange={(e) => setForm(f => ({ ...f, version_script: e.target.value }))} />
+                  </Field>
+                  <Field label="Reference Version File Path">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="/opt/sca/ref-version.txt"
+                      value={form.version_ref_file ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, version_ref_file: e.target.value }))} />
                   </Field>
                   <Field label="Check interval (seconds)">
                     <input type="number" min={1} className={inputCls} value={form.version_poll_interval ?? 30}
@@ -456,6 +463,7 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
     sdmux_sdcard: device.sdmux_sdcard ?? '',
     access_control_script: device.access_control_script ?? '',
     version_script: device.version_script ?? '',
+    version_ref_file: device.version_ref_file ?? '',
     version_poll_interval: device.version_poll_interval ?? 30,
     redeployment_script: device.redeployment_script ?? '',
     enabled: device.enabled,
@@ -500,6 +508,7 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
         sdmux_sdcard: hasAgent && hasSdmux ? form.sdmux_sdcard : '',
         access_control_script: hasAgent && hasAccessControl ? form.access_control_script : '',
         version_script: hasAgent && hasVersion ? form.version_script : '',
+        version_ref_file: hasAgent && hasVersion ? form.version_ref_file : '',
         version_poll_interval: hasAgent && hasVersion ? form.version_poll_interval : 0,
         redeployment_script: hasAgent && hasVersion ? form.redeployment_script : '',
       }, username);
@@ -709,11 +718,17 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
               </label>
               {hasVersion && (
                 <div className="flex flex-col gap-3 pl-3 border-l-2 border-violet-100">
-                  <Field label="Version script path">
+                  <Field label="Get Version Script Path">
                     <input type="text" className={`${inputCls} font-mono`}
-                      placeholder="ex: /opt/scripts/get-version.sh"
+                      placeholder="/opt/sca/get-version.sh"
                       value={form.version_script ?? ''}
                       onChange={(e) => setForm(f => ({ ...f, version_script: e.target.value }))} />
+                  </Field>
+                  <Field label="Reference Version File Path">
+                    <input type="text" className={`${inputCls} font-mono`}
+                      placeholder="/opt/sca/ref-version.txt"
+                      value={form.version_ref_file ?? ''}
+                      onChange={(e) => setForm(f => ({ ...f, version_ref_file: e.target.value }))} />
                   </Field>
                   <Field label="Check interval (seconds)">
                     <input type="number" min={1} className={inputCls} value={form.version_poll_interval ?? 30}

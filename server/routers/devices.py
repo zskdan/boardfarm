@@ -99,6 +99,7 @@ async def _build_device_out(
         agent_online=agent_online,
         deployed_version=device.deployed_version or "",
         version_script=device.version_script or "",
+        version_ref_file=device.version_ref_file or "",
         version_poll_interval=device.version_poll_interval or 0,
         redeployment_script=device.redeployment_script or "",
         active_booking=active_booking,
@@ -183,6 +184,7 @@ async def create_device(
         access_control_script=body.access_control_script,
         enabled=body.enabled,
         version_script=body.version_script,
+        version_ref_file=body.version_ref_file,
         version_poll_interval=body.version_poll_interval,
         redeployment_script=body.redeployment_script,
     )

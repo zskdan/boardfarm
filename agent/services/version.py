@@ -8,34 +8,38 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
+# check-version lives alongside the agent package (agent/scripts/check-version in the repo,
+# /opt/boardfarm/agent/scripts/check-version when installed).
+_CHECK_VERSION = Path(__file__).parent.parent / "scripts" / "check-version"
 
-async def run_script(script_path: str) -> str | None:
-    """Run a version script and return its full stdout, or None on failure.
 
-    The first line of stdout is used as the version badge; subsequent lines
-    carry content or diff details displayed in the UI.
+async def run_script(get_script: str, ref_file: str) -> str | None:
+    """Run check-version with the given GET_SCRIPT and REF_FILE and return full stdout.
+
+    Returns None on any failure (script missing, non-zero exit, timeout).
+    The first line of stdout is the version badge; remaining lines are content or diff.
     """
-    path = Path(script_path)
-    if not path.exists():
-        logger.warning("Version script not found: %s", script_path)
+    if not get_script:
+        return None
+    if not _CHECK_VERSION.exists():
+        logger.warning("check-version script not found: %s", _CHECK_VERSION)
         return None
     try:
         proc = await asyncio.create_subprocess_exec(
-            str(path),
+            str(_CHECK_VERSION), get_script, ref_file,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
         if proc.returncode != 0:
-            logger.warning("Version script failed (rc=%d): %s", proc.returncode, stderr.decode().strip())
+            logger.warning("check-version failed (rc=%d): %s", proc.returncode, stderr.decode().strip())
             return None
-        version = stdout.decode().strip()
-        return version or None
+        return stdout.decode().strip() or None
     except asyncio.TimeoutError:
-        logger.warning("Version script timed out: %s", script_path)
+        logger.warning("check-version timed out for get_script=%s", get_script)
         return None
     except Exception:
-        logger.exception("Error running version script: %s", script_path)
+        logger.exception("Error running check-version for get_script=%s", get_script)
         return None
 
 
@@ -53,7 +57,7 @@ async def push_version(server_url: str, server_token: str, device_id: str, versi
 async def _device_loop(server_url: str, server_token: str, device, interval: int) -> None:
     while True:
         await asyncio.sleep(interval)
-        version = await run_script(device.version_script)
+        version = await run_script(device.version_script, device.version_ref_file)
         if version is not None:
             await push_version(server_url, server_token, device.id, version)
 

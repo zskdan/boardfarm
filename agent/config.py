@@ -19,6 +19,7 @@ class DeviceConfig:
     host_check_ip: str = ""
     host_check_port: int = 22
     version_script: str = ""
+    version_ref_file: str = ""
     version_poll_interval: int = 0  # 0 = use agent-level default; >0 = per-device override
     access_control_script: str = ""
     redeployment_script: str = ""
@@ -57,6 +58,7 @@ def load_config(path: str = "config.yaml") -> AgentConfig:
                 host_check_ip=b.get("host_check_ip", ""),
                 host_check_port=b.get("host_check_port", 22),
                 version_script=b.get("version_script", ""),
+                version_ref_file=b.get("version_ref_file", ""),
                 version_poll_interval=b.get("version_poll_interval", 0),
                 access_control_script=b.get("access_control_script", ""),
                 redeployment_script=b.get("redeployment_script", ""),

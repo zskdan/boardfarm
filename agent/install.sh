@@ -80,14 +80,15 @@ find "$INSTALL_DIR/agent" -name '__pycache__' -exec rm -rf {} + 2>/dev/null || t
 
 # Helper scripts
 info "Installing helper scripts..."
-install -m 0755 "$SCRIPTS_SRC/sdcard-manager"        "$INSTALL_DIR/sdcard-manager"
-install -m 0755 "$SCRIPTS_SRC/get-deployed-version"  "$INSTALL_DIR/get-deployed-version"
-install -m 0755 "$SCRIPTS_SRC/access-control"        "$INSTALL_DIR/access-control"
+mkdir -p "$INSTALL_DIR/scripts"
+install -m 0755 "$SCRIPTS_SRC/sdcard-manager"  "$INSTALL_DIR/scripts/sdcard-manager"
+install -m 0755 "$SCRIPTS_SRC/check-version"   "$INSTALL_DIR/scripts/check-version"
+install -m 0755 "$SCRIPTS_SRC/access-control"  "$INSTALL_DIR/scripts/access-control"
 
 # sudoers — allow the service user to run sdcard-manager as root without a password
 info "Installing sudoers rule..."
 cat > /etc/sudoers.d/boardfarm-sdcard <<'EOF'
-vivado ALL=(root) NOPASSWD: /opt/boardfarm/agent/sdcard-manager
+vivado ALL=(root) NOPASSWD: /opt/boardfarm/agent/scripts/sdcard-manager
 EOF
 chmod 0440 /etc/sudoers.d/boardfarm-sdcard
 

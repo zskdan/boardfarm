@@ -83,6 +83,7 @@ class Device(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     deployed_version: Mapped[str] = mapped_column(String, default="")
     version_script: Mapped[str] = mapped_column(String, default="")
+    version_ref_file: Mapped[str] = mapped_column(String, default="")
     version_poll_interval: Mapped[int] = mapped_column(Integer, default=0)
     redeployment_script: Mapped[str] = mapped_column(String, default="")
 
