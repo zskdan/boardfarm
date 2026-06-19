@@ -85,6 +85,7 @@ export interface DeviceInfo {
   current_notes: string;
   version_script: string;
   version_poll_interval: number;
+  redeployment_script: string;
 }
 
 
@@ -111,6 +112,7 @@ export interface DeviceCreate {
   current_notes: string;
   version_script?: string;
   version_poll_interval?: number;
+  redeployment_script?: string;
 }
 
 

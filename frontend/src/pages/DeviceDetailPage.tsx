@@ -7,6 +7,7 @@ import {
   extendBooking,
   getDevice,
   getUsername,
+  redeployDevice,
   releaseBooking,
 } from '../api/client';
 import DeviceNotes from '../components/DeviceNotes';
@@ -271,6 +272,7 @@ export default function DeviceDetailPage() {
   const [duration, setDuration] = useState(4);
   const [sshViaAgent, setSshViaAgent] = useState(true);
   const [showVersionDetail, setShowVersionDetail] = useState(false);
+  const [redeployResult, setRedeployResult] = useState<{ ok: boolean; stdout: string; stderr: string } | null>(null);
   const me = getUsername();
 
   const { data: device, isLoading } = useQuery({
@@ -300,6 +302,11 @@ export default function DeviceDetailPage() {
   const extendMut = useMutation({
     mutationFn: () => extendBooking(myBooking!.id, 1),
     onSuccess: invalidate,
+  });
+
+  const redeployMut = useMutation({
+    mutationFn: () => redeployDevice(id!, me),
+    onSuccess: (result) => setRedeployResult(result),
   });
 
   if (isLoading || !device) {
@@ -403,24 +410,36 @@ export default function DeviceDetailPage() {
                   ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
                   : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
               return (
-                <div className="flex items-center gap-1">
-                  <span className="text-xs font-semibold text-gray-400 uppercase">Deployed</span>
-                  <button
-                    onClick={() => setShowVersionDetail(true)}
-                    className={`font-mono text-xs px-1.5 py-0.5 rounded border flex items-center gap-1 transition-colors ${badgeCls}`}
-                    title="Click to view version details"
-                  >
-                    {vp.curSha}
-                    {vp.isClean === true && <span className="text-green-600">✓</span>}
-                    {vp.isClean === false && (
-                      <>
-                        <span className="text-red-600">✗</span>
-                        {vp.refSha && (
-                          <span className="opacity-60 text-xs">ref:{vp.refSha}</span>
-                        )}
-                      </>
-                    )}
-                  </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-semibold text-gray-400 uppercase">Deployed</span>
+                    <button
+                      onClick={() => setShowVersionDetail(true)}
+                      className={`font-mono text-xs px-1.5 py-0.5 rounded border flex items-center gap-1 transition-colors ${badgeCls}`}
+                      title="Click to view version details"
+                    >
+                      {vp.curSha}
+                      {vp.isClean === true && <span className="text-green-600">✓</span>}
+                      {vp.isClean === false && (
+                        <>
+                          <span className="text-red-600">✗</span>
+                          {vp.refSha && (
+                            <span className="opacity-60 text-xs">ref:{vp.refSha}</span>
+                          )}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  {device.redeployment_script && (
+                    <button
+                      onClick={() => { setRedeployResult(null); redeployMut.mutate(); }}
+                      disabled={redeployMut.isPending}
+                      className="text-xs px-2 py-0.5 rounded border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors"
+                      title={`Run: ${device.redeployment_script}`}
+                    >
+                      {redeployMut.isPending ? 'Redeploying…' : '↺ Redeploy'}
+                    </button>
+                  )}
                 </div>
               );
             })()}
@@ -573,6 +592,44 @@ export default function DeviceDetailPage() {
           <h2 className="text-sm font-semibold text-gray-700 mb-2">Notes</h2>
           <DeviceNotes deviceId={device.id} notes={device.current_notes ?? ''} />
         </div>
+
+        {/* Redeploy — shown when redeployment_script is set but there's no deployed_version badge */}
+        {device.redeployment_script && !device.deployed_version && (
+          <div className="bg-white rounded-xl border p-5 mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-700">Redeployment</p>
+              <p className="text-xs text-gray-400 font-mono mt-0.5">{device.redeployment_script}</p>
+            </div>
+            <button
+              onClick={() => { setRedeployResult(null); redeployMut.mutate(); }}
+              disabled={redeployMut.isPending}
+              className="text-sm px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors whitespace-nowrap"
+            >
+              {redeployMut.isPending ? 'Redeploying…' : '↺ Redeploy'}
+            </button>
+          </div>
+        )}
+
+        {/* Redeploy result */}
+        {(redeployMut.isError || redeployResult) && (
+          <div className={`rounded-xl border p-5 mb-4 ${redeployResult?.ok ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className={`text-sm font-semibold ${redeployResult?.ok ? 'text-green-700' : 'text-red-700'}`}>
+                {redeployResult?.ok ? '✓ Redeployment succeeded' : '✗ Redeployment failed'}
+              </p>
+              <button onClick={() => setRedeployResult(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+            </div>
+            {redeployResult?.stdout && (
+              <pre className="text-xs font-mono bg-white/60 rounded p-2 max-h-48 overflow-y-auto whitespace-pre-wrap">{redeployResult.stdout}</pre>
+            )}
+            {redeployResult?.stderr && (
+              <pre className="text-xs font-mono text-red-600 bg-white/60 rounded p-2 mt-1 max-h-24 overflow-y-auto whitespace-pre-wrap">{redeployResult.stderr}</pre>
+            )}
+            {redeployMut.isError && (
+              <p className="text-xs text-red-600">{(redeployMut.error as Error).message}</p>
+            )}
+          </div>
+        )}
 
       </div>
 

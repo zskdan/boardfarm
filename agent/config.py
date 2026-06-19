@@ -21,6 +21,7 @@ class DeviceConfig:
     version_script: str = ""
     version_poll_interval: int = 0  # 0 = use agent-level default; >0 = per-device override
     access_control_script: str = ""
+    redeployment_script: str = ""
 
 
 @dataclass
@@ -58,6 +59,7 @@ def load_config(path: str = "config.yaml") -> AgentConfig:
                 version_script=b.get("version_script", ""),
                 version_poll_interval=b.get("version_poll_interval", 0),
                 access_control_script=b.get("access_control_script", ""),
+                redeployment_script=b.get("redeployment_script", ""),
             )
         )
 

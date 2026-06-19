@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import secrets
 import uuid
+
+import httpx
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -98,6 +100,7 @@ async def _build_device_out(
         deployed_version=device.deployed_version or "",
         version_script=device.version_script or "",
         version_poll_interval=device.version_poll_interval or 0,
+        redeployment_script=device.redeployment_script or "",
         active_booking=active_booking,
         tools=[ToolOut.model_validate(t) for t in (device.tools or [])],
     )
@@ -181,6 +184,7 @@ async def create_device(
         enabled=body.enabled,
         version_script=body.version_script,
         version_poll_interval=body.version_poll_interval,
+        redeployment_script=body.redeployment_script,
     )
     db.add(device)
     try:
@@ -256,3 +260,44 @@ async def report_device_version(
         raise HTTPException(status_code=404, detail="Device not found")
     device.deployed_version = body.version.strip()[:16384]
     await db.commit()
+
+
+@router.post("/{device_id}/redeploy", status_code=200)
+async def trigger_redeploy(
+    device_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(require_user),
+):
+    """Proxy a redeploy request to the agent running the device."""
+    device = await _load_device(device_id, db)
+    if not device.redeployment_script:
+        raise HTTPException(status_code=422, detail="No redeployment script configured for this device")
+
+    agent_url = device.agent.url if device.agent else None
+    if not agent_url and device.host_ip:
+        res = await db.execute(
+            select(Agent).where(Agent.url.like(f"http://{device.host_ip}:%"))
+        )
+        ag = res.scalar_one_or_none()
+        if ag:
+            agent_url = ag.url
+
+    if not agent_url:
+        raise HTTPException(status_code=503, detail="No agent available for this device")
+
+    agent_token = device.agent.agent_token if device.agent else ""
+    headers = {}
+    if agent_token:
+        headers["X-Agent-Token"] = agent_token
+    try:
+        async with httpx.AsyncClient(timeout=300) as client:
+            resp = await client.post(f"{agent_url}/devices/{device_id}/redeploy", headers=headers)
+        if resp.status_code >= 400:
+            raise HTTPException(status_code=502, detail=f"Agent error: {resp.text}")
+        return resp.json()
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Redeployment timed out")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Agent unreachable: {exc}")

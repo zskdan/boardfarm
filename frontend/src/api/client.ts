@@ -219,3 +219,11 @@ export async function listActivity(params?: {
   const { data } = await api().get<ActivityEntry[]>('/activity', { params });
   return data;
 }
+
+export async function redeployDevice(
+  deviceId: string,
+  username: string,
+): Promise<{ ok: boolean; stdout: string; stderr: string; returncode: number }> {
+  const { data } = await apiAs(username).post(`/devices/${deviceId}/redeploy`);
+  return data;
+}
