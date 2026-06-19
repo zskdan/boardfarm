@@ -51,6 +51,18 @@ async def power_action(device_id: str, body: PowerBody, _: None = Depends(requir
     return {"action": body.action, "ok": True}
 
 
+@router.get("/devices/{device_id}/redeploy-info")
+async def redeploy_info(device_id: str, _: None = Depends(require_agent_auth)):
+    device = _get_device(device_id)
+    if not device.redeployment_script:
+        raise HTTPException(status_code=422, detail="No redeployment script configured")
+    path = Path(device.redeployment_script)
+    if not path.exists():
+        return {"exists": False, "script_lines": 0}
+    lines = sum(1 for line in path.read_text(errors="replace").splitlines() if line.strip())
+    return {"exists": True, "script_lines": max(lines, 1)}
+
+
 @router.post("/devices/{device_id}/redeploy")
 async def redeploy(device_id: str, _: None = Depends(require_agent_auth)):
     device = _get_device(device_id)

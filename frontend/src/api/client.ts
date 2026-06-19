@@ -220,6 +220,14 @@ export async function listActivity(params?: {
   return data;
 }
 
+export async function getRedeployInfo(
+  deviceId: string,
+  username: string,
+): Promise<{ exists: boolean; script_lines: number }> {
+  const { data } = await apiAs(username).get(`/devices/${deviceId}/redeploy-info`);
+  return data;
+}
+
 export async function redeployDevice(
   deviceId: string,
   username: string,

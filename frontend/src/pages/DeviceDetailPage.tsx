@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { ArrowLeft, Check, Copy, Download, MapPin, Usb, Wifi, WifiOff, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -6,6 +7,7 @@ import {
   bookDevice,
   extendBooking,
   getDevice,
+  getRedeployInfo,
   getUsername,
   redeployDevice,
   releaseBooking,
@@ -273,6 +275,8 @@ export default function DeviceDetailPage() {
   const [sshViaAgent, setSshViaAgent] = useState(true);
   const [showVersionDetail, setShowVersionDetail] = useState(false);
   const [redeployResult, setRedeployResult] = useState<{ ok: boolean; stdout: string; stderr: string } | null>(null);
+  const [redeployProgress, setRedeployProgress] = useState<number>(0);
+  const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const me = getUsername();
 
   const { data: device, isLoading } = useQuery({
@@ -304,9 +308,40 @@ export default function DeviceDetailPage() {
     onSuccess: invalidate,
   });
 
+  const startProgressBar = (scriptLines: number) => {
+    setRedeployProgress(0);
+    // Each script line ≈ 2 s; tick every 200 ms → increment = 100 / (lines * 10 ticks/s * 2s)
+    const totalTicks = scriptLines * 10;
+    let tick = 0;
+    progressTimer.current = setInterval(() => {
+      tick += 1;
+      // Ease toward 95%: progress = 95 * (1 - e^(-3 * tick/totalTicks))
+      const pct = 95 * (1 - Math.exp(-3 * tick / totalTicks));
+      setRedeployProgress(Math.min(pct, 95));
+    }, 200);
+  };
+
+  const stopProgressBar = (success: boolean) => {
+    if (progressTimer.current) {
+      clearInterval(progressTimer.current);
+      progressTimer.current = null;
+    }
+    setRedeployProgress(success ? 100 : 0);
+  };
+
+  useEffect(() => () => { if (progressTimer.current) clearInterval(progressTimer.current); }, []);
+
   const redeployMut = useMutation({
-    mutationFn: () => redeployDevice(id!, me),
-    onSuccess: (result) => setRedeployResult(result),
+    mutationFn: async () => {
+      const info = await getRedeployInfo(id!, me).catch(() => ({ exists: true, script_lines: 10 }));
+      startProgressBar(info.script_lines);
+      return redeployDevice(id!, me);
+    },
+    onSuccess: (result) => {
+      stopProgressBar(true);
+      setRedeployResult(result);
+    },
+    onError: () => stopProgressBar(false),
   });
 
   if (isLoading || !device) {
@@ -321,6 +356,30 @@ export default function DeviceDetailPage() {
     device.active_booking && device.active_booking.username !== me
       ? device.active_booking
       : null;
+
+  // Inline Redeploy button + progress bar, reused in both the header row and the standalone card
+  const RedeployBtn = ({ small }: { small?: boolean }) => (
+    <div className={`flex flex-col gap-1 ${small ? '' : 'w-full'}`}>
+      <button
+        onClick={() => { setRedeployResult(null); redeployMut.mutate(); }}
+        disabled={redeployMut.isPending}
+        className={small
+          ? 'text-xs px-2 py-0.5 rounded border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors'
+          : 'text-sm px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors whitespace-nowrap'}
+        title={`Run: ${device.redeployment_script}`}
+      >
+        {redeployMut.isPending ? 'Redeploying…' : '↺ Redeploy'}
+      </button>
+      {redeployMut.isPending && (
+        <div className={`bg-gray-200 rounded-full overflow-hidden ${small ? 'h-1 w-24' : 'h-1.5 w-full'}`}>
+          <div
+            className="h-full bg-violet-500 transition-all duration-200 ease-out"
+            style={{ width: `${redeployProgress}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -413,14 +472,7 @@ export default function DeviceDetailPage() {
                       </span>
                     </div>
                     {device.redeployment_script && device.active_booking?.username === me && (
-                      <button
-                        onClick={() => { setRedeployResult(null); redeployMut.mutate(); }}
-                        disabled={redeployMut.isPending}
-                        className="text-xs px-2 py-0.5 rounded border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors"
-                        title={`Run: ${device.redeployment_script}`}
-                      >
-                        {redeployMut.isPending ? 'Redeploying…' : '↺ Redeploy'}
-                      </button>
+                      <RedeployBtn small />
                     )}
                   </div>
                 );
@@ -453,14 +505,7 @@ export default function DeviceDetailPage() {
                     </button>
                   </div>
                   {device.redeployment_script && device.active_booking?.username === me && (
-                    <button
-                      onClick={() => { setRedeployResult(null); redeployMut.mutate(); }}
-                      disabled={redeployMut.isPending}
-                      className="text-xs px-2 py-0.5 rounded border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors"
-                      title={`Run: ${device.redeployment_script}`}
-                    >
-                      {redeployMut.isPending ? 'Redeploying…' : '↺ Redeploy'}
-                    </button>
+                    <RedeployBtn small />
                   )}
                 </div>
               );
@@ -622,13 +667,7 @@ export default function DeviceDetailPage() {
               <p className="text-sm font-semibold text-gray-700">Redeployment</p>
               <p className="text-xs text-gray-400 font-mono mt-0.5">{device.redeployment_script}</p>
             </div>
-            <button
-              onClick={() => { setRedeployResult(null); redeployMut.mutate(); }}
-              disabled={redeployMut.isPending}
-              className="text-sm px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors whitespace-nowrap"
-            >
-              {redeployMut.isPending ? 'Redeploying…' : '↺ Redeploy'}
-            </button>
+            <RedeployBtn />
           </div>
         )}
 

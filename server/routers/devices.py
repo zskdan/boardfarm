@@ -264,17 +264,9 @@ async def report_device_version(
     await db.commit()
 
 
-@router.post("/{device_id}/redeploy", status_code=200)
-async def trigger_redeploy(
-    device_id: str,
-    db: AsyncSession = Depends(get_db),
-    user: str = Depends(require_user),
-):
-    """Proxy a redeploy request to the agent running the device."""
+async def _resolve_agent(device_id: str, db: AsyncSession):
+    """Return (device, agent_url, agent_token) or raise 503/404."""
     device = await _load_device(device_id, db)
-    if not device.redeployment_script:
-        raise HTTPException(status_code=422, detail="No redeployment script configured for this device")
-
     agent_url = device.agent.url if device.agent else None
     if not agent_url and device.host_ip:
         res = await db.execute(
@@ -283,14 +275,46 @@ async def trigger_redeploy(
         ag = res.scalar_one_or_none()
         if ag:
             agent_url = ag.url
-
     if not agent_url:
         raise HTTPException(status_code=503, detail="No agent available for this device")
-
     agent_token = device.agent.agent_token if device.agent else ""
-    headers = {}
-    if agent_token:
-        headers["X-Agent-Token"] = agent_token
+    return device, agent_url, agent_token
+
+
+@router.get("/{device_id}/redeploy-info", status_code=200)
+async def get_redeploy_info(
+    device_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(require_user),
+):
+    """Return script line count so the frontend can size the progress bar."""
+    device, agent_url, agent_token = await _resolve_agent(device_id, db)
+    if not device.redeployment_script:
+        raise HTTPException(status_code=422, detail="No redeployment script configured for this device")
+    headers = {"X-Agent-Token": agent_token} if agent_token else {}
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"{agent_url}/devices/{device_id}/redeploy-info", headers=headers)
+        if resp.status_code >= 400:
+            raise HTTPException(status_code=502, detail=f"Agent error: {resp.text}")
+        return resp.json()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Agent unreachable: {exc}")
+
+
+@router.post("/{device_id}/redeploy", status_code=200)
+async def trigger_redeploy(
+    device_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(require_user),
+):
+    """Proxy a redeploy request to the agent running the device."""
+    device, agent_url, agent_token = await _resolve_agent(device_id, db)
+    if not device.redeployment_script:
+        raise HTTPException(status_code=422, detail="No redeployment script configured for this device")
+    headers = {"X-Agent-Token": agent_token} if agent_token else {}
     try:
         async with httpx.AsyncClient(timeout=300) as client:
             resp = await client.post(f"{agent_url}/devices/{device_id}/redeploy", headers=headers)
