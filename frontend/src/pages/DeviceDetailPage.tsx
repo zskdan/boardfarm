@@ -402,7 +402,29 @@ export default function DeviceDetailPage() {
                 <span>{device.revision}</span>
               </div>
             )}
-            {device.deployed_version && (() => {
+            {device.version_script && (() => {
+              if (!device.deployed_version) {
+                return (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-semibold text-gray-400 uppercase">Deployed</span>
+                      <span className="font-mono text-xs px-1.5 py-0.5 rounded border bg-gray-50 text-gray-400 border-gray-200">
+                        pending…
+                      </span>
+                    </div>
+                    {device.redeployment_script && (
+                      <button
+                        onClick={() => { setRedeployResult(null); redeployMut.mutate(); }}
+                        disabled={redeployMut.isPending}
+                        className="text-xs px-2 py-0.5 rounded border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors"
+                        title={`Run: ${device.redeployment_script}`}
+                      >
+                        {redeployMut.isPending ? 'Redeploying…' : '↺ Redeploy'}
+                      </button>
+                    )}
+                  </div>
+                );
+              }
               const vp = parseDeployedVersion(device.deployed_version);
               const badgeCls = vp.isClean === true
                 ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
@@ -593,8 +615,8 @@ export default function DeviceDetailPage() {
           <DeviceNotes deviceId={device.id} notes={device.current_notes ?? ''} />
         </div>
 
-        {/* Redeploy — shown when redeployment_script is set but there's no deployed_version badge */}
-        {device.redeployment_script && !device.deployed_version && (
+        {/* Redeploy — shown when redeployment_script is set but version_script is not (no version row) */}
+        {device.redeployment_script && !device.version_script && (
           <div className="bg-white rounded-xl border p-5 mb-4 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-gray-700">Redeployment</p>
