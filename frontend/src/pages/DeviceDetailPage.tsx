@@ -412,7 +412,7 @@ export default function DeviceDetailPage() {
                         pending…
                       </span>
                     </div>
-                    {device.redeployment_script && (
+                    {device.redeployment_script && device.active_booking?.username === me && (
                       <button
                         onClick={() => { setRedeployResult(null); redeployMut.mutate(); }}
                         disabled={redeployMut.isPending}
@@ -452,7 +452,7 @@ export default function DeviceDetailPage() {
                       )}
                     </button>
                   </div>
-                  {device.redeployment_script && (
+                  {device.redeployment_script && device.active_booking?.username === me && (
                     <button
                       onClick={() => { setRedeployResult(null); redeployMut.mutate(); }}
                       disabled={redeployMut.isPending}
@@ -616,7 +616,7 @@ export default function DeviceDetailPage() {
         </div>
 
         {/* Redeploy — shown when redeployment_script is set but version_script is not (no version row) */}
-        {device.redeployment_script && !device.version_script && (
+        {device.redeployment_script && !device.version_script && device.active_booking?.username === me && (
           <div className="bg-white rounded-xl border p-5 mb-4 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-gray-700">Redeployment</p>
