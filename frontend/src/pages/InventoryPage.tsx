@@ -165,7 +165,8 @@ function AddDeviceModal({ onClose }: { onClose: () => void }) {
       if (hasAgent && hasUsb) baseFeatures.usb = true; else delete baseFeatures.usb;
       if (hasAgent && hasPower) baseFeatures.power_ctrl = true; else delete baseFeatures.power_ctrl;
       if (hasAgent && hasSdmux) baseFeatures.sdmux = true; else delete baseFeatures.sdmux;
-      if (hasAgent && hasAccessControl) baseFeatures.access_control = true; else delete baseFeatures.access_control;
+      if (hasAgent && hasAccessControl) baseFeatures.session_ctrl = true; else delete baseFeatures.session_ctrl;
+      if (hasAgent && hasVersion) baseFeatures.version_ctrl = true; else delete baseFeatures.version_ctrl;
       const payload: DeviceCreate = {
         ...form,
         features: baseFeatures,
@@ -491,7 +492,8 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
       if (hasAgent && hasUsb) baseFeatures.usb = true; else delete baseFeatures.usb;
       if (hasAgent && hasPower) baseFeatures.power_ctrl = true; else delete baseFeatures.power_ctrl;
       if (hasAgent && hasSdmux) baseFeatures.sdmux = true; else delete baseFeatures.sdmux;
-      if (hasAgent && hasAccessControl) baseFeatures.access_control = true; else delete baseFeatures.access_control;
+      if (hasAgent && hasAccessControl) baseFeatures.session_ctrl = true; else delete baseFeatures.session_ctrl;
+      if (hasAgent && hasVersion) baseFeatures.version_ctrl = true; else delete baseFeatures.version_ctrl;
       return updateDevice(device.id, {
         ...form,
         features: baseFeatures,
