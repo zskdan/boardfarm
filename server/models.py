@@ -88,7 +88,7 @@ class Device(Base):
     redeployment_script: Mapped[str] = mapped_column(String, default="")
 
     agent: Mapped["Agent | None"] = relationship("Agent", back_populates="devices")
-    bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="device")
+    bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="device", cascade="all, delete-orphan")
     tools: Mapped[list["Tool"]] = relationship("Tool", back_populates="device", cascade="all, delete-orphan", foreign_keys="Tool.device_id")
 
 

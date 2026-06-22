@@ -131,8 +131,8 @@ export async function updateDevice(
   return data;
 }
 
-export async function deleteDevice(id: string): Promise<void> {
-  await api().delete(`/devices/${id}`);
+export async function deleteDevice(id: string, username: string): Promise<void> {
+  await apiAs(username).delete(`/devices/${id}`);
 }
 
 export async function updateDeviceNotes(id: string, notes: string): Promise<DeviceInfo> {

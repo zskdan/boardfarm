@@ -346,7 +346,7 @@ export default function AdminPage() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: string) => deleteDevice(id),
+    mutationFn: (id: string) => deleteDevice(id, username),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['devices'] }),
   });
 

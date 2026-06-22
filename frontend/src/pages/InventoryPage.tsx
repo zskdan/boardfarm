@@ -991,6 +991,7 @@ export default function InventoryPage() {
   const [releaseDevice, setReleaseDevice] = useState<DeviceInfo | null>(null);
   const [deleteMode, setDeleteMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const me = getDefaultUser();
 
   useStatusSocket();
 
@@ -1001,7 +1002,7 @@ export default function InventoryPage() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: async (ids: string[]) => { for (const id of ids) await deleteDevice(id); },
+    mutationFn: async (ids: string[]) => { for (const id of ids) await deleteDevice(id, me); },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['devices'] }); setSelected(new Set()); setDeleteMode(false); },
   });
 
