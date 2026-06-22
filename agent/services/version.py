@@ -10,7 +10,15 @@ logger = logging.getLogger(__name__)
 
 # check-version lives alongside the agent package (agent/scripts/check-version in the repo,
 # /opt/boardfarm/agent/scripts/check-version when installed).
-_CHECK_VERSION = Path(__file__).parent.parent / "scripts" / "check-version"
+# In the repo:    __file__ = .../agent/services/version.py  → .parent.parent = .../agent/
+# When installed: __file__ = .../agent/agent/services/version.py → .parent.parent = .../agent/agent/
+# Try the dev path first; fall back one level for the installed layout.
+_pkg_root = Path(__file__).parent.parent
+_CHECK_VERSION = (
+    _pkg_root / "scripts" / "check-version"
+    if (_pkg_root / "scripts" / "check-version").exists()
+    else _pkg_root.parent / "scripts" / "check-version"
+)
 
 
 async def run_script(get_script: str, ref_file: str) -> str | None:
@@ -56,10 +64,10 @@ async def push_version(server_url: str, server_token: str, device_id: str, versi
 
 async def _device_loop(server_url: str, server_token: str, device, interval: int) -> None:
     while True:
-        await asyncio.sleep(interval)
         version = await run_script(device.version_script, device.version_ref_file)
         if version is not None:
             await push_version(server_url, server_token, device.id, version)
+        await asyncio.sleep(interval)
 
 
 async def version_loop(server_url: str, server_token: str, devices: list, default_interval: int = 300) -> None:
