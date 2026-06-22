@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     max_booking_hours: int | None = 24
     # default_user: pre-filled username in UI forms (None = no default)
     default_user: str | None = None
+    app_name: str = "BOARDFARM: a LAB INVENTORY and BOOKING SYSTEM"
 
     model_config = {"env_prefix": "BOARDFARM_"}
 
@@ -34,6 +35,8 @@ class Settings(BaseSettings):
                 object.__setattr__(self, "max_booking_hours", srv["max_booking_hours"])
             if "default_user" in srv and os.getenv("BOARDFARM_DEFAULT_USER") is None:
                 object.__setattr__(self, "default_user", srv["default_user"])
+            if "app_name" in srv and os.getenv("BOARDFARM_APP_NAME") is None:
+                object.__setattr__(self, "app_name", srv["app_name"])
 
 
 settings = Settings()

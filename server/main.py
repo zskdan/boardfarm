@@ -80,6 +80,7 @@ async def health():
     return {
         "status": "ok",
         "version": _VERSION,
+        "app_name": settings.app_name,
         "max_booking_hours": settings.max_booking_hours,
         "default_user": settings.default_user,
     }

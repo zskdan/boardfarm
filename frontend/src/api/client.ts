@@ -98,12 +98,15 @@ export async function checkHealth(serverUrl: string): Promise<boolean> {
   }
 }
 
-export async function getServerVersion(): Promise<string> {
+export async function getServerInfo(): Promise<{ version: string; app_name: string }> {
   try {
     const { data } = await api().get('/health');
-    return data.version ?? 'unknown';
+    return {
+      version: data.version ?? 'unknown',
+      app_name: data.app_name ?? 'BOARDFARM',
+    };
   } catch {
-    return 'unknown';
+    return { version: 'unknown', app_name: 'BOARDFARM' };
   }
 }
 

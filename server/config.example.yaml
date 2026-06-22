@@ -13,3 +13,5 @@ server:
   max_booking_hours: 24
   # Default username pre-filled in the UI's action forms (null = no default)
   default_user: null
+  # Application name shown in the UI header
+  # app_name: "BOARDFARM: a LAB INVENTORY and BOOKING SYSTEM"
