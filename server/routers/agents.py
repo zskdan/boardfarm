@@ -2,7 +2,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -69,9 +69,10 @@ async def heartbeat(body: dict, db: AsyncSession = Depends(get_db)):
     name = body["name"]
     result = await db.execute(select(Agent).where(Agent.name == name))
     agent = result.scalar_one_or_none()
-    if agent:
-        agent.last_seen = _now_utc()
-        await db.commit()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not registered")
+    agent.last_seen = _now_utc()
+    await db.commit()
     return {"ok": True}
 
 

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 HEARTBEAT_INTERVAL = 30
 
 
-async def heartbeat_loop(server_url: str, agent_name: str, agent_url: str, device_ids: list[str]) -> None:
+async def heartbeat_loop(server_url: str, agent_name: str, agent_url: str, device_ids: list[str], agent_token: str = "") -> None:
     hb_url = f"{server_url}/agents/heartbeat"
     reg_url = f"{server_url}/agents/register"
 
@@ -20,6 +20,7 @@ async def heartbeat_loop(server_url: str, agent_name: str, agent_url: str, devic
                     "name": agent_name,
                     "url": agent_url,
                     "device_ids": device_ids,
+                    "token": agent_token,
                 })
             logger.info("Re-registered with server")
         except Exception:

@@ -27,7 +27,12 @@ async def _register_with_server() -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             await client.post(
                 url,
-                json={"name": config.name, "url": agent_url, "device_ids": device_ids},
+                json={
+                    "name": config.name,
+                    "url": agent_url,
+                    "device_ids": device_ids,
+                    "token": config.agent_token,
+                },
             )
         logger.info("Registered with server at %s", config.server_url)
     except Exception:
@@ -92,7 +97,7 @@ async def lifespan(app: FastAPI):
     await _recover_active_bookings()
     version_devices = await _fetch_version_devices()
     agent_url = f"http://{config.host_ip}:{config.port}"
-    hb_task = asyncio.create_task(heartbeat_loop(config.server_url, config.name, agent_url, [b.id for b in config.devices]))
+    hb_task = asyncio.create_task(heartbeat_loop(config.server_url, config.name, agent_url, [b.id for b in config.devices], config.agent_token))
     health_task = asyncio.create_task(health_svc.probe_loop(config.devices))
     version_task = asyncio.create_task(
         version_svc.version_loop(config.server_url, config.server_token, version_devices, config.version_poll_interval)
