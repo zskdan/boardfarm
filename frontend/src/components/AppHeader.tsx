@@ -1,15 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
-import { getServerInfo } from '../api/client';
+import { getServerInfo, getLocalAppName } from '../api/client';
+
+async function fetchDisplayInfo() {
+  const info = await getServerInfo();
+  return { ...info, local_app_name: getLocalAppName() };
+}
 
 export default function AppHeader() {
   const { data } = useQuery({
     queryKey: ['serverInfo'],
-    queryFn: getServerInfo,
+    queryFn: fetchDisplayInfo,
     staleTime: Infinity,
     refetchOnWindowFocus: false,
   });
 
-  const appName = data?.app_name ?? 'BOARDFARM';
+  const appName = data?.local_app_name || data?.app_name || 'BOARDFARM';
   const serverVersion = data?.version ?? '…';
 
   return (

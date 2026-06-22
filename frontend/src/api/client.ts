@@ -16,6 +16,7 @@ const LS_SERVER_URL    = 'bf_server_url';
 const LS_DEFAULT_USER  = 'bf_username';
 const LS_TOKEN         = 'bf_token';
 const LS_BOOKING_LIMIT = 'bf_booking_limit';
+const LS_APP_NAME      = 'bf_app_name';
 
 // ── Server connection ─────────────────────────────────────────────────────────
 
@@ -44,6 +45,16 @@ export function getToken(): string {
 }
 export function setToken(t: string) {
   localStorage.setItem(LS_TOKEN, t);
+}
+
+// ── App name override (local override of server-provided name) ────────────────
+
+export function getLocalAppName(): string {
+  return localStorage.getItem(LS_APP_NAME) ?? '';
+}
+export function setLocalAppName(name: string) {
+  if (name) localStorage.setItem(LS_APP_NAME, name);
+  else localStorage.removeItem(LS_APP_NAME);
 }
 
 // ── Booking limit ─────────────────────────────────────────────────────────────

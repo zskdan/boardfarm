@@ -29,6 +29,8 @@ import {
   setServerUrl,
   setToken,
   updateDevice,
+  getLocalAppName,
+  setLocalAppName,
 } from '../api/client';
 import type { BookingLimit } from '../api/client';
 import type { DeviceCreate, DeviceInfo } from '../api/types';
@@ -771,14 +773,18 @@ function EditDeviceModal({ device, onClose }: { device: DeviceInfo; onClose: () 
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [url, setUrl] = useState(getServerUrl());
   const [defaultUser, setDefaultUserState] = useState(getDefaultUser());
   const [token, setTokenState] = useState(getToken());
+  const [appName, setAppNameState] = useState(getLocalAppName());
 
   function save() {
     setServerUrl(url);
     setDefaultUser(defaultUser);
     setToken(token);
+    setLocalAppName(appName);
+    qc.invalidateQueries({ queryKey: ['serverInfo'] });
     onClose();
   }
   function disconnect() {
@@ -801,6 +807,11 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
           <Field label="Token">
             <input type="password" className={inputCls} value={token}
               onChange={(e) => setTokenState(e.target.value)} />
+          </Field>
+          <Field label="App name override">
+            <input className={inputCls} value={appName}
+              onChange={(e) => setAppNameState(e.target.value)}
+              placeholder="Leave blank to use server default" />
           </Field>
           <ModalActions onCancel={onClose} onConfirm={save} confirmLabel="Save" />
           <button onClick={disconnect} className="text-xs text-red-500 hover:underline text-center mt-1">
