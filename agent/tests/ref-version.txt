@@ -1,0 +1,4 @@
+glibc 2.38
+openssl 3.1.4
+python 3.11.6
+busybox 1.36.1

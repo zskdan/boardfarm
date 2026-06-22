@@ -85,6 +85,13 @@ install -m 0755 "$SCRIPTS_SRC/sdcard-manager"  "$INSTALL_DIR/scripts/sdcard-mana
 install -m 0755 "$SCRIPTS_SRC/check-version"   "$INSTALL_DIR/scripts/check-version"
 install -m 0755 "$SCRIPTS_SRC/access-control"  "$INSTALL_DIR/scripts/access-control"
 
+# Test scripts
+info "Installing test scripts..."
+mkdir -p "$INSTALL_DIR/tests"
+install -m 0755 "$AGENT_SRC/tests/get-version.sh" "$INSTALL_DIR/tests/get-version.sh"
+install -m 0755 "$AGENT_SRC/tests/redeploy.sh"    "$INSTALL_DIR/tests/redeploy.sh"
+install -m 0644 "$AGENT_SRC/tests/ref-version.txt" "$INSTALL_DIR/tests/ref-version.txt"
+
 # sudoers — allow the service user to run sdcard-manager as root without a password
 info "Installing sudoers rule..."
 cat > /etc/sudoers.d/boardfarm-sdcard <<'EOF'
