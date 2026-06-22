@@ -6,7 +6,7 @@ import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .config import config
+from .config import config, DeviceConfig
 from .heartbeat import heartbeat_loop
 from .routers import devices as boards_router, hardware
 from .services import health as health_svc
@@ -32,25 +32,31 @@ async def _register_with_server() -> None:
         logger.warning("Could not register with server at %s (will retry via heartbeat)", config.server_url)
 
 
-async def _fetch_device_version_configs() -> None:
-    """Pull version fields from the server for each device."""
-    for device in config.devices:
-        try:
-            async with httpx.AsyncClient(timeout=5) as client:
-                resp = await client.get(
-                    f"{config.server_url}/devices/{device.id}",
-                    headers={"X-Token": config.server_token, "X-User": "__agent__"},
-                )
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get("version_script"):
-                    device.version_script = data["version_script"]
-                if data.get("version_ref_file"):
-                    device.version_ref_file = data["version_ref_file"]
-                if data.get("version_poll_interval", 0) > 0:
-                    device.version_poll_interval = data["version_poll_interval"]
-        except Exception:
-            logger.debug("Could not fetch version config for device %s", device.id)
+async def _fetch_version_devices() -> list[DeviceConfig]:
+    """Fetch ALL server devices that have version_script set, regardless of local config."""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                f"{config.server_url}/devices",
+                headers={"X-Token": config.server_token, "X-User": "__agent__"},
+            )
+        if resp.status_code != 200:
+            return []
+        result = []
+        for data in resp.json():
+            if not data.get("version_script"):
+                continue
+            result.append(DeviceConfig(
+                id=data["id"],
+                version_script=data["version_script"],
+                version_ref_file=data.get("version_ref_file", ""),
+                version_poll_interval=data.get("version_poll_interval", 0),
+            ))
+        logger.info("Scheduling version polling for %d device(s)", len(result))
+        return result
+    except Exception:
+        logger.warning("Could not fetch version devices from server")
+        return []
 
 
 async def _recover_active_bookings() -> None:
@@ -81,13 +87,13 @@ async def _recover_active_bookings() -> None:
 async def lifespan(app: FastAPI):
     await mdns.start(config.name, config.host_ip, config.port, len(config.devices))
     await _register_with_server()
-    await _fetch_device_version_configs()
     await _recover_active_bookings()
+    version_devices = await _fetch_version_devices()
     agent_url = f"http://{config.host_ip}:{config.port}"
     hb_task = asyncio.create_task(heartbeat_loop(config.server_url, config.name, agent_url, [b.id for b in config.devices]))
     health_task = asyncio.create_task(health_svc.probe_loop(config.devices))
     version_task = asyncio.create_task(
-        version_svc.version_loop(config.server_url, config.server_token, config.devices, config.version_poll_interval)
+        version_svc.version_loop(config.server_url, config.server_token, version_devices, config.version_poll_interval)
     )
 
     yield
