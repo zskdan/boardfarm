@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import subprocess
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket
@@ -12,6 +13,31 @@ from .routers import activity, agents, bookings, devices, setups, tools
 from .ws import ws_handler
 
 logging.basicConfig(level=logging.INFO)
+
+
+def _git_version() -> str:
+    try:
+        sha = subprocess.check_output(
+            ['git', 'rev-parse', '--short=8', 'HEAD'],
+            stderr=subprocess.DEVNULL, text=True,
+        ).strip()
+        try:
+            tag = subprocess.check_output(
+                ['git', 'describe', '--tags', '--abbrev=0'],
+                stderr=subprocess.DEVNULL, text=True,
+            ).strip()
+        except subprocess.CalledProcessError:
+            tag = ''
+        dirty = bool(subprocess.check_output(
+            ['git', 'status', '--porcelain'], text=True,
+        ).strip())
+        base = f"{tag}-{sha}" if tag else sha
+        return f"{base}-dirty" if dirty else base
+    except Exception:
+        return 'unknown'
+
+
+_VERSION = _git_version()
 
 
 @asynccontextmanager
@@ -53,7 +79,7 @@ async def ws_status(websocket: WebSocket):
 async def health():
     return {
         "status": "ok",
-        "version": "0.1.0",
+        "version": _VERSION,
         "max_booking_hours": settings.max_booking_hours,
         "default_user": settings.default_user,
     }

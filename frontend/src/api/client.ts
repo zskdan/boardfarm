@@ -98,6 +98,15 @@ export async function checkHealth(serverUrl: string): Promise<boolean> {
   }
 }
 
+export async function getServerVersion(): Promise<string> {
+  try {
+    const { data } = await api().get('/health');
+    return data.version ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
 // ── Agents ────────────────────────────────────────────────────────────────────
 
 export async function listAgents(): Promise<AgentInfo[]> {

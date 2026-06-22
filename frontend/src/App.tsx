@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './index.css';
 import { getUsername } from './api/client';
+import AppHeader from './components/AppHeader';
 import DeviceDetailPage from './pages/DeviceDetailPage';
 import DiscoveryPage from './pages/DiscoveryPage';
 import HistoryPage from './pages/HistoryPage';
@@ -16,7 +17,12 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!getUsername()) {
     return <Navigate to="/" replace />;
   }
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen flex flex-col">
+      <AppHeader />
+      <div className="flex-1">{children}</div>
+    </div>
+  );
 }
 
 export default function App() {
