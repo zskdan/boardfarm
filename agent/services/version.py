@@ -91,16 +91,38 @@ async def _device_loop(server_url: str, server_token: str, device, interval: int
         await asyncio.sleep(interval)
 
 
-async def version_loop(server_url: str, server_token: str, devices: list, default_interval: int = 300) -> None:
-    """Spawn one polling loop per device that has a version_script configured."""
-    tasks = []
-    for device in devices:
-        if not device.version_script:
-            continue
-        interval = device.version_poll_interval if device.version_poll_interval > 0 else default_interval
-        tasks.append(_device_loop(server_url, server_token, device, interval))
-    if tasks:
-        logger.info("Starting version polling for %d device(s)", len(tasks))
-        await asyncio.gather(*tasks)
-    else:
-        logger.info("No devices with version_script configured — version polling idle")
+async def version_loop(server_url: str, server_token: str, fetch_or_list, default_interval: int = 300) -> None:
+    """Dynamically manage per-device version polling tasks.
+
+    fetch_or_list may be:
+      - a callable (coroutine function) returning a list of DeviceConfig — called every 60s
+      - a static list of DeviceConfig (legacy / unit-test path)
+    """
+    active: dict[str, asyncio.Task] = {}
+
+    while True:
+        if callable(fetch_or_list):
+            devices = await fetch_or_list()
+        else:
+            devices = list(fetch_or_list)
+
+        current = {d.id: d for d in devices if d.version_script}
+
+        # Cancel tasks for devices no longer needing polling
+        for did in list(active):
+            if did not in current or active[did].done():
+                if did not in current:
+                    logger.info("Stopping version polling for device %s (removed/unconfigured)", did)
+                active.pop(did).cancel()
+
+        # Start tasks for newly discovered devices
+        for did, device in current.items():
+            if did not in active:
+                interval = device.version_poll_interval if device.version_poll_interval > 0 else default_interval
+                logger.info("Starting version polling for device %s (interval=%ds)", did, interval)
+                active[did] = asyncio.create_task(_device_loop(server_url, server_token, device, interval))
+
+        if not current:
+            logger.info("No devices with version_script configured — will recheck in 60s")
+
+        await asyncio.sleep(60)

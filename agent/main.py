@@ -59,7 +59,6 @@ async def _fetch_version_devices() -> list[DeviceConfig]:
                 version_ref_file=data.get("version_ref_file", ""),
                 version_poll_interval=data.get("version_poll_interval", 0),
             ))
-        logger.info("Scheduling version polling for %d device(s)", len(result))
         return result
     except Exception:
         logger.warning("Could not fetch version devices from server")
@@ -95,12 +94,11 @@ async def lifespan(app: FastAPI):
     await mdns.start(config.name, config.host_ip, config.port, len(config.devices))
     await _register_with_server()
     await _recover_active_bookings()
-    version_devices = await _fetch_version_devices()
     agent_url = f"http://{config.host_ip}:{config.port}"
     hb_task = asyncio.create_task(heartbeat_loop(config.server_url, config.name, agent_url, [b.id for b in config.devices], config.agent_token))
     health_task = asyncio.create_task(health_svc.probe_loop(config.devices))
     version_task = asyncio.create_task(
-        version_svc.version_loop(config.server_url, config.server_token, version_devices, config.version_poll_interval)
+        version_svc.version_loop(config.server_url, config.server_token, _fetch_version_devices, config.version_poll_interval)
     )
 
     yield
