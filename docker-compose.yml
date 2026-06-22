@@ -1,8 +1,14 @@
+# Build with version baked in:
+#   BOARDFARM_VERSION=$(git describe --tags --always --dirty 2>/dev/null || git rev-parse --short=8 HEAD) docker compose up --build
+# Or export it once: export BOARDFARM_VERSION=$(git describe --tags --always --dirty)
+
 services:
   server:
     build:
       context: .
       dockerfile: server/Dockerfile
+      args:
+        BOARDFARM_VERSION: ${BOARDFARM_VERSION:-unknown}
     ports:
       - "8765:8765"
     volumes:

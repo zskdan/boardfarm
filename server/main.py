@@ -16,6 +16,12 @@ logging.basicConfig(level=logging.INFO)
 
 
 def _git_version() -> str:
+    import os
+    # Explicit override — set at Docker build time or by the installer
+    env = os.environ.get('BOARDFARM_VERSION')
+    if env:
+        return env
+    # Try to derive from git (works in dev; unavailable in production containers)
     try:
         sha = subprocess.check_output(
             ['git', 'rev-parse', '--short=8', 'HEAD'],
