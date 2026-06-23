@@ -237,7 +237,11 @@ async def book_setup(
         db.add(bk)
         bookings.append(bk)
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="One or more devices were booked concurrently")
     for bk in bookings:
         await db.refresh(bk)
 
@@ -252,6 +256,7 @@ async def book_setup(
             extended=bk.extended,
             active=bk.active,
             release_reason=bk.release_reason,
+            comment=bk.comment or "",
             setup_id=bk.setup_id,
             setup_name=bk.setup_name,
         )

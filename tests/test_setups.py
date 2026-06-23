@@ -111,7 +111,7 @@ async def test_list_setups_agent_online_via_ip_fallback(client):
         "url": f"http://{ip}:8080",
         "token": "tok",
     }
-    agent_resp = await client.post("/agents/register", json=agent_payload)
+    agent_resp = await client.post("/agents/register", json=agent_payload, headers={"X-Token": "test-token"})
     assert agent_resp.status_code == 200, agent_resp.text
 
     # Create device with the same host_ip but NO agent FK link (don't pass device_ids

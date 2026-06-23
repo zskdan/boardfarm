@@ -361,7 +361,7 @@ export default function DeviceDetailPage() {
   const RedeployBtn = ({ small }: { small?: boolean }) => (
     <div className={`flex flex-col gap-1 ${small ? '' : 'w-full'}`}>
       <button
-        onClick={() => { setRedeployResult(null); redeployMut.mutate(); }}
+        onClick={() => { setRedeployResult(null); setRedeployProgress(0); redeployMut.mutate(); }}
         disabled={redeployMut.isPending}
         className={small
           ? 'text-xs px-2 py-0.5 rounded border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors'

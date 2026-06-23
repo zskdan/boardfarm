@@ -109,11 +109,19 @@ async def version_loop(server_url: str, server_token: str, fetch_or_list, defaul
         current = {d.id: d for d in devices if d.version_script}
 
         # Cancel tasks for devices no longer needing polling
+        cancelled = []
         for did in list(active):
             if did not in current or active[did].done():
                 if did not in current:
                     logger.info("Stopping version polling for device %s (removed/unconfigured)", did)
-                active.pop(did).cancel()
+                task = active.pop(did)
+                task.cancel()
+                cancelled.append(task)
+        for task in cancelled:
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
 
         # Start tasks for newly discovered devices
         for did, device in current.items():

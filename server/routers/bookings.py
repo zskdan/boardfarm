@@ -83,6 +83,7 @@ def _booking_out(bk: Booking) -> BookingOut:
         extended=bk.extended,
         active=bk.active,
         release_reason=bk.release_reason,
+        comment=bk.comment or "",
     )
 
 
@@ -194,7 +195,6 @@ async def release_booking(
         )
 
     device_id = booking.device_id
-    await db.refresh(booking)
     asyncio.create_task(broadcast({"type": "booking_changed", "device_id": device_id}))
     return _booking_out(booking)
 
@@ -223,6 +223,9 @@ async def extend_booking(
         if new_end > max_end:
             new_end = max_end
 
+    if new_end == booking.end_time:
+        raise HTTPException(status_code=409, detail="Booking is already at maximum duration")
+
     booking.end_time = new_end
     booking.extended = True
     await log_action(db, "extended", user, booking.device_id, booking.device.name if booking.device else "", f"+{hours}h", device_id=booking.device.device_id if booking.device else "")
@@ -235,6 +238,7 @@ async def extend_booking(
 async def get_commands(
     booking_id: str,
     db: AsyncSession = Depends(get_db),
+    user: str = Depends(require_user),
 ):
     booking = await _load_booking(booking_id, db)
 

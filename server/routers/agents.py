@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..auth import require_user
+from ..auth import _check_token, require_user
 from ..database import get_db
 from ..models import Agent, Device
 from ..schemas import AgentOut
@@ -22,6 +22,7 @@ def _now_utc() -> datetime:
 async def register_agent(
     body: dict,
     db: AsyncSession = Depends(get_db),
+    _: None = Depends(_check_token),
 ):
     name = body["name"]
     url = body["url"]

@@ -9,9 +9,10 @@ logger = logging.getLogger(__name__)
 HEARTBEAT_INTERVAL = 30
 
 
-async def heartbeat_loop(server_url: str, agent_name: str, agent_url: str, device_ids: list[str], agent_token: str = "") -> None:
+async def heartbeat_loop(server_url: str, agent_name: str, agent_url: str, device_ids: list[str], agent_token: str = "", server_token: str = "") -> None:
     hb_url = f"{server_url}/agents/heartbeat"
     reg_url = f"{server_url}/agents/register"
+    reg_headers = {"X-Token": server_token} if server_token else {}
 
     async def _register():
         try:
@@ -21,7 +22,7 @@ async def heartbeat_loop(server_url: str, agent_name: str, agent_url: str, devic
                     "url": agent_url,
                     "device_ids": device_ids,
                     "token": agent_token,
-                })
+                }, headers=reg_headers)
             logger.info("Re-registered with server")
         except Exception:
             logger.debug("Re-registration failed (server unreachable)")

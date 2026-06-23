@@ -51,6 +51,21 @@ The diff view also handles lines that appear or disappear entirely between the r
 
 ---
 
+## Recent fixes
+
+- **Booking comment preserved** — `comment` is now returned in every `BookingOut` response (device list, booking history, release, extend)
+- **Agent token forwarded on IP fallback** — when a device has no direct agent FK link but its `host_ip` matches a registered agent, the agent's token is now correctly forwarded to redeploy proxy calls
+- **Race-safe setup booking** — concurrent setup bookings that would create a double-booking now return 409 instead of an unhandled database error
+- **Extend at maximum duration raises 409** — attempting to extend a booking that is already at the `max_booking_hours` limit now returns `409 Booking is already at maximum duration` instead of silently marking `extended=True` with no time change
+- **Release booking no longer crashes** — removed a spurious `db.refresh()` after `db.commit()` in `release_booking` that caused `MissingGreenlet` when accessing the device relationship
+- **`/bookings/{id}/commands` requires auth** — the commands endpoint now requires `X-User` (and `X-Token` when configured), consistent with all other write-adjacent endpoints
+- **`/agents/register` requires server token** — the agent registration endpoint now enforces the configured server token; agents send `X-Token` in their registration and heartbeat re-registration requests
+- **Agent skips JTAG start when `jtag_port=0`** — on startup recovery, the agent no longer attempts to start `hw_server` for devices that have no JTAG port configured
+- **Version polling tasks awaited on cancel** — cancelled per-device version polling tasks are now properly awaited, eliminating `Task destroyed but pending` warnings
+- **Redeploy progress resets on retry** — clicking **Redeploy** after a previous attempt now immediately resets the progress bar to 0
+
+---
+
 ## Architecture
 
 ```
@@ -342,6 +357,8 @@ Full audit log: bookings, releases, extensions, device adds/edits/deletes. Filte
 |---------|----------|-----------|
 | `GET` (read) | not required | not required |
 | `POST` / `PATCH` / `DELETE` | **required** | required only if `token` set in server config |
+| `POST /agents/register` | not required | required only if `token` set in server config |
+| `GET /bookings/{id}/commands` | **required** | required only if `token` set in server config |
 
 ### Server endpoints (`http://server:8765`)
 

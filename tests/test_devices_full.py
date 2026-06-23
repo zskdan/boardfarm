@@ -51,7 +51,7 @@ async def _register_agent(client, *, name, url, device_ids=(), token="tok") -> d
         "name": name, "url": url,
         "device_ids": list(device_ids),
         "token": token,
-    })
+    }, headers={"X-Token": "test-token"})
     assert r.status_code == 200, r.text
     return r.json()
 

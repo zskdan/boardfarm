@@ -26,7 +26,7 @@ AGENT_TOKEN = "agent-secret-123"
 async def _register(client, *, name="agt", url="http://10.0.0.1:8080", device_ids=(), token=AGENT_TOKEN):
     r = await client.post("/agents/register", json={
         "name": name, "url": url, "device_ids": list(device_ids), "token": token,
-    })
+    }, headers={"X-Token": "test-token"})
     assert r.status_code == 200, r.text
     return r.json()
 

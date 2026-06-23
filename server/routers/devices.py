@@ -69,6 +69,7 @@ async def _build_device_out(
                 extended=bk.extended,
                 active=bk.active,
                 release_reason=bk.release_reason,
+                comment=bk.comment or "",
             )
             break
 
@@ -268,6 +269,7 @@ async def _resolve_agent(device_id: str, db: AsyncSession):
     """Return (device, agent_url, agent_token) or raise 503/404."""
     device = await _load_device(device_id, db)
     agent_url = device.agent.url if device.agent else None
+    agent_token = device.agent.agent_token if device.agent else ""
     if not agent_url and device.host_ip:
         res = await db.execute(
             select(Agent).where(Agent.url.like(f"http://{device.host_ip}:%"))
@@ -275,9 +277,9 @@ async def _resolve_agent(device_id: str, db: AsyncSession):
         ag = res.scalar_one_or_none()
         if ag:
             agent_url = ag.url
+            agent_token = ag.agent_token or ""
     if not agent_url:
         raise HTTPException(status_code=503, detail="No agent available for this device")
-    agent_token = device.agent.agent_token if device.agent else ""
     return device, agent_url, agent_token
 
 

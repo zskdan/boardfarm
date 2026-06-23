@@ -23,6 +23,7 @@ async def _register_with_server() -> None:
     url = f"{config.server_url}/agents/register"
     device_ids = [b.id for b in config.devices]
     agent_url = f"http://{config.host_ip}:{config.port}"
+    headers = {"X-Token": config.server_token} if config.server_token else {}
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             await client.post(
@@ -33,6 +34,7 @@ async def _register_with_server() -> None:
                     "device_ids": device_ids,
                     "token": config.agent_token,
                 },
+                headers=headers,
             )
         logger.info("Registered with server at %s", config.server_url)
     except Exception:
@@ -84,7 +86,8 @@ async def _recover_active_bookings() -> None:
             if bid in our_device_ids:
                 b = device_map[bid]
                 logger.info("Recovering services for device %s (active booking: %s)", bid, booking["id"])
-                await hw_server.start(bid, b.jtag_port)
+                if b.jtag_port > 0:
+                    await hw_server.start(bid, b.jtag_port)
     except Exception:
         logger.warning("Could not recover active bookings from server (will retry on next booking event)")
 
@@ -95,7 +98,7 @@ async def lifespan(app: FastAPI):
     await _register_with_server()
     await _recover_active_bookings()
     agent_url = f"http://{config.host_ip}:{config.port}"
-    hb_task = asyncio.create_task(heartbeat_loop(config.server_url, config.name, agent_url, [b.id for b in config.devices], config.agent_token))
+    hb_task = asyncio.create_task(heartbeat_loop(config.server_url, config.name, agent_url, [b.id for b in config.devices], config.agent_token, config.server_token))
     health_task = asyncio.create_task(health_svc.probe_loop(config.devices))
     version_task = asyncio.create_task(
         version_svc.version_loop(config.server_url, config.server_token, _fetch_version_devices, config.version_poll_interval)

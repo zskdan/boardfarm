@@ -57,7 +57,7 @@ async def _register_agent(client, *, name, url, device_ids=(), token="agent-tok"
         "name": name, "url": url,
         "device_ids": list(device_ids),
         "token": token,
-    })
+    }, headers={"X-Token": "test-token"})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -127,7 +127,7 @@ async def test_extend_unknown_booking_returns_404(client):
 
 async def test_get_commands_unknown_booking_returns_404(client):
     """GET /bookings/{id}/commands with unknown booking_id → 404."""
-    r = await client.get(f"/bookings/{uuid.uuid4()}/commands")
+    r = await client.get(f"/bookings/{uuid.uuid4()}/commands", headers=HEADERS)
     assert r.status_code == 404
 
 
@@ -547,7 +547,7 @@ async def test_get_commands_inactive_booking_returns_409(client):
     bk = await _book(client, dev["id"])
     await _release(client, bk["id"])
 
-    r = await client.get(f"/bookings/{bk['id']}/commands")
+    r = await client.get(f"/bookings/{bk['id']}/commands", headers=HEADERS)
     assert r.status_code == 409
     assert "not active" in r.json()["detail"].lower()
 
@@ -563,7 +563,7 @@ async def test_get_commands_active_booking_returns_fields(client):
                               uart_device="/dev/ttyUSB0")
     bk = await _book(client, dev["id"])
 
-    r = await client.get(f"/bookings/{bk['id']}/commands")
+    r = await client.get(f"/bookings/{bk['id']}/commands", headers=HEADERS)
     assert r.status_code == 200
     data = r.json()
     assert "jtag_connect" in data
@@ -590,7 +590,7 @@ async def test_get_commands_no_jtag_port_empty_string(client):
     dev = await _make_device(client, jtag_port=0)
     bk = await _book(client, dev["id"])
 
-    r = await client.get(f"/bookings/{bk['id']}/commands")
+    r = await client.get(f"/bookings/{bk['id']}/commands", headers=HEADERS)
     assert r.status_code == 200
     assert r.json()["jtag_connect"] == ""
     assert r.json()["vivado_tcl"] == ""
@@ -601,7 +601,7 @@ async def test_get_commands_no_ssh_port_empty_string(client):
     dev = await _make_device(client, ssh_port=0)
     bk = await _book(client, dev["id"])
 
-    r = await client.get(f"/bookings/{bk['id']}/commands")
+    r = await client.get(f"/bookings/{bk['id']}/commands", headers=HEADERS)
     assert r.status_code == 200
     assert r.json()["ssh"] == ""
 
@@ -611,7 +611,7 @@ async def test_get_commands_no_uart_device_empty_string(client):
     dev = await _make_device(client, uart_device="", host_ip=None)
     bk = await _book(client, dev["id"])
 
-    r = await client.get(f"/bookings/{bk['id']}/commands")
+    r = await client.get(f"/bookings/{bk['id']}/commands", headers=HEADERS)
     assert r.status_code == 200
     assert r.json()["uart"] == ""
 
@@ -753,7 +753,7 @@ async def test_full_booking_lifecycle(client):
     assert bk["username"] == "tester"
 
     # Commands
-    r = await client.get(f"/bookings/{bk['id']}/commands")
+    r = await client.get(f"/bookings/{bk['id']}/commands", headers=HEADERS)
     assert r.status_code == 200
 
     # Extend
