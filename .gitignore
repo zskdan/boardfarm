@@ -7,3 +7,6 @@ frontend/dist/
 frontend/node_modules/
 .venv/
 venv/
+.coverage
+coverage.json
+htmlcov/
