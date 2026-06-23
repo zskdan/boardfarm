@@ -10,3 +10,5 @@ venv/
 .coverage
 coverage.json
 htmlcov/
+*.cover
+=0.115

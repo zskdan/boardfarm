@@ -182,6 +182,20 @@ async def test_get_device_features_as_json_string(client):
     assert r.json()["features"] == features
 
 
+def test_device_out_parse_json_str_with_string_input():
+    """parse_json_str validator (schemas.py line 167) handles a raw JSON string."""
+    from server.schemas import DeviceOut
+    result = DeviceOut.parse_json_str('{"jtag": true, "uart": false}')
+    assert result == {"jtag": True, "uart": False}
+
+
+def test_device_out_parse_json_str_with_dict_input():
+    """parse_json_str validator returns dicts unchanged."""
+    from server.schemas import DeviceOut
+    d = {"key": "value"}
+    assert DeviceOut.parse_json_str(d) is d
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # POST /devices  (create_device — IntegrityError lines 194-200)
 # ─────────────────────────────────────────────────────────────────────────────
