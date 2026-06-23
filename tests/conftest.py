@@ -7,6 +7,8 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+from sqlalchemy.pool import StaticPool
+
 from server.database import Base, get_db
 from server.main import app
 from server.config import settings
@@ -24,7 +26,14 @@ def event_loop():
 
 @pytest_asyncio.fixture
 async def db_engine():
-    engine = create_async_engine(TEST_DB_URL, echo=False)
+    # StaticPool ensures all sessions share one physical connection so the
+    # in-memory SQLite database is visible across concurrent async operations.
+    engine = create_async_engine(
+        TEST_DB_URL,
+        echo=False,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine
