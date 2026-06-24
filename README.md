@@ -1,6 +1,6 @@
 # Boardfarm
 
-A development device booking and inventory system for shared hardware labs. Teams register physical devices (FPGAs, microcontrollers, SoCs, instruments) in a central server, book them by username, and get ready-to-run shell commands for SSH, UART, JTAG, and power control.
+Boardfarm is a hardware lab management system for teams sharing boards, tools, or any devices. A lightweight central server tracks device inventory, enforces booking, and logs activity. Hardware agents run directly on device-host machines to expose SSH jump-host access, UART bridging, JTAG servers, power cycling, and SD card switching — all with copy-paste ready commands on the device detail page. Devices can be grouped into setups and booked atomically. Optional version control integration lets the agent poll a version script, display a live deployment badge, and trigger redeployments from the UI. Optional access control runs a configurable script on booking and release to lock or unlock the device session.
 
 ---
 
