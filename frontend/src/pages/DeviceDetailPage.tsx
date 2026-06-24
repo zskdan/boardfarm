@@ -358,15 +358,15 @@ export default function DeviceDetailPage() {
       : null;
 
   // Inline Redeploy button + progress bar, reused in both the header row and the standalone card
-  const RedeployBtn = ({ small }: { small?: boolean }) => (
+  const RedeployBtn = ({ small, disabledReason }: { small?: boolean; disabledReason?: string }) => (
     <div className={`flex flex-col gap-1 ${small ? '' : 'w-full'}`}>
       <button
         onClick={() => { setRedeployResult(null); setRedeployProgress(0); redeployMut.mutate(); }}
-        disabled={redeployMut.isPending}
+        disabled={redeployMut.isPending || !!disabledReason}
         className={small
-          ? 'text-xs px-2 py-0.5 rounded border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors'
-          : 'text-sm px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors whitespace-nowrap'}
-        title={`Run: ${device.redeployment_script}`}
+          ? 'text-xs px-2 py-0.5 rounded border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+          : 'text-sm px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap'}
+        title={disabledReason ?? `Run: ${device.redeployment_script}`}
       >
         {redeployMut.isPending ? 'Redeploying…' : '↺ Redeploy'}
       </button>
@@ -472,7 +472,7 @@ export default function DeviceDetailPage() {
                       </span>
                     </div>
                     {device.redeployment_script && device.active_booking?.username === me && (
-                      <RedeployBtn small />
+                      <RedeployBtn small disabledReason="Version not yet checked — cannot determine if redeployment is needed" />
                     )}
                   </div>
                 );
@@ -505,7 +505,7 @@ export default function DeviceDetailPage() {
                     </button>
                   </div>
                   {device.redeployment_script && device.active_booking?.username === me && (
-                    <RedeployBtn small />
+                    <RedeployBtn small disabledReason={vp.isClean !== false ? 'Deployed version matches reference — redeployment not needed' : undefined} />
                   )}
                 </div>
               );
