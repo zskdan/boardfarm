@@ -2,7 +2,13 @@
 
 A development device booking and inventory system for shared hardware labs. Teams register physical devices (FPGAs, microcontrollers, SoCs, instruments) in a central server, book them by username, and get ready-to-run shell commands for SSH, UART, JTAG, and power control.
 
-## Screenshots
+---
+
+## Using Boardfarm
+
+> **No login required.** You supply your username when booking or modifying devices. It is stored in the browser and pre-filled in every form.
+
+### Screenshots
 
 | Inventory | Setups |
 |-----------|--------|
@@ -28,6 +34,76 @@ A development device booking and inventory system for shared hardware labs. Team
 |---------------------------------------------|----------------------------------------------|
 | ![Add Device modal with Power Control and Access Control sections expanded showing script path fields](screenshots/add-device-power-access.png) | ![Device detail Connectivity section showing POWER command and Parameters section with power and access-control script paths](screenshots/power-connectivity.png) |
 
+---
+
+### Inventory (`/devices`)
+
+Lists every registered device with live status:
+
+- **Status badge** — Free (green), Booked (blue), Offline (amber), Disabled (grey)
+- **Device ID** — auto-assigned short identifier (e.g. `DEV-A3F9C1`), shown as a monospace badge
+- **Booked by** — current holder's username and booking comment
+- **Features** — colour-coded capability badges (e.g. `jtag`, `fpga: zynq-7020`)
+- **Deployed** — version badge (`pending…` / `✓` clean / `✗` dirty) for devices with a version script; `—` otherwise
+- **Actions** — Book · Release · Modify
+
+Filter box searches name, device ID, location, username, or feature key.
+
+**Add Device** form sections (collapsed by default):
+
+- **Ethernet** — Device IP; enables SSH sub-section (SSH User, SSH Port)
+- **Hardware agent** — **Self hosted** checkbox (agent runs on the device itself) or **Hardware agent IP** field when unchecked; capability sub-sections:
+  - **USB** — USB device path
+  - **UART** — UART device path
+  - **JTAG** — JTAG port (default `3121`)
+  - **SDMux** — SDMux control device (default `/dev/sg0`) and SD card path
+  - **Power Control** — power script path (required, default `/opt/boardfarm/agent/scripts/power_control`) and args
+  - **Access Control** — path to the access control script (default `/opt/boardfarm/agent/scripts/access-control`); run with `unlock` on booking and `lock` on release
+  - **Version Control** — **Get Version Script Path**, **Reference Version File Path**, **Check interval (seconds)**, **Redeployment script path**; the agent polls the version script and shows a badge; a Redeploy button appears on the device detail page when a redeployment script is set
+
+Each enabled sub-section automatically adds the matching key to the device's Features map.
+
+---
+
+### Device detail (`/devices/:id`)
+
+- **Header** — device ID, serial number, revision, location, IP addresses, agent status; **DEPLOYED** badge shows `pending…` / `✓ clean` / `✗ dirty` when a version script is configured; inline **Redeploy** button triggers the redeployment script through the agent; **Modify** button opens the full device edit form without leaving the page
+- **Features** — key/value capability map
+- **Booking** — book / extend / release with a live countdown timer
+- **Connectivity** — ready-to-run shell commands with **Copy** and **Script** (download) buttons:
+
+  | Service | Command |
+  |---------|---------|
+  | SSH | `ssh -J vivado@<agent_ip> <user>@<device_ip> -p <port>` (jump-host shown only for non-self-hosted agents; read-only indicator) |
+  | UART | `sudo socat pty,link=/dev/ttyDEV-XXXX,rawer EXEC:"ssh vivado@<agent_ip> socat - /dev/ttyUSB0,rawer"` |
+  | JTAG | `connect_hw_server -url tcp:<agent_ip>:<jtag_port>` |
+  | Power | `python3 <power_script> --action on` |
+  | SD Card | downloadable `sdcard` script pre-configured for this device |
+
+- **Notes** — freeform notes, editable inline
+- **Parameters** — compact reference table of every configured path / port / script: device IP, SSH user & port, agent IP (labelled `(self-hosted)` when applicable), UART / USB device, JTAG port, power script, SDMux paths, access-control script, version script, reference file, poll interval, and redeployment script; only non-empty values are shown
+
+---
+
+### Setups (`/setups`)
+
+Groups of devices used together (e.g. "FPGA + logic analyzer + test host").
+
+- **Atomic booking** — all devices reserved in one transaction; fails with a blocking-device list if any are unavailable
+- **Atomic release** — releases all devices at once
+- Per-device availability dot: green = free, blue = booked, grey = offline
+- **Edit Setup** — pencil icon on each card opens a modal to add or remove devices (and rename/redescribe) without deleting and recreating the setup; shows selected devices as removable chips and an inline searchable list of available devices
+
+---
+
+### History (`/history`)
+
+Full audit log: bookings, releases, extensions, device adds/edits/deletes. Filter by username or action category.
+
+---
+
+## Features
+
 ### Version Control
 
 When a device has a **Get Version Script Path** configured, the agent runs `check-version <get_script> <ref_file>` on a configurable interval and pushes the result to the server. The **DEPLOYED** badge in the device header shows:
@@ -36,7 +112,7 @@ When a device has a **Get Version Script Path** configured, the agent runs `chec
 - **`✓ clean`** (green) — deployed software matches the reference snapshot
 - **`✗ dirty`** (red) — deployed software differs from the reference
 
-Clicking the badge opens a detail modal. When a **Redeployment script path** is configured the **Redeploy** button appears inline next to the badge; clicking it runs the script through the agent and shows the result.
+Clicking the badge opens a detail modal. When a **Redeployment script path** is configured the **Redeploy** button appears inline next to the badge; clicking it runs the script through the agent and shows the result. After a successful redeployment the agent immediately runs a fresh version check and pushes the updated result.
 
 | Clean — matches reference | Dirty — packages diverged |
 |--------------------------|--------------------------|
@@ -59,22 +135,56 @@ The diff view also handles lines that appear or disappear entirely between the r
 
 ---
 
-## Recent fixes
+### Power Control
 
-- **Booking comment preserved** — `comment` is now returned in every `BookingOut` response (device list, booking history, release, extend)
-- **Agent token forwarded on IP fallback** — when a device has no direct agent FK link but its `host_ip` matches a registered agent, the agent's token is now correctly forwarded to redeploy proxy calls
-- **Race-safe setup booking** — concurrent setup bookings that would create a double-booking now return 409 instead of an unhandled database error
-- **Extend at maximum duration raises 409** — attempting to extend a booking that is already at the `max_booking_hours` limit now returns `409 Booking is already at maximum duration` instead of silently marking `extended=True` with no time change
-- **Release booking no longer crashes** — removed a spurious `db.refresh()` after `db.commit()` in `release_booking` that caused `MissingGreenlet` when accessing the device relationship
-- **`/bookings/{id}/commands` requires auth** — the commands endpoint now requires `X-User` (and `X-Token` when configured), consistent with all other write-adjacent endpoints
-- **`/agents/register` requires server token** — the agent registration endpoint now enforces the configured server token; agents send `X-Token` in their registration and heartbeat re-registration requests
-- **Agent skips JTAG start when `jtag_port=0`** — on startup recovery, the agent no longer attempts to start `hw_server` for devices that have no JTAG port configured
-- **Version polling tasks awaited on cancel** — cancelled per-device version polling tasks are now properly awaited, eliminating `Task destroyed but pending` warnings
-- **Redeploy progress resets on retry** — clicking **Redeploy** after a previous attempt now immediately resets the progress bar to 0
+The agent exposes `POST /devices/{id}/power` with `{action: on|off|reset}` — the server proxies the call so the frontend can trigger it without direct agent access.
+
+Enable **Power Control** under **Hardware Agent** in the **Add Device** (or **Modify**) form. Set:
+- **Power Script** _(required)_ — absolute path to the script on the agent host; defaults to `/opt/boardfarm/agent/scripts/power_control`
+- **Power Script Args (JSON)** — optional extra arguments passed to the script (e.g. `{"relay_id": 1}`)
+
+The `power_ctrl` feature badge is added automatically and a **POWER** entry appears in the device's Connectivity section showing the exact command to run.
+
+| Add Device — Power Control enabled | Device detail — POWER command in Connectivity |
+|------------------------------------|-----------------------------------------------|
+| ![Add Device modal showing Power Control checkbox checked with Power Script and Power Script Args fields](screenshots/add-device-power-access.png) | ![Device detail Connectivity section showing the POWER command with Copy button](screenshots/power-connectivity.png) |
 
 ---
 
-## Architecture
+### Session Control (Access Control)
+
+Access control runs a configurable script with `unlock` when a booking starts and `lock` when the booking is released. This is useful when a device runs a desktop environment: the screen unlocks only while someone holds an active booking.
+
+The default script installed with the agent (`/opt/boardfarm/agent/scripts/access-control`) wraps `loginctl`:
+
+```sh
+#!/bin/sh
+case "$1" in
+    lock)   loginctl lock-session ;;
+    unlock) loginctl unlock-session ;;
+    *) echo "Usage: $0 lock|unlock" >&2; exit 1 ;;
+esac
+```
+
+Replace it with any executable that accepts `lock` / `unlock` as the first argument — for example a script that controls an external relay, a KVM switch, or a custom lock mechanism.
+
+Enable **Access Control** under **Hardware Agent** in the **Add Device** (or **Modify**) form. The field defaults to `/opt/boardfarm/agent/scripts/access-control`. The configured script path is shown in the **Parameters** section of the device detail page.
+
+| Add Device — Access Control enabled | Device detail — Parameters (power + access control) |
+|-------------------------------------|-----------------------------------------------------|
+| ![Add Device modal showing Access Control checkbox checked with Access control script field](screenshots/add-device-power-access.png) | ![Device detail Parameters section listing power_script and access_control_script entries](screenshots/device-detail-power-session.png) |
+
+---
+
+## Recent changes
+
+_No versioned releases yet._
+
+---
+
+## Setup
+
+### Architecture
 
 ```
 ┌─────────────┐     REST/HTTP      ┌───────────────────────────┐
@@ -101,7 +211,7 @@ Each **agent** runs natively on a host PC that is physically wired to one or mor
 
 ---
 
-## Repository layout
+### Repository layout
 
 | Path | Description |
 |------|-------------|
@@ -115,9 +225,9 @@ Each **agent** runs natively on a host PC that is physically wired to one or mor
 
 ---
 
-## Server setup
+### Server setup
 
-### Docker Compose (recommended for the server)
+#### Docker Compose (recommended)
 
 ```bash
 cp server/config.example.yaml server/config.yaml
@@ -140,10 +250,9 @@ docker compose down               # stop
 docker compose down -v            # stop + wipe database
 ```
 
-### Manual server setup
+#### Manual
 
 ```bash
-# from repo root
 pip install -r server/requirements.txt
 cp server/config.example.yaml server/config.yaml
 uvicorn server.main:app --port 8765
@@ -162,11 +271,11 @@ server:
 
 ---
 
-## Agent setup
+### Agent setup
 
 The agent needs direct USB/serial device access — run it natively on the device-host PC, not in Docker.
 
-### Production install (offline)
+#### Production install (offline)
 
 **Step 1 — build the package** on any machine with Python and internet:
 
@@ -202,10 +311,9 @@ sudo systemctl start boardfarm-agent
 sudo journalctl -u boardfarm-agent -f
 ```
 
-### Development setup (requires internet)
+#### Development setup (requires internet)
 
 ```bash
-# from repo root
 pip install -r boardfarm_agent/requirements.txt
 cp boardfarm_agent/config.example.yaml boardfarm_agent/config.yaml
 # edit boardfarm_agent/config.yaml
@@ -214,7 +322,7 @@ uvicorn boardfarm_agent.main:app --port 8766
 
 ---
 
-## Agent config (`/opt/boardfarm/agent/config.yaml`)
+### Agent config (`/opt/boardfarm/agent/config.yaml`)
 
 ```yaml
 agent:
@@ -230,7 +338,7 @@ devices:
     usb_device: "/dev/bus/usb/001/002"  # raw USB device path (optional)
     uart_device: "/dev/ttyUSB0"         # UART serial device (optional)
     jtag_port: 3121                     # hw_server listen port (optional)
-    power_script: "/path/to/power/usb_relay.py"
+    power_script: "/opt/boardfarm/agent/scripts/power_control"
     power_args:
       relay_id: 1
 ```
@@ -239,7 +347,7 @@ Apply changes: `sudo systemctl restart boardfarm-agent`
 
 ---
 
-## Frontend (dev server)
+### Frontend (dev server)
 
 ```bash
 cd frontend
@@ -250,11 +358,11 @@ npm run dev
 
 ---
 
-## User scripts (`user-scripts/`)
+### User scripts (`user-scripts/`)
 
 Client-side helpers for developers. Copy or symlink them into your `PATH`.
 
-### `uart-connect`
+#### `uart-connect`
 
 Creates a local PTY and bridges it to the device's UART on the agent host over SSH.
 
@@ -265,7 +373,7 @@ uart-connect vivado@192.168.1.5 /dev/ttyUSB0 DEV-A3F9C1
 screen /dev/ttyDEV-A3F9C1
 ```
 
-### `sdcard`
+#### `sdcard`
 
 Mounts or unmounts a device's SD card locally via `sshfs`. Requires `sshfs` on the client.
 
@@ -282,11 +390,7 @@ The device detail page shows all connectivity values pre-filled and offers a **S
 
 ---
 
-## Power control
-
-The agent exposes `POST /devices/{id}/power` with `{action: on|off|reset}` — the server proxies the call so the frontend can trigger it without direct agent access.
-
-### Power scripts (`power/`)
+### Power control scripts (`power/`)
 
 Shared CLI: `python3 script.py --action on|off|reset [--arg value ...]`
 
@@ -298,116 +402,9 @@ Shared CLI: `python3 script.py --action on|off|reset [--arg value ...]`
 
 Custom controllers: subclass `power.base.PowerController` and add a `run_controller()` call at the bottom.
 
-### Configuring power control in the UI
-
-Enable **Power Control** under **Hardware Agent** in the **Add Device** form. Set:
-- **Power Script** — absolute path to the script on the agent host (e.g. `/opt/boardfarm/agent/scripts/power-ctrl` or `power/usb_relay.py`)
-- **Power Script Args (JSON)** — optional extra arguments passed to the script (e.g. `{"relay_id": 1}`)
-
-The `power_ctrl` feature badge is added automatically and a **POWER** entry appears in the device's Connectivity section showing the exact command to run:
-
-```
-python3 /opt/boardfarm/agent/scripts/power-ctrl --action on
-```
-
-| Add Device — Power Control enabled | Device detail — POWER command in Connectivity |
-|------------------------------------|-----------------------------------------------|
-| ![Add Device modal showing Power Control checkbox checked with Power Script and Power Script Args fields](screenshots/add-device-power-access.png) | ![Device detail Connectivity section showing the POWER command with Copy button](screenshots/power-connectivity.png) |
-
 ---
 
-## Session control (access control)
-
-Access control runs a configurable script with `unlock` when a booking starts and `lock` when the booking is released. This is useful when a device runs a desktop environment: the screen unlocks only while someone holds an active booking.
-
-The default script installed with the agent (`/opt/boardfarm/agent/scripts/access-control`) wraps `loginctl`:
-
-```sh
-#!/bin/sh
-case "$1" in
-    lock)   loginctl lock-session ;;
-    unlock) loginctl unlock-session ;;
-    *) echo "Usage: $0 lock|unlock" >&2; exit 1 ;;
-esac
-```
-
-Replace it with any executable that accepts `lock` / `unlock` as the first argument — for example a script that controls an external relay, a KVM switch, or a custom lock mechanism.
-
-### Configuring access control in the UI
-
-Enable **Access Control** under **Hardware Agent** in the **Add Device** form (or **Modify** an existing device). The field defaults to `/opt/boardfarm/agent/scripts/access-control`. The configured script path is shown in the **Parameters** section of the device detail page alongside all other configured scripts.
-
-| Add Device — Access Control enabled | Device detail — Parameters (power + access control) |
-|-------------------------------------|-----------------------------------------------------|
-| ![Add Device modal showing Access Control checkbox checked with Access control script field](screenshots/add-device-power-access.png) | ![Device detail Parameters section listing power_script and access_control_script entries](screenshots/device-detail-power-session.png) |
-
----
-
-## Using the UI
-
-> **No login required.** You supply your username when booking or modifying devices. It is stored in the browser and pre-filled in every form.
-
-### Inventory (`/devices`)
-
-Lists every registered device with live status:
-
-- **Status badge** — Free (green), Booked (blue), Offline (amber), Disabled (grey)
-- **Device ID** — auto-assigned short identifier (e.g. `DEV-A3F9C1`), shown as a monospace badge
-- **Booked by** — current holder's username and booking comment
-- **Features** — colour-coded capability badges (e.g. `jtag`, `fpga: zynq-7020`)
-- **Deployed** — version badge (`pending…` / `✓` clean / `✗` dirty) for devices with a version script; `—` otherwise
-- **Actions** — Book · Release · Modify
-
-Filter box searches name, device ID, location, username, or feature key.
-
-**Add Device** form sections (collapsed by default):
-
-- **Ethernet** — Device IP; enables SSH sub-section (SSH User, SSH Port)
-- **Hardware agent** — **Self hosted** checkbox (agent runs on the device itself) or **Hardware agent IP** field when unchecked; capability sub-sections:
-  - **USB** — USB device path
-  - **UART** — UART device path
-  - **JTAG** — JTAG port (default `3121`)
-  - **SDMux** — SDMux control device (default `/dev/sg0`) and SD card path
-  - **Power Control** — power script path and args
-  - **Access Control** — path to the access control script (default `/opt/boardfarm/agent/scripts/access-control`); run with `unlock` on booking and `lock` on release
-  - **Version Control** — **Get Version Script Path**, **Reference Version File Path**, **Check interval (seconds)**, **Redeployment script path**; the agent polls the version script and shows a badge; a Redeploy button appears on the device detail page when a redeployment script is set
-
-Each enabled sub-section automatically adds the matching key to the device's Features map.
-
-### Device detail (`/devices/:id`)
-
-- **Header** — device ID, serial number, revision, location, IP addresses, agent status; **DEPLOYED** badge shows `pending…` / `✓ clean` / `✗ dirty` when a version script is configured; inline **Redeploy** button triggers the redeployment script through the agent; **Modify** button opens the full device edit form without leaving the page
-- **Features** — key/value capability map
-- **Booking** — book / extend / release with a live countdown timer
-- **Connectivity** — ready-to-run shell commands with **Copy** and **Script** (download) buttons:
-
-  | Service | Command |
-  |---------|---------|
-  | SSH | `ssh -J vivado@<agent_ip> <user>@<device_ip> -p <port>` (jump-host shown only for non-self-hosted agents; read-only indicator) |
-  | UART | `sudo socat pty,link=/dev/ttyDEV-XXXX,rawer EXEC:"ssh vivado@<agent_ip> socat - /dev/ttyUSB0,rawer"` |
-  | JTAG | `connect_hw_server -url tcp:<agent_ip>:<jtag_port>` |
-  | Power | `python3 <power_script> --action on` |
-  | SD Card | downloadable `sdcard` script pre-configured for this device |
-
-- **Notes** — freeform notes, editable inline
-- **Parameters** — compact reference table of every configured path / port / script: device IP, SSH user & port, agent IP (labelled `(self-hosted)` when applicable), UART / USB device, JTAG port, power script, SDMux paths, access-control script, version script, reference file, poll interval, and redeployment script; only non-empty values are shown
-
-### Setups (`/setups`)
-
-Groups of devices used together (e.g. "FPGA + logic analyzer + test host").
-
-- **Atomic booking** — all devices reserved in one transaction; fails with a blocking-device list if any are unavailable
-- **Atomic release** — releases all devices at once
-- Per-device availability dot: green = free, blue = booked, grey = offline
-- **Edit Setup** — pencil icon on each card opens a modal to add or remove devices (and rename/redescribe) without deleting and recreating the setup; shows selected devices as removable chips and an inline searchable list of available devices
-
-### History (`/history`)
-
-Full audit log: bookings, releases, extensions, device adds/edits/deletes. Filter by username or action category.
-
----
-
-## API reference
+## API Reference
 
 ### Authentication
 
@@ -491,7 +488,8 @@ Full audit log: bookings, releases, extensions, device adds/edits/deletes. Filte
 | `usb_device` | string | Raw USB path on agent host (e.g. `/dev/bus/usb/001/002`) |
 | `uart_device` | string | UART serial device on agent host (e.g. `/dev/ttyUSB0`) |
 | `jtag_port` | int | hw_server port (default `3121`) |
-| `power_script` | string | Absolute path to power control script on agent host |
+| `power_script` | string | Absolute path to power control script on agent host (default `/opt/boardfarm/agent/scripts/power_control`) |
+| `power_args` | JSON | Extra key/value arguments forwarded to the power script |
 | `sdmux_control` | string | SDMux control device on agent host (e.g. `/dev/sg0`) |
 | `sdmux_sdcard` | string | SD card block device (e.g. `/dev/disk/by-path/...`) |
 | `access_control_script` | string | Path to access control script on agent host (default `/opt/boardfarm/agent/scripts/access-control`); called with `unlock` on booking and `lock` on release |

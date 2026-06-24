@@ -332,13 +332,18 @@ export function EditDeviceModal({
               )}
               <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
                 <input type="checkbox" className="accent-orange-500" checked={hasPower}
-                  onChange={(e) => setHasPower(e.target.checked)} />
+                  onChange={(e) => {
+                    setHasPower(e.target.checked);
+                    if (e.target.checked && !form.power_script)
+                      setForm(f => ({ ...f, power_script: '/opt/boardfarm/agent/scripts/power_control' }));
+                  }} />
                 Power Control
               </label>
               {hasPower && (
                 <div className="flex flex-col gap-3 pl-3 border-l-2 border-orange-100">
-                  <Field label="Power Script">
-                    <input type="text" className={inputCls} value={form.power_script ?? ''}
+                  <Field label="Power Script *">
+                    <input type="text" required className={`${inputCls} ${!form.power_script ? 'border-red-400 focus:ring-red-300' : ''}`}
+                      value={form.power_script ?? ''}
                       onChange={(e) => setForm(f => ({ ...f, power_script: e.target.value }))} />
                   </Field>
                   <Field label="Power Script Args (JSON)">
@@ -417,7 +422,8 @@ export function EditDeviceModal({
             confirmDisabled={
               updateMut.isPending || !form.name || !username ||
               (hasEthernet && !form.device_ip?.trim()) ||
-              (hasAgent && !agentSelfHosted && !form.host_ip?.trim())
+              (hasAgent && !agentSelfHosted && !form.host_ip?.trim()) ||
+              (hasAgent && hasPower && !form.power_script?.trim())
             }
           />
         </div>
