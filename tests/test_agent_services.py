@@ -823,3 +823,47 @@ async def test_version_loop_stops_removed_device():
                 pass
 
     assert call_count[0] >= 2  # iterated at least twice
+
+
+async def test_version_loop_restarts_task_on_config_change():
+    """When a device's version_script or interval changes, the old task is cancelled
+    and a new one is started with the updated config."""
+    from boardfarm_agent.services.version import version_loop
+    from boardfarm_agent.config import DeviceConfig
+
+    _real_sleep = asyncio.sleep
+
+    dev_v1 = DeviceConfig(id="vl-dev-4", version_script="/old.sh", version_poll_interval=60)
+    dev_v2 = DeviceConfig(id="vl-dev-4", version_script="/new.sh", version_poll_interval=120)
+
+    call_count = [0]
+
+    async def fake_fetch():
+        call_count[0] += 1
+        return [dev_v1] if call_count[0] == 1 else [dev_v2]
+
+    sleep_count = [0]
+
+    async def fake_sleep(_):
+        await _real_sleep(0)
+        sleep_count[0] += 1
+        if sleep_count[0] >= 2:
+            raise asyncio.CancelledError
+
+    started_with = []
+
+    async def fake_device_loop(server_url, server_token, device, interval):
+        started_with.append((device.version_script, interval))
+        await _real_sleep(9999)
+
+    with patch("boardfarm_agent.services.version._device_loop", side_effect=fake_device_loop):
+        with patch("boardfarm_agent.services.version.asyncio.sleep", side_effect=fake_sleep):
+            try:
+                await version_loop("http://server", "tok", fake_fetch)
+            except asyncio.CancelledError:
+                pass
+
+    # Should have started twice: once with old config, once with new config
+    assert len(started_with) == 2
+    assert started_with[0] == ("/old.sh", 60)
+    assert started_with[1] == ("/new.sh", 120)

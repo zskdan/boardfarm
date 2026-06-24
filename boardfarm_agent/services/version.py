@@ -99,6 +99,7 @@ async def version_loop(server_url: str, server_token: str, fetch_or_list, defaul
       - a static list of DeviceConfig (legacy / unit-test path)
     """
     active: dict[str, asyncio.Task] = {}
+    active_cfg: dict[str, tuple] = {}  # did → (version_script, version_ref_file, interval)
 
     while True:
         if callable(fetch_or_list):
@@ -108,27 +109,39 @@ async def version_loop(server_url: str, server_token: str, fetch_or_list, defaul
 
         current = {d.id: d for d in devices if d.version_script}
 
-        # Cancel tasks for devices no longer needing polling
+        # Cancel tasks for devices no longer needing polling or whose config changed
         cancelled = []
         for did in list(active):
-            if did not in current or active[did].done():
-                if did not in current:
+            device = current.get(did)
+            if device is None or active[did].done():
+                if device is None:
                     logger.info("Stopping version polling for device %s (removed/unconfigured)", did)
                 task = active.pop(did)
+                active_cfg.pop(did, None)
                 task.cancel()
                 cancelled.append(task)
+            else:
+                interval = device.version_poll_interval if device.version_poll_interval > 0 else default_interval
+                cfg = (device.version_script, device.version_ref_file, interval)
+                if cfg != active_cfg.get(did):
+                    logger.info("Config changed for device %s — restarting version polling", did)
+                    task = active.pop(did)
+                    active_cfg.pop(did, None)
+                    task.cancel()
+                    cancelled.append(task)
         for task in cancelled:
             try:
                 await task
             except (asyncio.CancelledError, Exception):
                 pass
 
-        # Start tasks for newly discovered devices
+        # Start tasks for newly discovered devices (or restarted ones)
         for did, device in current.items():
             if did not in active:
                 interval = device.version_poll_interval if device.version_poll_interval > 0 else default_interval
                 logger.info("Starting version polling for device %s (interval=%ds)", did, interval)
                 active[did] = asyncio.create_task(_device_loop(server_url, server_token, device, interval))
+                active_cfg[did] = (device.version_script, device.version_ref_file, interval)
 
         if not current:
             logger.info("No devices with version_script configured — will recheck in 60s")
