@@ -24,6 +24,10 @@ A development device booking and inventory system for shared hardware labs. Team
 |---------------------------------------|-------------------------------------|
 | ![Edit setup modal showing selected device chips, search box, and available device list](screenshots/edit-setup-modal.png) | ![Device detail page scrolled to show Notes then Parameters section with all configured paths and ports](screenshots/device-detail-parameters.png) |
 
+| Add Device — Power Control + Access Control | Device detail — Connectivity (POWER command) |
+|---------------------------------------------|----------------------------------------------|
+| ![Add Device modal with Power Control and Access Control sections expanded showing script path fields](screenshots/add-device-power-access.png) | ![Device detail Connectivity section showing POWER command and Parameters section with power and access-control script paths](screenshots/power-connectivity.png) |
+
 ### Version Control
 
 When a device has a **Get Version Script Path** configured, the agent runs `check-version <get_script> <ref_file>` on a configurable interval and pushes the result to the server. The **DEPLOYED** badge in the device header shows:
@@ -278,17 +282,64 @@ The device detail page shows all connectivity values pre-filled and offers a **S
 
 ---
 
-## Power control scripts (`power/`)
+## Power control
 
-Shared CLI: `python3 script.py --action on|off|reset`
+The agent exposes `POST /devices/{id}/power` with `{action: on|off|reset}` — the server proxies the call so the frontend can trigger it without direct agent access.
 
-| Script | Hardware |
-|--------|----------|
-| `dummy.py` | No-op (testing) |
-| `usb_relay.py` | USB HID relay (`--relay-id N`) |
-| `gpio.py` | Raspberry Pi GPIO (`--gpio-pin N`) |
+### Power scripts (`power/`)
 
-Custom controllers: subclass `power.base.PowerController`.
+Shared CLI: `python3 script.py --action on|off|reset [--arg value ...]`
+
+| Script | Hardware | Extra args |
+|--------|----------|-----------|
+| `dummy.py` | No-op (testing) | — |
+| `usb_relay.py` | USB HID relay (CH340-based) | `--relay-id N` |
+| `gpio.py` | Raspberry Pi GPIO | `--gpio-pin N`, `--active-low` |
+
+Custom controllers: subclass `power.base.PowerController` and add a `run_controller()` call at the bottom.
+
+### Configuring power control in the UI
+
+Enable **Power Control** under **Hardware Agent** in the **Add Device** form. Set:
+- **Power Script** — absolute path to the script on the agent host (e.g. `/opt/boardfarm/agent/scripts/power-ctrl` or `power/usb_relay.py`)
+- **Power Script Args (JSON)** — optional extra arguments passed to the script (e.g. `{"relay_id": 1}`)
+
+The `power_ctrl` feature badge is added automatically and a **POWER** entry appears in the device's Connectivity section showing the exact command to run:
+
+```
+python3 /opt/boardfarm/agent/scripts/power-ctrl --action on
+```
+
+| Add Device — Power Control enabled | Device detail — POWER command in Connectivity |
+|------------------------------------|-----------------------------------------------|
+| ![Add Device modal showing Power Control checkbox checked with Power Script and Power Script Args fields](screenshots/add-device-power-access.png) | ![Device detail Connectivity section showing the POWER command with Copy button](screenshots/power-connectivity.png) |
+
+---
+
+## Session control (access control)
+
+Access control runs a configurable script with `unlock` when a booking starts and `lock` when the booking is released. This is useful when a device runs a desktop environment: the screen unlocks only while someone holds an active booking.
+
+The default script installed with the agent (`/opt/boardfarm/agent/scripts/access-control`) wraps `loginctl`:
+
+```sh
+#!/bin/sh
+case "$1" in
+    lock)   loginctl lock-session ;;
+    unlock) loginctl unlock-session ;;
+    *) echo "Usage: $0 lock|unlock" >&2; exit 1 ;;
+esac
+```
+
+Replace it with any executable that accepts `lock` / `unlock` as the first argument — for example a script that controls an external relay, a KVM switch, or a custom lock mechanism.
+
+### Configuring access control in the UI
+
+Enable **Access Control** under **Hardware Agent** in the **Add Device** form (or **Modify** an existing device). The field defaults to `/opt/boardfarm/agent/scripts/access-control`. The configured script path is shown in the **Parameters** section of the device detail page alongside all other configured scripts.
+
+| Add Device — Access Control enabled | Device detail — Parameters (power + access control) |
+|-------------------------------------|-----------------------------------------------------|
+| ![Add Device modal showing Access Control checkbox checked with Access control script field](screenshots/add-device-power-access.png) | ![Device detail Parameters section listing power_script and access_control_script entries](screenshots/device-detail-power-session.png) |
 
 ---
 
