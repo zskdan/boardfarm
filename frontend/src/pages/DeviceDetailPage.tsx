@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ArrowLeft, Check, Copy, Download, MapPin, Pencil, Usb, Wifi, WifiOff, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';

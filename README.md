@@ -6,11 +6,11 @@ A development device booking and inventory system for shared hardware labs. Team
 
 | Inventory | Setups |
 |-----------|--------|
-| ![Inventory page showing device list with status badges](screenshots/inventory.png) | ![Setups page with atomic booking cards](screenshots/setups.png) |
+| ![Inventory page showing device list with status, deployed version column, and Modify buttons](screenshots/inventory.png) | ![Setups page with atomic booking cards and edit pencil icons](screenshots/setups.png) |
 
-| Device detail (version badge + Redeploy) | Booking history |
-|------------------------------------------|----------------|
-| ![Device detail showing pending version badge and Redeploy button](screenshots/device-detail.png) | ![History page with audit log](screenshots/history.png) |
+| Device detail (version badge + Redeploy + Modify) | Booking history |
+|---------------------------------------------------|----------------|
+| ![Device detail showing pending version badge, Redeploy button, and Modify button in header](screenshots/device-detail.png) | ![History page with audit log](screenshots/history.png) |
 
 | Settings | Add Setup (device picker) |
 |----------|--------------------------|
@@ -19,6 +19,10 @@ A development device booking and inventory system for shared hardware labs. Team
 | Book Setup modal | Add device (agent + Version Control expanded) |
 |-----------------|-----------------------------------------------|
 | ![Book setup modal with duration and comment](screenshots/book-setup-modal.png) | ![Add device modal with Ethernet, SSH, Hardware Agent (self-hosted unchecked), and Version Control all expanded showing Get Version Script Path and Reference Version File Path fields](screenshots/add-device-modal-agent.png) |
+
+| Edit Setup modal (add/remove devices) | Device detail — Parameters section |
+|---------------------------------------|-------------------------------------|
+| ![Edit setup modal showing selected device chips, search box, and available device list](screenshots/edit-setup-modal.png) | ![Device detail page scrolled to show Notes then Parameters section with all configured paths and ports](screenshots/device-detail-parameters.png) |
 
 ### Version Control
 
@@ -300,6 +304,7 @@ Lists every registered device with live status:
 - **Device ID** — auto-assigned short identifier (e.g. `DEV-A3F9C1`), shown as a monospace badge
 - **Booked by** — current holder's username and booking comment
 - **Features** — colour-coded capability badges (e.g. `jtag`, `fpga: zynq-7020`)
+- **Deployed** — version badge (`pending…` / `✓` clean / `✗` dirty) for devices with a version script; `—` otherwise
 - **Actions** — Book · Release · Modify
 
 Filter box searches name, device ID, location, username, or feature key.
@@ -320,20 +325,21 @@ Each enabled sub-section automatically adds the matching key to the device's Fea
 
 ### Device detail (`/devices/:id`)
 
-- **Hardware info** — device ID, serial number, revision, location, IP addresses, agent status; **DEPLOYED** badge shows `pending…` / `✓ clean` / `✗ dirty` when a version script is configured; **Redeploy** button triggers the redeployment script through the agent
+- **Header** — device ID, serial number, revision, location, IP addresses, agent status; **DEPLOYED** badge shows `pending…` / `✓ clean` / `✗ dirty` when a version script is configured; inline **Redeploy** button triggers the redeployment script through the agent; **Modify** button opens the full device edit form without leaving the page
 - **Features** — key/value capability map
+- **Booking** — book / extend / release with a live countdown timer
 - **Connectivity** — ready-to-run shell commands with **Copy** and **Script** (download) buttons:
 
   | Service | Command |
   |---------|---------|
-  | SSH | `ssh -J vivado@<agent_ip> <user>@<device_ip> -p <port>` — "Through agent" checkbox (on by default) toggles the `-J` jump host |
+  | SSH | `ssh -J vivado@<agent_ip> <user>@<device_ip> -p <port>` (jump-host shown only for non-self-hosted agents; read-only indicator) |
   | UART | `sudo socat pty,link=/dev/ttyDEV-XXXX,rawer EXEC:"ssh vivado@<agent_ip> socat - /dev/ttyUSB0,rawer"` |
   | JTAG | `connect_hw_server -url tcp:<agent_ip>:<jtag_port>` |
   | Power | `python3 <power_script> --action on` |
   | SD Card | downloadable `sdcard` script pre-configured for this device |
 
 - **Notes** — freeform notes, editable inline
-- **Booking** — book / extend / release with a live countdown timer
+- **Parameters** — compact reference table of every configured path / port / script: device IP, SSH user & port, agent IP (labelled `(self-hosted)` when applicable), UART / USB device, JTAG port, power script, SDMux paths, access-control script, version script, reference file, poll interval, and redeployment script; only non-empty values are shown
 
 ### Setups (`/setups`)
 
@@ -342,6 +348,7 @@ Groups of devices used together (e.g. "FPGA + logic analyzer + test host").
 - **Atomic booking** — all devices reserved in one transaction; fails with a blocking-device list if any are unavailable
 - **Atomic release** — releases all devices at once
 - Per-device availability dot: green = free, blue = booked, grey = offline
+- **Edit Setup** — pencil icon on each card opens a modal to add or remove devices (and rename/redescribe) without deleting and recreating the setup; shows selected devices as removable chips and an inline searchable list of available devices
 
 ### History (`/history`)
 
