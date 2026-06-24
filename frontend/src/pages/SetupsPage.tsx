@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Layers, Plus, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Layers, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -11,6 +11,7 @@ import {
   listSetups,
   releaseSetupBooking,
   setDefaultUser,
+  updateSetup,
 } from '../api/client';
 import type { SetupInfo } from '../api/types';
 import { VersionBadge } from '../components/VersionBadge';
@@ -214,6 +215,160 @@ function AddSetupModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ── Edit Setup Modal ──────────────────────────────────────────────────────────
+
+function EditSetupModal({ setup, onClose }: { setup: SetupInfo; onClose: () => void }) {
+  const qc = useQueryClient();
+  const me = getDefaultUser();
+  const [name, setName] = useState(setup.name);
+  const [description, setDescription] = useState(setup.description ?? '');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    new Set(setup.devices.map((d) => d.id)),
+  );
+  const [search, setSearch] = useState('');
+
+  const { data: allDevices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices });
+
+  const mut = useMutation({
+    mutationFn: () =>
+      updateSetup(setup.id, { name, description, device_ids: Array.from(selectedIds) }, me),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['setups'] });
+      onClose();
+    },
+  });
+
+  function toggle(id: string) {
+    setSelectedIds((s) => {
+      const n = new Set(s);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  }
+
+  const q = search.toLowerCase();
+  const selected = allDevices.filter((d) => selectedIds.has(d.id));
+  const available = allDevices.filter(
+    (d) =>
+      !selectedIds.has(d.id) &&
+      (!q ||
+        d.name.toLowerCase().includes(q) ||
+        d.device_id.toLowerCase().includes(q) ||
+        d.location.toLowerCase().includes(q)),
+  );
+
+  const dirty =
+    name !== setup.name ||
+    description !== (setup.description ?? '') ||
+    selectedIds.size !== setup.devices.length ||
+    setup.devices.some((d) => !selectedIds.has(d.id));
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">Edit Setup</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+        </div>
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-gray-600">Name <span className="text-red-500">*</span></span>
+            <input className="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-gray-600">Description</span>
+            <textarea className="border rounded-lg px-3 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" rows={2}
+              value={description} onChange={(e) => setDescription(e.target.value)} />
+          </label>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium text-gray-600">Devices</span>
+
+            {/* Selected chips */}
+            {selected.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                {selected.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => toggle(d.id)}
+                    className="flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-200 rounded-full text-xs text-blue-700 hover:bg-red-50 hover:border-red-200 hover:text-red-600 group"
+                  >
+                    {d.device_id && <span className="font-mono">{d.device_id}</span>}
+                    <span>{d.name}</span>
+                    <X size={10} className="opacity-50 group-hover:opacity-100" />
+                  </button>
+                ))}
+              </div>
+            )}
+            {selected.length === 0 && (
+              <p className="text-xs text-amber-600 px-1">No devices selected — setup will be empty</p>
+            )}
+
+            {/* Search */}
+            <div className="flex items-center gap-2 border rounded-lg px-3 py-1.5 bg-white focus-within:ring-2 focus-within:ring-blue-500">
+              <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+              </svg>
+              <input
+                className="text-sm flex-1 focus:outline-none bg-transparent"
+                placeholder="Search to add devices…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="text-gray-400 hover:text-gray-600">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Available list */}
+            <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
+              {allDevices.length === 0 && (
+                <p className="text-xs text-gray-400 px-3 py-2">No devices in inventory</p>
+              )}
+              {allDevices.length > 0 && available.length === 0 && (
+                <p className="text-xs text-gray-400 px-3 py-2">
+                  {search ? 'No devices match your search' : 'All devices already selected'}
+                </p>
+              )}
+              {available.map((d) => (
+                <label key={d.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                  <input type="checkbox" className="accent-blue-600"
+                    checked={false} onChange={() => toggle(d.id)} />
+                  <div className="flex items-center gap-2 min-w-0">
+                    {d.device_id && (
+                      <span className="font-mono text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border flex-shrink-0">{d.device_id}</span>
+                    )}
+                    <span className="text-sm font-medium text-gray-800 truncate">{d.name}</span>
+                    {d.location && <span className="text-xs text-gray-400 truncate">{d.location}</span>}
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {mut.error && <p className="text-xs text-red-600">{(mut.error as Error).message}</p>}
+
+          <div className="flex gap-2 justify-end mt-2">
+            <button onClick={onClose} className="px-4 py-1.5 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+            <button
+              onClick={() => mut.mutate()}
+              disabled={mut.isPending || !name || !dirty}
+              className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+            >
+              {mut.isPending ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Book Setup Modal ──────────────────────────────────────────────────────────
 
 function BookSetupModal({ setup, onClose }: { setup: SetupInfo; onClose: () => void }) {
@@ -289,6 +444,7 @@ function SetupCard({ setup }: { setup: SetupInfo }) {
   const qc = useQueryClient();
   const me = getDefaultUser();
   const [showBook, setShowBook] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
   const myBooking = setup.active_booking?.username === me;
 
@@ -319,14 +475,23 @@ function SetupCard({ setup }: { setup: SetupInfo }) {
             )}
           </div>
         </div>
-        <button
-          onClick={() => { if (confirm(`Delete setup "${setup.name}"?`)) deleteMut.mutate(); }}
-          disabled={deleteMut.isPending}
-          className="text-red-300 hover:text-red-600 disabled:opacity-40 flex-shrink-0"
-          title="Delete setup"
-        >
-          <Trash2 size={15} />
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => setShowEdit(true)}
+            className="text-gray-400 hover:text-blue-600"
+            title="Edit setup"
+          >
+            <Pencil size={15} />
+          </button>
+          <button
+            onClick={() => { if (confirm(`Delete setup "${setup.name}"?`)) deleteMut.mutate(); }}
+            disabled={deleteMut.isPending}
+            className="text-red-300 hover:text-red-600 disabled:opacity-40"
+            title="Delete setup"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
       </div>
 
       {/* Device list */}
@@ -375,6 +540,7 @@ function SetupCard({ setup }: { setup: SetupInfo }) {
       </div>
 
       {showBook && <BookSetupModal setup={setup} onClose={() => setShowBook(false)} />}
+      {showEdit && <EditSetupModal setup={setup} onClose={() => setShowEdit(false)} />}
     </div>
   );
 }
