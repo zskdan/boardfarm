@@ -20,7 +20,7 @@ import pytest
 # ---------------------------------------------------------------------------
 
 def _reset_state():
-    import agent.services.uart_proxy as m
+    import boardfarm_agent.services.uart_proxy as m
     m._tasks.clear()
     m._active.clear()
     m._locks.clear()
@@ -31,12 +31,12 @@ def _reset_state():
 # ---------------------------------------------------------------------------
 
 def test_start_socat_returns_popen_on_success():
-    from agent.services.uart_proxy import _start_socat
+    from boardfarm_agent.services.uart_proxy import _start_socat
 
     mock_proc = MagicMock(spec=subprocess.Popen)
     mock_proc.pid = 1234
 
-    with patch("agent.services.uart_proxy.subprocess.Popen", return_value=mock_proc) as mock_popen:
+    with patch("boardfarm_agent.services.uart_proxy.subprocess.Popen", return_value=mock_proc) as mock_popen:
         result = _start_socat("/dev/ttyUSB0", 115200, 5000)
 
     assert result is mock_proc
@@ -48,18 +48,18 @@ def test_start_socat_returns_popen_on_success():
 
 
 def test_start_socat_returns_none_when_socat_missing():
-    from agent.services.uart_proxy import _start_socat
+    from boardfarm_agent.services.uart_proxy import _start_socat
 
-    with patch("agent.services.uart_proxy.subprocess.Popen", side_effect=FileNotFoundError):
+    with patch("boardfarm_agent.services.uart_proxy.subprocess.Popen", side_effect=FileNotFoundError):
         result = _start_socat("/dev/ttyUSB0", 115200, 5000)
 
     assert result is None
 
 
 def test_start_socat_returns_none_on_generic_exception():
-    from agent.services.uart_proxy import _start_socat
+    from boardfarm_agent.services.uart_proxy import _start_socat
 
-    with patch("agent.services.uart_proxy.subprocess.Popen", side_effect=OSError("permission denied")):
+    with patch("boardfarm_agent.services.uart_proxy.subprocess.Popen", side_effect=OSError("permission denied")):
         result = _start_socat("/dev/ttyUSB0", 115200, 5000)
 
     assert result is None
@@ -72,7 +72,7 @@ def test_start_socat_returns_none_on_generic_exception():
 @pytest.mark.asyncio
 async def test_start_returns_false_for_empty_uart_device():
     _reset_state()
-    from agent.services.uart_proxy import start
+    from boardfarm_agent.services.uart_proxy import start
 
     result = await start("dev-1", "", 115200, 5000)
     assert result is False
@@ -81,13 +81,13 @@ async def test_start_returns_false_for_empty_uart_device():
 @pytest.mark.asyncio
 async def test_start_returns_true_and_creates_task():
     _reset_state()
-    import agent.services.uart_proxy as m
+    import boardfarm_agent.services.uart_proxy as m
 
     mock_proc = MagicMock(spec=subprocess.Popen)
     mock_proc.pid = 42
     mock_proc.wait = MagicMock(return_value=0)
 
-    with patch("agent.services.uart_proxy._start_socat", return_value=mock_proc):
+    with patch("boardfarm_agent.services.uart_proxy._start_socat", return_value=mock_proc):
         result = await m.start("dev-2", "/dev/ttyUSB0", 115200, 5001)
 
     assert result is True
@@ -103,13 +103,13 @@ async def test_start_returns_true_and_creates_task():
 async def test_start_is_idempotent():
     """Calling start() twice does not create a second task."""
     _reset_state()
-    import agent.services.uart_proxy as m
+    import boardfarm_agent.services.uart_proxy as m
 
     mock_proc = MagicMock(spec=subprocess.Popen)
     mock_proc.pid = 99
     mock_proc.wait = MagicMock(return_value=0)
 
-    with patch("agent.services.uart_proxy._start_socat", return_value=mock_proc):
+    with patch("boardfarm_agent.services.uart_proxy._start_socat", return_value=mock_proc):
         r1 = await m.start("dev-3", "/dev/ttyUSB0", 115200, 5002)
         task_before = m._tasks.get("dev-3")
         r2 = await m.start("dev-3", "/dev/ttyUSB0", 115200, 5002)
@@ -129,13 +129,13 @@ async def test_start_is_idempotent():
 @pytest.mark.asyncio
 async def test_stop_cancels_active_task():
     _reset_state()
-    import agent.services.uart_proxy as m
+    import boardfarm_agent.services.uart_proxy as m
 
     mock_proc = MagicMock(spec=subprocess.Popen)
     mock_proc.pid = 77
     mock_proc.wait = MagicMock(return_value=0)
 
-    with patch("agent.services.uart_proxy._start_socat", return_value=mock_proc):
+    with patch("boardfarm_agent.services.uart_proxy._start_socat", return_value=mock_proc):
         await m.start("dev-4", "/dev/ttyUSB0", 115200, 5003)
 
     assert "dev-4" in m._tasks
@@ -149,7 +149,7 @@ async def test_stop_cancels_active_task():
 async def test_stop_is_safe_when_nothing_running():
     """stop() on an unknown device must not raise."""
     _reset_state()
-    from agent.services.uart_proxy import stop
+    from boardfarm_agent.services.uart_proxy import stop
 
     await stop("nonexistent-device")  # must not raise
 
@@ -161,13 +161,13 @@ async def test_stop_is_safe_when_nothing_running():
 @pytest.mark.asyncio
 async def test_stop_all_clears_all_proxies():
     _reset_state()
-    import agent.services.uart_proxy as m
+    import boardfarm_agent.services.uart_proxy as m
 
     mock_proc = MagicMock(spec=subprocess.Popen)
     mock_proc.pid = 55
     mock_proc.wait = MagicMock(return_value=0)
 
-    with patch("agent.services.uart_proxy._start_socat", return_value=mock_proc):
+    with patch("boardfarm_agent.services.uart_proxy._start_socat", return_value=mock_proc):
         await m.start("dev-a", "/dev/ttyUSB0", 115200, 5010)
         await m.start("dev-b", "/dev/ttyUSB1", 115200, 5011)
 
@@ -185,7 +185,7 @@ async def test_stop_all_clears_all_proxies():
 async def test_monitor_exits_cleanly_when_deactivated():
     """_monitor should exit its loop when _active[device_id] is set to False."""
     _reset_state()
-    import agent.services.uart_proxy as m
+    import boardfarm_agent.services.uart_proxy as m
 
     m._active["dev-m1"] = True
 
@@ -202,8 +202,8 @@ async def test_monitor_exits_cleanly_when_deactivated():
 
     mock_proc.wait = fake_wait
 
-    with patch("agent.services.uart_proxy._start_socat", return_value=mock_proc):
-        with patch("agent.services.uart_proxy.asyncio.sleep", new_callable=AsyncMock):
+    with patch("boardfarm_agent.services.uart_proxy._start_socat", return_value=mock_proc):
+        with patch("boardfarm_agent.services.uart_proxy.asyncio.sleep", new_callable=AsyncMock):
             await m._monitor("dev-m1", "/dev/ttyUSB0", 115200, 5020)
 
     assert call_count == 1  # socat started once, then deactivated
@@ -213,7 +213,7 @@ async def test_monitor_exits_cleanly_when_deactivated():
 async def test_monitor_restarts_socat_on_exit():
     """_monitor restarts socat when it exits while still active."""
     _reset_state()
-    import agent.services.uart_proxy as m
+    import boardfarm_agent.services.uart_proxy as m
 
     m._active["dev-m2"] = True
 
@@ -230,8 +230,8 @@ async def test_monitor_restarts_socat_on_exit():
 
     mock_proc.wait = MagicMock(return_value=0)
 
-    with patch("agent.services.uart_proxy._start_socat", side_effect=fake_start_socat):
-        with patch("agent.services.uart_proxy.asyncio.sleep", new_callable=AsyncMock):
+    with patch("boardfarm_agent.services.uart_proxy._start_socat", side_effect=fake_start_socat):
+        with patch("boardfarm_agent.services.uart_proxy.asyncio.sleep", new_callable=AsyncMock):
             await m._monitor("dev-m2", "/dev/ttyUSB0", 115200, 5021)
 
     assert len(start_calls) == 2  # socat was restarted once
@@ -241,11 +241,11 @@ async def test_monitor_restarts_socat_on_exit():
 async def test_monitor_exits_immediately_when_socat_unavailable():
     """If socat is not found (_start_socat returns None), monitor exits without looping."""
     _reset_state()
-    import agent.services.uart_proxy as m
+    import boardfarm_agent.services.uart_proxy as m
 
     m._active["dev-m3"] = True
 
-    with patch("agent.services.uart_proxy._start_socat", return_value=None):
+    with patch("boardfarm_agent.services.uart_proxy._start_socat", return_value=None):
         await m._monitor("dev-m3", "/dev/ttyUSB0", 115200, 5022)
 
     # Monitor must have exited; _active entry may still be set by caller

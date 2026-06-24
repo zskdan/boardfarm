@@ -13,7 +13,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient, ASGITransport
 
-from agent.config import DeviceConfig
+from boardfarm_agent.config import DeviceConfig
 
 
 # ---------------------------------------------------------------------------
@@ -22,13 +22,13 @@ from agent.config import DeviceConfig
 
 def _make_test_app(devices: list[DeviceConfig], agent_token: str = "") -> FastAPI:
     """Create a minimal FastAPI app with hardware + devices routers, patching config."""
-    from agent.routers import hardware, devices as dev_router
+    from boardfarm_agent.routers import hardware, devices as dev_router
 
     app = FastAPI()
 
     # Patch config used by both routers and auth
     with patch.multiple(
-        "agent.routers.hardware.config",
+        "boardfarm_agent.routers.hardware.config",
         devices=devices,
         agent_token=agent_token,
     ):
@@ -60,8 +60,8 @@ def test_device(tmp_path) -> DeviceConfig:
 @pytest.fixture
 async def ac(test_device):
     """AsyncClient wired to the agent test app."""
-    from agent.routers import hardware as hw_mod, devices as dev_mod
-    import agent.auth as auth_mod
+    from boardfarm_agent.routers import hardware as hw_mod, devices as dev_mod
+    import boardfarm_agent.auth as auth_mod
 
     app = FastAPI()
     app.include_router(hw_mod.router)
@@ -85,7 +85,7 @@ async def ac(test_device):
 # ===========================================================================
 
 async def test_list_devices_returns_device_info(ac, test_device):
-    with patch("agent.services.health.get_health", return_value=True):
+    with patch("boardfarm_agent.services.health.get_health", return_value=True):
         r = await ac.get("/devices")
     assert r.status_code == 200
     data = r.json()
@@ -112,8 +112,8 @@ async def test_stop_services_unknown_device_returns_404(ac):
 # ===========================================================================
 
 async def test_start_services_calls_hw_server_and_access_control(ac, test_device):
-    with patch("agent.services.hw_server.start", new_callable=AsyncMock, return_value=True) as hw_mock:
-        with patch("agent.services.access_control.run", new_callable=AsyncMock) as ac_mock:
+    with patch("boardfarm_agent.services.hw_server.start", new_callable=AsyncMock, return_value=True) as hw_mock:
+        with patch("boardfarm_agent.services.access_control.run", new_callable=AsyncMock) as ac_mock:
             r = await ac.post(f"/devices/{test_device.id}/services/start", headers=AUTH)
 
     assert r.status_code == 200
@@ -127,8 +127,8 @@ async def test_start_services_calls_hw_server_and_access_control(ac, test_device
 # ===========================================================================
 
 async def test_stop_services_calls_hw_server_and_access_control(ac, test_device):
-    with patch("agent.services.hw_server.stop", new_callable=AsyncMock) as hw_mock:
-        with patch("agent.services.access_control.run", new_callable=AsyncMock) as ac_mock:
+    with patch("boardfarm_agent.services.hw_server.stop", new_callable=AsyncMock) as hw_mock:
+        with patch("boardfarm_agent.services.access_control.run", new_callable=AsyncMock) as ac_mock:
             r = await ac.post(f"/devices/{test_device.id}/services/stop", headers=AUTH)
 
     assert r.status_code == 200
@@ -157,7 +157,7 @@ async def test_start_services_missing_token_returns_401(ac, test_device):
 # ===========================================================================
 
 async def test_power_action_success(ac, test_device, tmp_path):
-    with patch("agent.services.power.run", new_callable=AsyncMock, return_value=True):
+    with patch("boardfarm_agent.services.power.run", new_callable=AsyncMock, return_value=True):
         r = await ac.post(
             f"/devices/{test_device.id}/power",
             json={"action": "on"},
@@ -169,7 +169,7 @@ async def test_power_action_success(ac, test_device, tmp_path):
 
 
 async def test_power_action_failure_returns_500(ac, test_device):
-    with patch("agent.services.power.run", new_callable=AsyncMock, return_value=False):
+    with patch("boardfarm_agent.services.power.run", new_callable=AsyncMock, return_value=False):
         r = await ac.post(
             f"/devices/{test_device.id}/power",
             json={"action": "off"},
@@ -200,8 +200,8 @@ async def test_redeploy_info_script_exists(ac, test_device):
 
 
 async def test_redeploy_info_no_script_returns_422(ac):
-    from agent.routers import hardware as hw_mod, devices as dev_mod
-    import agent.auth as auth_mod
+    from boardfarm_agent.routers import hardware as hw_mod, devices as dev_mod
+    import boardfarm_agent.auth as auth_mod
 
     dev_no_script = DeviceConfig(id="no-script-dev", redeployment_script="")
     app = FastAPI()
@@ -220,8 +220,8 @@ async def test_redeploy_info_no_script_returns_422(ac):
 
 
 async def test_redeploy_info_script_missing_from_disk(ac):
-    from agent.routers import hardware as hw_mod, devices as dev_mod
-    import agent.auth as auth_mod
+    from boardfarm_agent.routers import hardware as hw_mod, devices as dev_mod
+    import boardfarm_agent.auth as auth_mod
 
     dev = DeviceConfig(id="missing-script-dev", redeployment_script="/nonexistent/script.sh")
     app = FastAPI()
@@ -249,7 +249,7 @@ async def test_redeploy_success(ac, test_device):
     mock_proc.returncode = 0
     mock_proc.communicate = AsyncMock(return_value=(b"done\n", b""))
 
-    with patch("agent.routers.hardware.asyncio.create_subprocess_exec", return_value=mock_proc):
+    with patch("boardfarm_agent.routers.hardware.asyncio.create_subprocess_exec", return_value=mock_proc):
         r = await ac.post(f"/devices/{test_device.id}/redeploy", headers=AUTH)
 
     assert r.status_code == 200
@@ -263,7 +263,7 @@ async def test_redeploy_script_failure(ac, test_device):
     mock_proc.returncode = 1
     mock_proc.communicate = AsyncMock(return_value=(b"", b"error!"))
 
-    with patch("agent.routers.hardware.asyncio.create_subprocess_exec", return_value=mock_proc):
+    with patch("boardfarm_agent.routers.hardware.asyncio.create_subprocess_exec", return_value=mock_proc):
         r = await ac.post(f"/devices/{test_device.id}/redeploy", headers=AUTH)
 
     assert r.status_code == 200
@@ -275,16 +275,16 @@ async def test_redeploy_timeout_returns_504(ac, test_device):
     mock_proc = AsyncMock()
     mock_proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError)
 
-    with patch("agent.routers.hardware.asyncio.create_subprocess_exec", return_value=mock_proc):
-        with patch("agent.routers.hardware.asyncio.wait_for", side_effect=asyncio.TimeoutError):
+    with patch("boardfarm_agent.routers.hardware.asyncio.create_subprocess_exec", return_value=mock_proc):
+        with patch("boardfarm_agent.routers.hardware.asyncio.wait_for", side_effect=asyncio.TimeoutError):
             r = await ac.post(f"/devices/{test_device.id}/redeploy", headers=AUTH)
 
     assert r.status_code == 504
 
 
 async def test_redeploy_no_script_returns_422(ac):
-    from agent.routers import hardware as hw_mod
-    import agent.auth as auth_mod
+    from boardfarm_agent.routers import hardware as hw_mod
+    import boardfarm_agent.auth as auth_mod
 
     dev = DeviceConfig(id="no-script-dev-2", redeployment_script="")
     app = FastAPI()
@@ -304,15 +304,15 @@ async def test_redeploy_no_script_returns_422(ac):
 
 async def test_redeploy_generic_exception_returns_500(ac, test_device):
     """Unexpected exception from subprocess returns 500."""
-    with patch("agent.routers.hardware.asyncio.create_subprocess_exec",
+    with patch("boardfarm_agent.routers.hardware.asyncio.create_subprocess_exec",
                side_effect=OSError("permission denied")):
         r = await ac.post(f"/devices/{test_device.id}/redeploy", headers=AUTH)
     assert r.status_code == 500
 
 
 async def test_redeploy_script_missing_from_disk_returns_422(ac):
-    from agent.routers import hardware as hw_mod
-    import agent.auth as auth_mod
+    from boardfarm_agent.routers import hardware as hw_mod
+    import boardfarm_agent.auth as auth_mod
 
     dev = DeviceConfig(id="missing-script-dev-2", redeployment_script="/nonexistent/deploy.sh")
     app = FastAPI()

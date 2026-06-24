@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from agent.services.version import run_script
+from boardfarm_agent.services.version import run_script
 
 AUTH_HEADERS = {"X-Token": "test-token", "X-User": "testuser"}
 AGENT_HEADERS = {"X-Token": "test-token"}

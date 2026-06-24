@@ -21,7 +21,7 @@ def test_load_config_no_yaml_returns_defaults(monkeypatch, tmp_path):
     """When no config.yaml exists, load_config returns AgentConfig defaults."""
     monkeypatch.chdir(tmp_path)  # tmp_path has no config.yaml
 
-    from agent.config import load_config
+    from boardfarm_agent.config import load_config
 
     cfg = load_config()
     assert cfg.name == "boardfarm-agent"
@@ -54,7 +54,7 @@ def test_load_config_all_agent_fields_overridden(monkeypatch, tmp_path):
     )
     monkeypatch.chdir(tmp_path)
 
-    from agent.config import load_config
+    from boardfarm_agent.config import load_config
 
     cfg = load_config()
     assert cfg.name == "my-agent"
@@ -98,7 +98,7 @@ def test_load_config_devices_section(monkeypatch, tmp_path):
     )
     monkeypatch.chdir(tmp_path)
 
-    from agent.config import load_config
+    from boardfarm_agent.config import load_config
 
     cfg = load_config()
     assert len(cfg.devices) == 2
@@ -133,7 +133,7 @@ def test_load_config_empty_yaml_returns_defaults(monkeypatch, tmp_path):
     cfg_file.write_text("")
     monkeypatch.chdir(tmp_path)
 
-    from agent.config import load_config
+    from boardfarm_agent.config import load_config
 
     cfg = load_config()
     assert cfg.name == "boardfarm-agent"
@@ -157,7 +157,7 @@ def test_load_config_agent_token_server_token_version_poll_interval(monkeypatch,
     )
     monkeypatch.chdir(tmp_path)
 
-    from agent.config import load_config
+    from boardfarm_agent.config import load_config
 
     cfg = load_config()
     assert cfg.agent_token == "secret-agt"
@@ -172,47 +172,47 @@ def test_load_config_agent_token_server_token_version_poll_interval(monkeypatch,
 
 async def test_require_agent_auth_valid_token(monkeypatch):
     """Supplying the correct token must not raise any exception."""
-    import agent.auth
+    import boardfarm_agent.auth
 
-    monkeypatch.setattr(agent.auth.config, "agent_token", "correct-token")
+    monkeypatch.setattr(boardfarm_agent.auth.config, "agent_token", "correct-token")
 
     # Should complete without raising
-    await agent.auth.require_agent_auth(x_agent_token="correct-token")
+    await boardfarm_agent.auth.require_agent_auth(x_agent_token="correct-token")
 
 
 async def test_require_agent_auth_wrong_token_raises_401(monkeypatch):
     """Supplying a wrong token must raise HTTPException with status 401."""
-    import agent.auth
+    import boardfarm_agent.auth
 
-    monkeypatch.setattr(agent.auth.config, "agent_token", "correct-token")
+    monkeypatch.setattr(boardfarm_agent.auth.config, "agent_token", "correct-token")
 
     with pytest.raises(HTTPException) as exc_info:
-        await agent.auth.require_agent_auth(x_agent_token="wrong-token")
+        await boardfarm_agent.auth.require_agent_auth(x_agent_token="wrong-token")
 
     assert exc_info.value.status_code == 401
 
 
 async def test_require_agent_auth_empty_header_raises_401(monkeypatch):
     """Empty x_agent_token header with a non-empty config.agent_token → 401."""
-    import agent.auth
+    import boardfarm_agent.auth
 
-    monkeypatch.setattr(agent.auth.config, "agent_token", "non-empty-token")
+    monkeypatch.setattr(boardfarm_agent.auth.config, "agent_token", "non-empty-token")
 
     with pytest.raises(HTTPException) as exc_info:
-        await agent.auth.require_agent_auth(x_agent_token="")
+        await boardfarm_agent.auth.require_agent_auth(x_agent_token="")
 
     assert exc_info.value.status_code == 401
 
 
 async def test_require_agent_auth_empty_config_token_always_passes(monkeypatch):
     """When config.agent_token is empty, auth must always pass (no validation)."""
-    import agent.auth
+    import boardfarm_agent.auth
 
-    monkeypatch.setattr(agent.auth.config, "agent_token", "")
+    monkeypatch.setattr(boardfarm_agent.auth.config, "agent_token", "")
 
     # Any token (or no token) should be accepted when configured token is empty
-    await agent.auth.require_agent_auth(x_agent_token="")
-    await agent.auth.require_agent_auth(x_agent_token="anything")
+    await boardfarm_agent.auth.require_agent_auth(x_agent_token="")
+    await boardfarm_agent.auth.require_agent_auth(x_agent_token="anything")
 
 
 # ===========================================================================
@@ -242,8 +242,8 @@ async def test_heartbeat_loop_200_no_reregistration():
 
     mock_async_client_cls = MagicMock(return_value=mock_client_cm)
 
-    with patch("agent.heartbeat.asyncio.sleep", side_effect=fake_sleep), \
-         patch("agent.heartbeat.httpx.AsyncClient", mock_async_client_cls):
+    with patch("boardfarm_agent.heartbeat.asyncio.sleep", side_effect=fake_sleep), \
+         patch("boardfarm_agent.heartbeat.httpx.AsyncClient", mock_async_client_cls):
         with pytest.raises(asyncio.CancelledError):
             await asyncio.shield(
                 asyncio.ensure_future(
@@ -254,7 +254,7 @@ async def test_heartbeat_loop_200_no_reregistration():
 
 async def _heartbeat_loop_wrapper():
     """Helper — imported here so patch targets are established before use."""
-    from agent.heartbeat import heartbeat_loop
+    from boardfarm_agent.heartbeat import heartbeat_loop
     await heartbeat_loop(
         server_url="http://server:8765",
         agent_name="test-agent",
@@ -284,10 +284,10 @@ async def test_heartbeat_loop_200_no_reregistration_direct():
     mock_client_cm.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client_cm.__aexit__ = AsyncMock(return_value=False)
 
-    from agent.heartbeat import heartbeat_loop
+    from boardfarm_agent.heartbeat import heartbeat_loop
 
-    with patch("agent.heartbeat.asyncio.sleep", side_effect=fake_sleep), \
-         patch("agent.heartbeat.httpx.AsyncClient", return_value=mock_client_cm):
+    with patch("boardfarm_agent.heartbeat.asyncio.sleep", side_effect=fake_sleep), \
+         patch("boardfarm_agent.heartbeat.httpx.AsyncClient", return_value=mock_client_cm):
         try:
             await heartbeat_loop(
                 server_url="http://server:8765",
@@ -329,10 +329,10 @@ async def test_heartbeat_loop_404_triggers_reregistration():
     mock_client_cm.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client_cm.__aexit__ = AsyncMock(return_value=False)
 
-    from agent.heartbeat import heartbeat_loop
+    from boardfarm_agent.heartbeat import heartbeat_loop
 
-    with patch("agent.heartbeat.asyncio.sleep", side_effect=fake_sleep), \
-         patch("agent.heartbeat.httpx.AsyncClient", return_value=mock_client_cm):
+    with patch("boardfarm_agent.heartbeat.asyncio.sleep", side_effect=fake_sleep), \
+         patch("boardfarm_agent.heartbeat.httpx.AsyncClient", return_value=mock_client_cm):
         try:
             await heartbeat_loop(
                 server_url="http://server:8765",
@@ -369,10 +369,10 @@ async def test_heartbeat_loop_exception_swallowed():
     mock_client_cm.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client_cm.__aexit__ = AsyncMock(return_value=False)
 
-    from agent.heartbeat import heartbeat_loop
+    from boardfarm_agent.heartbeat import heartbeat_loop
 
-    with patch("agent.heartbeat.asyncio.sleep", side_effect=fake_sleep), \
-         patch("agent.heartbeat.httpx.AsyncClient", return_value=mock_client_cm):
+    with patch("boardfarm_agent.heartbeat.asyncio.sleep", side_effect=fake_sleep), \
+         patch("boardfarm_agent.heartbeat.httpx.AsyncClient", return_value=mock_client_cm):
         # Must NOT raise any exception other than CancelledError
         try:
             await heartbeat_loop(
@@ -399,10 +399,10 @@ async def test_heartbeat_loop_cancelled_error_exits_cleanly():
     mock_client_cm.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client_cm.__aexit__ = AsyncMock(return_value=False)
 
-    from agent.heartbeat import heartbeat_loop
+    from boardfarm_agent.heartbeat import heartbeat_loop
 
-    with patch("agent.heartbeat.asyncio.sleep", side_effect=fake_sleep), \
-         patch("agent.heartbeat.httpx.AsyncClient", return_value=mock_client_cm):
+    with patch("boardfarm_agent.heartbeat.asyncio.sleep", side_effect=fake_sleep), \
+         patch("boardfarm_agent.heartbeat.httpx.AsyncClient", return_value=mock_client_cm):
         with pytest.raises(asyncio.CancelledError):
             await heartbeat_loop(
                 server_url="http://server:8765",
@@ -438,10 +438,10 @@ async def test_heartbeat_loop_reregister_failure_is_swallowed():
     mock_client_cm.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client_cm.__aexit__ = AsyncMock(return_value=False)
 
-    from agent.heartbeat import heartbeat_loop
+    from boardfarm_agent.heartbeat import heartbeat_loop
 
-    with patch("agent.heartbeat.asyncio.sleep", side_effect=fake_sleep), \
-         patch("agent.heartbeat.httpx.AsyncClient", return_value=mock_client_cm):
+    with patch("boardfarm_agent.heartbeat.asyncio.sleep", side_effect=fake_sleep), \
+         patch("boardfarm_agent.heartbeat.httpx.AsyncClient", return_value=mock_client_cm):
         try:
             await heartbeat_loop(
                 server_url="http://server:8765",

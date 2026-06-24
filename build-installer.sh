@@ -43,23 +43,23 @@ PKG="$STAGING/$PACKAGE_NAME"
 mkdir -p "$PKG"
 
 echo "[1/4] Copying agent files..."
-cp -r "$REPO_ROOT/agent"                   "$PKG/agent"
-cp    "$REPO_ROOT/agent/boardfarm-agent.service" "$PKG/"
-cp    "$REPO_ROOT/agent/config.example.yaml"     "$PKG/"
+cp -r "$REPO_ROOT/boardfarm_agent"                   "$PKG/boardfarm_agent"
+cp    "$REPO_ROOT/boardfarm_agent/boardfarm-agent.service" "$PKG/"
+cp    "$REPO_ROOT/boardfarm_agent/config.example.yaml"     "$PKG/"
 
 # install.sh lives at the tarball root
-cp    "$REPO_ROOT/agent/install.sh"        "$PKG/install.sh"
+cp    "$REPO_ROOT/boardfarm_agent/install.sh"        "$PKG/install.sh"
 chmod +x "$PKG/install.sh"
 
 # helper scripts
 mkdir -p "$PKG/scripts"
-cp "$REPO_ROOT/agent/scripts/sdcard-manager"  "$PKG/scripts/"
-cp "$REPO_ROOT/agent/scripts/check-version"   "$PKG/scripts/"
-cp "$REPO_ROOT/agent/scripts/access-control"  "$PKG/scripts/"
+cp "$REPO_ROOT/boardfarm_agent/scripts/sdcard-manager"  "$PKG/scripts/"
+cp "$REPO_ROOT/boardfarm_agent/scripts/check-version"   "$PKG/scripts/"
+cp "$REPO_ROOT/boardfarm_agent/scripts/access-control"  "$PKG/scripts/"
 chmod +x "$PKG/scripts/"*
 
 # strip __pycache__
-find "$PKG/agent" -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+find "$PKG/boardfarm_agent" -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 
 echo "[2/4] Downloading Python wheels..."
 mkdir -p "$PKG/wheels"
@@ -70,7 +70,7 @@ PIP_ARGS=(
     --dest "$PKG/wheels"
     --python-version "3.8"
     --only-binary ":all:"
-    -r "$REPO_ROOT/agent/requirements.txt"
+    -r "$REPO_ROOT/boardfarm_agent/requirements.txt"
 )
 
 if [[ -n "$PLATFORM" ]]; then

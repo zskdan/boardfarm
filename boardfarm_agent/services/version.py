@@ -8,10 +8,10 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# check-version lives alongside the agent package (agent/scripts/check-version in the repo,
+# check-version lives alongside the package (boardfarm_agent/scripts/check-version in the repo,
 # /opt/boardfarm/agent/scripts/check-version when installed).
-# In the repo:    __file__ = .../agent/services/version.py  → .parent.parent = .../agent/
-# When installed: __file__ = .../agent/agent/services/version.py → .parent.parent = .../agent/agent/
+# In the repo:    __file__ = .../boardfarm_agent/services/version.py  → .parent.parent = .../boardfarm_agent/
+# When installed: __file__ = .../agent/boardfarm_agent/services/version.py → .parent.parent = .../agent/boardfarm_agent/
 # Try the dev path first; fall back one level for the installed layout.
 _pkg_root = Path(__file__).parent.parent
 _CHECK_VERSION = (

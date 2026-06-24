@@ -8,7 +8,7 @@
 #     sudo boardfarm-agent/install.sh
 #
 #   Repo (development, requires internet):
-#     sudo ./agent/install.sh          # from repo root
+#     sudo ./boardfarm_agent/install.sh   # from repo root
 #
 # Installs to /opt/boardfarm/agent/.
 # Safe to re-run: existing config.yaml is never overwritten.
@@ -22,14 +22,14 @@ SERVICE_FILE="/etc/systemd/system/boardfarm-agent.service"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Auto-detect layout:
-#   tarball: install.sh lives at root, agent/ is a subdirectory
-#   repo:    install.sh lives inside agent/, which IS the Python package
-if [ -d "$SCRIPT_DIR/agent" ]; then
-    AGENT_SRC="$SCRIPT_DIR/agent"
+#   tarball: install.sh lives at root, boardfarm_agent/ is a subdirectory
+#   repo:    install.sh lives inside boardfarm_agent/, which IS the Python package
+if [ -d "$SCRIPT_DIR/boardfarm_agent" ]; then
+    AGENT_SRC="$SCRIPT_DIR/boardfarm_agent"
     SCRIPTS_SRC="$SCRIPT_DIR/scripts"
     SERVICE_SRC="$SCRIPT_DIR/boardfarm-agent.service"
     CONFIG_EXAMPLE="$SCRIPT_DIR/config.example.yaml"
-    REQUIREMENTS="$SCRIPT_DIR/agent/requirements.txt"
+    REQUIREMENTS="$SCRIPT_DIR/boardfarm_agent/requirements.txt"
 else
     AGENT_SRC="$SCRIPT_DIR"
     SCRIPTS_SRC="$SCRIPT_DIR/scripts"
@@ -74,9 +74,9 @@ mkdir -p "$INSTALL_DIR"
 
 # Python package
 info "Copying agent package..."
-rm -rf "$INSTALL_DIR/agent"
-cp -r "$AGENT_SRC" "$INSTALL_DIR/agent"
-find "$INSTALL_DIR/agent" -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+rm -rf "$INSTALL_DIR/boardfarm_agent"
+cp -r "$AGENT_SRC" "$INSTALL_DIR/boardfarm_agent"
+find "$INSTALL_DIR/boardfarm_agent" -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 
 # Helper scripts
 info "Installing helper scripts..."

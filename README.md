@@ -98,8 +98,8 @@ Each **agent** runs natively on a host PC that is physically wired to one or mor
 | Path | Description |
 |------|-------------|
 | `server/` | Central inventory & booking API (FastAPI, SQLite) |
-| `agent/` | Hardware agent (FastAPI + mDNS) |
-| `agent/scripts/` | Helper scripts installed to `/opt/boardfarm/agent/scripts/` (`sdcard-manager`, `check-version`, `access-control`) |
+| `boardfarm_agent/` | Hardware agent (FastAPI + mDNS) |
+| `boardfarm_agent/scripts/` | Helper scripts installed to `/opt/boardfarm/agent/scripts/` (`sdcard-manager`, `check-version`, `access-control`) |
 | `power/` | Power control scripts (USB relay, GPIO, dummy) |
 | `frontend/` | React + Vite SPA |
 | `user-scripts/` | Client-side helpers (`uart-connect`, `sdcard`) |
@@ -198,10 +198,10 @@ sudo journalctl -u boardfarm-agent -f
 
 ```bash
 # from repo root
-pip install -r agent/requirements.txt
-cp agent/config.example.yaml agent/config.yaml
-# edit agent/config.yaml
-uvicorn agent.main:app --port 8766
+pip install -r boardfarm_agent/requirements.txt
+cp boardfarm_agent/config.example.yaml boardfarm_agent/config.yaml
+# edit boardfarm_agent/config.yaml
+uvicorn boardfarm_agent.main:app --port 8766
 ```
 
 ---
