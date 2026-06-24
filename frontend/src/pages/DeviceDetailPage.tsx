@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
-import { ArrowLeft, Check, Copy, Download, MapPin, Usb, Wifi, WifiOff, X } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Download, MapPin, Pencil, Usb, Wifi, WifiOff, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -15,6 +15,7 @@ import {
 import DeviceNotes from '../components/DeviceNotes';
 import BookingTimer from '../components/BookingTimer';
 import StatusBadge from '../components/StatusBadge';
+import { EditDeviceModal } from '../components/EditDeviceModal';
 
 const TAG_COLORS = [
   'bg-blue-100 text-blue-700',
@@ -272,8 +273,8 @@ export default function DeviceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const [duration, setDuration] = useState(4);
-  const [sshViaAgent, setSshViaAgent] = useState(true);
   const [showVersionDetail, setShowVersionDetail] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [redeployResult, setRedeployResult] = useState<{ ok: boolean; stdout: string; stderr: string } | null>(null);
   const [redeployProgress, setRedeployProgress] = useState<number>(0);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -402,12 +403,21 @@ export default function DeviceDetailPage() {
                 </span>
               )}
             </div>
-            <StatusBadge
-              agentOnline={device.agent_online}
-              activeBooking={!!device.active_booking}
-              enabled={device.enabled}
-              hasAgent={!!device.host_ip}
-            />
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <StatusBadge
+                agentOnline={device.agent_online}
+                activeBooking={!!device.active_booking}
+                enabled={device.enabled}
+                hasAgent={!!device.host_ip}
+              />
+              <button
+                onClick={() => setShowEdit(true)}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs border rounded-lg text-gray-600 hover:bg-gray-50 hover:text-blue-600"
+                title="Modify device"
+              >
+                <Pencil size={12} /> Modify
+              </button>
+            </div>
           </div>
 
           {device.description && (
@@ -590,28 +600,32 @@ export default function DeviceDetailPage() {
           <div className="bg-white rounded-xl border p-5 mb-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Connectivity</h2>
             <div className="flex flex-col gap-2">
-              {device.ssh_port > 0 && (
-                <div className="flex flex-col gap-1.5">
-                  {device.host_ip && (
-                    <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none px-0.5">
-                      <input
-                        type="checkbox"
-                        checked={sshViaAgent}
-                        onChange={(e) => setSshViaAgent(e.target.checked)}
-                        className="rounded"
-                      />
-                      Through agent
-                    </label>
-                  )}
-                  <ShellLine
-                    label="SSH"
-                    cmd={sshViaAgent && device.host_ip
-                      ? `ssh -J vivado@${device.host_ip} ${device.ssh_user}@${device.device_ip || 'DEVICE_IP'} -p ${device.ssh_port}`
-                      : `ssh ${device.ssh_user}@${device.device_ip || device.host_ip || 'DEVICE_IP'} -p ${device.ssh_port}`
-                    }
-                  />
-                </div>
-              )}
+              {device.ssh_port > 0 && (() => {
+                const isSelfHosted = !!(device.host_ip && device.device_ip && device.host_ip === device.device_ip);
+                const hasExternalAgent = !!(device.host_ip && !isSelfHosted);
+                return (
+                  <div className="flex flex-col gap-1.5">
+                    {hasExternalAgent && (
+                      <label className="flex items-center gap-1.5 text-xs text-gray-500 select-none px-0.5 cursor-default">
+                        <input
+                          type="checkbox"
+                          checked
+                          readOnly
+                          className="rounded cursor-default"
+                        />
+                        Through agent
+                      </label>
+                    )}
+                    <ShellLine
+                      label="SSH"
+                      cmd={hasExternalAgent
+                        ? `ssh -J vivado@${device.host_ip} ${device.ssh_user}@${device.device_ip || 'DEVICE_IP'} -p ${device.ssh_port}`
+                        : `ssh ${device.ssh_user}@${device.device_ip || device.host_ip || 'DEVICE_IP'} -p ${device.ssh_port}`
+                      }
+                    />
+                  </div>
+                );
+              })()}
               {device.uart_device && device.host_ip && (
                 <>
                   <ShellLine
@@ -660,6 +674,42 @@ export default function DeviceDetailPage() {
           <DeviceNotes deviceId={device.id} notes={device.current_notes ?? ''} />
         </div>
 
+        {/* Parameters */}
+        {(() => {
+          const rows: { label: string; value: string; mono?: boolean }[] = [];
+          if (device.device_ip) rows.push({ label: 'Device IP', value: device.device_ip, mono: true });
+          if (device.ssh_port > 0) rows.push({ label: 'SSH', value: `${device.ssh_user}@… :${device.ssh_port}`, mono: true });
+          if (device.host_ip) {
+            const selfHosted = device.device_ip && device.host_ip === device.device_ip;
+            rows.push({ label: 'Agent IP', value: `${device.host_ip}${selfHosted ? ' (self-hosted)' : ''}`, mono: true });
+          }
+          if (device.uart_device) rows.push({ label: 'UART device', value: device.uart_device, mono: true });
+          if (device.usb_device) rows.push({ label: 'USB device', value: device.usb_device, mono: true });
+          if (device.jtag_port > 0) rows.push({ label: 'JTAG port', value: String(device.jtag_port), mono: true });
+          if (device.power_script) rows.push({ label: 'Power script', value: device.power_script, mono: true });
+          if (device.sdmux_control) rows.push({ label: 'SDMux control', value: device.sdmux_control, mono: true });
+          if (device.sdmux_sdcard) rows.push({ label: 'SD card path', value: device.sdmux_sdcard, mono: true });
+          if (device.access_control_script) rows.push({ label: 'Access control', value: device.access_control_script, mono: true });
+          if (device.version_script) rows.push({ label: 'Version script', value: device.version_script, mono: true });
+          if (device.version_ref_file) rows.push({ label: 'Version ref file', value: device.version_ref_file, mono: true });
+          if (device.version_script && device.version_poll_interval > 0) rows.push({ label: 'Version interval', value: `${device.version_poll_interval}s` });
+          if (device.redeployment_script) rows.push({ label: 'Redeployment script', value: device.redeployment_script, mono: true });
+          if (rows.length === 0) return null;
+          return (
+            <div className="bg-white rounded-xl border p-5 mb-4">
+              <h2 className="text-sm font-semibold text-gray-700 mb-3">Parameters</h2>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+                {rows.map(({ label, value, mono }) => (
+                  <React.Fragment key={label}>
+                    <dt className="text-xs font-medium text-gray-400 whitespace-nowrap pt-0.5">{label}</dt>
+                    <dd className={mono ? 'font-mono text-xs text-gray-700 break-all' : 'text-xs text-gray-700'}>{value}</dd>
+                  </React.Fragment>
+                ))}
+              </dl>
+            </div>
+          );
+        })()}
+
         {/* Redeploy — shown when redeployment_script is set but version_script is not (no version row) */}
         {device.redeployment_script && !device.version_script && device.active_booking?.username === me && (
           <div className="bg-white rounded-xl border p-5 mb-4 flex items-center justify-between gap-3">
@@ -693,6 +743,15 @@ export default function DeviceDetailPage() {
         )}
 
       </div>
+
+      {/* Edit device modal */}
+      {showEdit && (
+        <EditDeviceModal
+          device={device}
+          onClose={() => setShowEdit(false)}
+          onSuccess={() => qc.invalidateQueries({ queryKey: ['device', id] })}
+        />
+      )}
 
       {/* Version detail modal */}
       {showVersionDetail && device.deployed_version && (() => {
