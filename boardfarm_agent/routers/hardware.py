@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from ..auth import require_agent_auth
 from ..config import config
 from ..services import access_control, hw_server, power
+from ..services import version as version_svc
 
 logger = logging.getLogger(__name__)
 
@@ -83,12 +84,17 @@ async def redeploy(device_id: str, _: None = Depends(require_agent_auth)):
             logger.error("Redeployment script failed (rc=%d): %s", proc.returncode, stderr.decode().strip())
         else:
             logger.info("Redeployment OK for device %s", device_id)
-        return {
+        result = {
             "ok": ok,
             "stdout": stdout.decode().strip(),
             "stderr": stderr.decode().strip(),
             "returncode": proc.returncode,
         }
+        if ok and device.version_script and config.server_url:
+            new_version = await version_svc.run_script(device.version_script, device.version_ref_file or "")
+            if new_version is not None:
+                await version_svc.push_version(config.server_url, config.server_token, device_id, new_version)
+        return result
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail="Redeployment script timed out (5 min)")
     except Exception as exc:
