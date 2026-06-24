@@ -35,6 +35,7 @@ import {
 import type { BookingLimit } from '../api/client';
 import type { DeviceCreate, DeviceInfo } from '../api/types';
 import StatusBadge from '../components/StatusBadge';
+import { VersionBadge } from '../components/VersionBadge';
 import { useStatusSocket } from '../hooks/useStatusSocket';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1145,6 +1146,7 @@ export default function InventoryPage() {
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Booked by</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Location</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Features</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Deployed</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
@@ -1204,6 +1206,10 @@ export default function InventoryPage() {
                           </span>
                         ))}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <VersionBadge deployedVersion={d.deployed_version} versionScript={d.version_script} />
+                      {!d.version_script && <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">

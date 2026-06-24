@@ -185,6 +185,7 @@ class SetupDeviceOut(BaseModel):
     location: str
     agent_online: bool
     deployed_version: str = ""
+    version_script: str = ""
     active_booking_username: str | None = None
     active_booking_setup_name: str | None = None
 

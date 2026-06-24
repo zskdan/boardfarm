@@ -61,6 +61,7 @@ async def _build_setup_out(setup: Setup, db: AsyncSession, agents_by_ip: dict[st
             location=b.location,
             agent_online=_device_agent_online(b, agents_by_ip),
             deployed_version=b.deployed_version or "",
+            version_script=b.version_script or "",
             active_booking_username=active_bk.username if active_bk else None,
             active_booking_setup_name=active_bk.setup_name if active_bk else None,
         ))

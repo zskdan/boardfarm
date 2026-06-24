@@ -30,6 +30,7 @@ export interface SetupDeviceInfo {
   location: string;
   agent_online: boolean;
   deployed_version: string;
+  version_script: string;
   active_booking_username: string | null;
   active_booking_setup_name: string | null;
 }
