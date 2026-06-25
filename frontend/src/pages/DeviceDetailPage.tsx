@@ -341,6 +341,7 @@ export default function DeviceDetailPage() {
     onSuccess: (result) => {
       stopProgressBar(true);
       setRedeployResult(result);
+      if (result.ok) invalidate();
     },
     onError: () => stopProgressBar(false),
   });
