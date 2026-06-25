@@ -16,6 +16,7 @@ import DeviceNotes from '../components/DeviceNotes';
 import BookingTimer from '../components/BookingTimer';
 import StatusBadge from '../components/StatusBadge';
 import { EditDeviceModal } from '../components/EditDeviceModal';
+import { parseDeployedVersion } from '../components/VersionBadge';
 
 const TAG_COLORS = [
   'bg-blue-100 text-blue-700',
@@ -162,30 +163,6 @@ function ShellLine({
   );
 }
 
-// ─── Version parsing helpers ─────────────────────────────────────────────────
-
-interface ParsedVersion {
-  curSha: string;
-  isClean: boolean | null;
-  refSha: string | undefined;
-  detail: string;
-}
-
-function parseDeployedVersion(raw: string): ParsedVersion {
-  const nl = raw.indexOf('\n');
-  const firstLine = nl === -1 ? raw : raw.slice(0, nl);
-  const detail = nl === -1 ? '' : raw.slice(nl + 1);
-  const parts = firstLine.split(':');
-  if (parts.length >= 2 && (parts[1] === 'clean' || parts[1] === 'dirty')) {
-    return {
-      curSha: parts[0],
-      isClean: parts[1] === 'clean',
-      refSha: parts[2],
-      detail,
-    };
-  }
-  return { curSha: firstLine, isClean: null, refSha: undefined, detail };
-}
 
 function DiffContent({ isClean, detail }: { isClean: boolean | null; detail: string }) {
   if (!detail) {
@@ -761,7 +738,7 @@ export default function DeviceDetailPage() {
 
       {/* Version detail modal */}
       {showVersionDetail && device.deployed_version && (() => {
-        const vp = parseDeployedVersion(device.deployed_version);
+        const vp = parseDeployedVersion(device.deployed_version || '');
         return (
           <div
             className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
