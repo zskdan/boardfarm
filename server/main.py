@@ -17,11 +17,19 @@ logging.basicConfig(level=logging.INFO)
 
 def _git_version() -> str:
     import os
-    # Explicit override — set at Docker build time or by the installer
+    # 1. Explicit env override (manual export or CI)
     env = os.environ.get('BOARDFARM_VERSION')
-    if env:
+    if env and env != 'unknown':
         return env
-    # Try to derive from git (works in dev; unavailable in production containers)
+    # 2. Version file written by the Dockerfile RUN step at build time
+    vfile = os.environ.get('BOARDFARM_VERSION_FILE', '/tmp/version')
+    try:
+        v = open(vfile).read().strip()
+        if v and v != 'unknown':
+            return v
+    except Exception:
+        pass
+    # 3. Live git (dev — repo on disk)
     try:
         sha = subprocess.check_output(
             ['git', 'rev-parse', '--short=8', 'HEAD'],
