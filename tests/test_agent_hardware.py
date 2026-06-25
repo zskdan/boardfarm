@@ -328,3 +328,73 @@ async def test_redeploy_script_missing_from_disk_returns_422(ac):
             r = await client.post(f"/devices/{dev.id}/redeploy", headers=AUTH)
 
     assert r.status_code == 422
+
+
+# ===========================================================================
+# redeploy with script supplied by server (device not in local config)
+# ===========================================================================
+
+async def test_redeploy_info_script_supplied_in_query(tmp_path):
+    """Server passes the script path as a query param — device need not be in local config."""
+    from boardfarm_agent.routers import hardware as hw_mod
+    import boardfarm_agent.auth as auth_mod
+
+    script = tmp_path / "deploy.sh"
+    script.write_text("#!/bin/sh\necho ok\n")
+
+    app = FastAPI()
+    app.include_router(hw_mod.router)
+
+    with patch.object(hw_mod, "config") as mock_cfg, \
+         patch.object(auth_mod, "config") as mock_auth_cfg:
+        mock_cfg.devices = []   # device not in local config
+        mock_auth_cfg.agent_token = TOKEN
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            r = await client.get(
+                "/devices/unknown-dev/redeploy-info",
+                params={"script": str(script)},
+                headers=AUTH,
+            )
+
+    assert r.status_code == 200
+    assert r.json()["exists"] is True
+    assert r.json()["script_lines"] >= 1
+
+
+async def test_redeploy_script_supplied_in_body(tmp_path):
+    """Server passes the script path in the request body — device need not be in local config."""
+    from boardfarm_agent.routers import hardware as hw_mod
+    import boardfarm_agent.auth as auth_mod
+
+    script = tmp_path / "deploy.sh"
+    script.write_text("#!/bin/sh\necho ok\n")
+    script.chmod(0o755)
+
+    mock_proc = AsyncMock()
+    mock_proc.returncode = 0
+    mock_proc.communicate = AsyncMock(return_value=(b"ok\n", b""))
+
+    app = FastAPI()
+    app.include_router(hw_mod.router)
+
+    with patch.object(hw_mod, "config") as mock_cfg, \
+         patch.object(auth_mod, "config") as mock_auth_cfg:
+        mock_cfg.devices = []   # device not in local config
+        mock_cfg.server_url = ""
+        mock_auth_cfg.agent_token = TOKEN
+
+        with patch("boardfarm_agent.routers.hardware.asyncio.create_subprocess_exec", return_value=mock_proc):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                r = await client.post(
+                    "/devices/unknown-dev/redeploy",
+                    json={"script": str(script)},
+                    headers=AUTH,
+                )
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data["ok"] is True
+    assert "ok" in data["stdout"]
