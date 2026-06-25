@@ -445,7 +445,12 @@ export default function DeviceDetailPage() {
                 ) : (
                   <WifiOff size={13} className="text-gray-400" />
                 )}
-                <span className="text-xs">Agent: {device.host_ip}</span>
+                <span className="text-xs">
+                  Agent: {device.host_ip}
+                  {device.agent_version && (
+                    <span className="font-mono text-gray-400"> ({device.agent_version})</span>
+                  )}
+                </span>
               </div>
             )}
             {device.usb_device && (
@@ -473,7 +478,8 @@ export default function DeviceDetailPage() {
               </div>
             )}
             {device.version_script && (() => {
-              if (!device.deployed_version) {
+              const vp = parseDeployedVersion(device.deployed_version || '');
+              if (!device.deployed_version || !vp.curSha) {
                 return (
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center gap-1">
@@ -488,7 +494,6 @@ export default function DeviceDetailPage() {
                   </div>
                 );
               }
-              const vp = parseDeployedVersion(device.deployed_version);
               const badgeCls = vp.isClean === true
                 ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
                 : vp.isClean === false

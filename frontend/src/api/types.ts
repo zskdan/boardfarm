@@ -81,6 +81,7 @@ export interface DeviceInfo {
   access_control_script: string;
   enabled: boolean;
   agent_online: boolean;
+  agent_version: string;
   deployed_version: string;
   active_booking: BookingInfo | null;
   current_notes: string;

@@ -22,6 +22,7 @@ _MIGRATIONS = [
     "ALTER TABLE devices RENAME COLUMN access_control TO access_control_script",
     "ALTER TABLE devices ADD COLUMN redeployment_script TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE devices ADD COLUMN version_ref_file TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE agents ADD COLUMN agent_version TEXT NOT NULL DEFAULT ''",
 ]
 
 

@@ -13,7 +13,8 @@ export function parseDeployedVersion(raw: string): ParsedVersion {
   if (parts.length >= 2 && (parts[1] === 'clean' || parts[1] === 'dirty')) {
     return { curSha: parts[0], isClean: parts[1] === 'clean', refSha: parts[2], detail };
   }
-  return { curSha: firstLine, isClean: null, refSha: undefined, detail };
+  // Unrecognised format (e.g. stale "unknown" from old agent) — treat as no data
+  return { curSha: '', isClean: null, refSha: undefined, detail };
 }
 
 /**
@@ -30,15 +31,15 @@ export function VersionBadge({
 }) {
   if (!versionScript) return null;
 
-  if (!deployedVersion) {
+  const vp = parseDeployedVersion(deployedVersion || '');
+
+  if (!deployedVersion || !vp.curSha) {
     return (
       <span className="font-mono text-xs px-1.5 py-0.5 rounded border bg-gray-50 text-gray-400 border-gray-200">
         pending…
       </span>
     );
   }
-
-  const vp = parseDeployedVersion(deployedVersion);
   const cls =
     vp.isClean === true
       ? 'bg-green-50 text-green-700 border-green-200'

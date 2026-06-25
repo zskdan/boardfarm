@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import subprocess
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI
@@ -19,6 +21,23 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def _get_git_sha() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=3,
+            cwd=Path(__file__).parent,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return ""
+
+
+_AGENT_VERSION = _get_git_sha()
+
+
 async def _register_with_server() -> None:
     url = f"{config.server_url}/agents/register"
     device_ids = [b.id for b in config.devices]
@@ -33,6 +52,7 @@ async def _register_with_server() -> None:
                     "url": agent_url,
                     "device_ids": device_ids,
                     "token": config.agent_token,
+                    "agent_version": _AGENT_VERSION,
                 },
                 headers=headers,
             )

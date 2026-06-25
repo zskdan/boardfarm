@@ -40,9 +40,11 @@ async def _build_device_out(
     agents_by_ip: dict[str, Agent] | None = None,
 ) -> DeviceOut:
     agent_online = False
+    agent_version = ""
     if device.agent:
         delta = (_now_utc() - device.agent.last_seen).total_seconds()
         agent_online = delta < 90
+        agent_version = device.agent.agent_version or ""
     elif device.host_ip:
         # No FK link yet — check if an agent with this IP is currently online
         if agents_by_ip is not None:
@@ -55,6 +57,7 @@ async def _build_device_out(
         if ag:
             delta = (_now_utc() - ag.last_seen).total_seconds()
             agent_online = delta < 90
+            agent_version = ag.agent_version or ""
 
     active_booking = None
     for bk in device.bookings:
@@ -98,6 +101,7 @@ async def _build_device_out(
         access_control_script=device.access_control_script or "",
         enabled=device.enabled,
         agent_online=agent_online,
+        agent_version=agent_version,
         deployed_version=device.deployed_version or "",
         version_script=device.version_script or "",
         version_ref_file=device.version_ref_file or "",

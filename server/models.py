@@ -46,6 +46,7 @@ class Agent(Base):
     url: Mapped[str] = mapped_column(String, nullable=False)
     last_seen: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     agent_token: Mapped[str] = mapped_column(String, default="")
+    agent_version: Mapped[str] = mapped_column(String, default="")
 
     devices: Mapped[list["Device"]] = relationship("Device", back_populates="agent")
 

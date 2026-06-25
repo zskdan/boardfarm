@@ -14,6 +14,7 @@ class AgentOut(BaseModel):
     url: str
     last_seen: datetime
     online: bool = False
+    agent_version: str = ""
 
     @model_validator(mode="after")
     def compute_online(self) -> "AgentOut":
@@ -152,6 +153,7 @@ class DeviceOut(BaseModel):
     access_control_script: str = ""
     enabled: bool
     agent_online: bool = False
+    agent_version: str = ""
     deployed_version: str = ""
     version_script: str = ""
     version_ref_file: str = ""

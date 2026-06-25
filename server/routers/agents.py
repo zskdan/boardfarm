@@ -40,6 +40,7 @@ async def register_agent(
         agent.last_seen = now
 
     agent.agent_token = body.get("token", "")
+    agent.agent_version = body.get("agent_version", "")
 
     await db.flush()
 
