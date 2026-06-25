@@ -52,12 +52,21 @@ async def power_action(device_id: str, body: PowerBody, _: None = Depends(requir
     return {"action": body.action, "ok": True}
 
 
+class RedeployBody(BaseModel):
+    script: str = ""
+    version_script: str = ""
+    version_ref_file: str = ""
+
+
 @router.get("/devices/{device_id}/redeploy-info")
-async def redeploy_info(device_id: str, _: None = Depends(require_agent_auth)):
-    device = _get_device(device_id)
-    if not device.redeployment_script:
+async def redeploy_info(device_id: str, script: str = "", _: None = Depends(require_agent_auth)):
+    # script path comes from the server query param; fall back to local config if present
+    if not script:
+        device = _get_device(device_id)
+        script = device.redeployment_script
+    if not script:
         raise HTTPException(status_code=422, detail="No redeployment script configured")
-    path = Path(device.redeployment_script)
+    path = Path(script)
     if not path.exists():
         return {"exists": False, "script_lines": 0}
     lines = sum(1 for line in path.read_text(errors="replace").splitlines() if line.strip())
@@ -65,13 +74,21 @@ async def redeploy_info(device_id: str, _: None = Depends(require_agent_auth)):
 
 
 @router.post("/devices/{device_id}/redeploy")
-async def redeploy(device_id: str, _: None = Depends(require_agent_auth)):
-    device = _get_device(device_id)
-    if not device.redeployment_script:
+async def redeploy(device_id: str, body: RedeployBody = RedeployBody(), _: None = Depends(require_agent_auth)):
+    # script path comes from the server body; fall back to local config if present
+    script = body.script
+    version_script = body.version_script
+    version_ref_file = body.version_ref_file
+    if not script:
+        device = _get_device(device_id)
+        script = device.redeployment_script
+        version_script = version_script or device.version_script
+        version_ref_file = version_ref_file or (device.version_ref_file or "")
+    if not script:
         raise HTTPException(status_code=422, detail="No redeployment script configured")
-    path = Path(device.redeployment_script)
+    path = Path(script)
     if not path.exists():
-        raise HTTPException(status_code=422, detail=f"Redeployment script not found: {device.redeployment_script}")
+        raise HTTPException(status_code=422, detail=f"Redeployment script not found: {script}")
     try:
         proc = await asyncio.create_subprocess_exec(
             str(path),
@@ -90,8 +107,8 @@ async def redeploy(device_id: str, _: None = Depends(require_agent_auth)):
             "stderr": stderr.decode().strip(),
             "returncode": proc.returncode,
         }
-        if ok and device.version_script and config.server_url:
-            new_version = await version_svc.run_script(device.version_script, device.version_ref_file or "")
+        if ok and version_script and config.server_url:
+            new_version = await version_svc.run_script(version_script, version_ref_file)
             if new_version is not None:
                 await version_svc.push_version(config.server_url, config.server_token, device_id, new_version)
         return result

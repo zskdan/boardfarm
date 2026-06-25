@@ -296,7 +296,11 @@ async def get_redeploy_info(
     headers = {"X-Agent-Token": agent_token} if agent_token else {}
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(f"{agent_url}/devices/{device_id}/redeploy-info", headers=headers)
+            resp = await client.get(
+                f"{agent_url}/devices/{device_id}/redeploy-info",
+                params={"script": device.redeployment_script},
+                headers=headers,
+            )
         if resp.status_code >= 400:
             raise HTTPException(status_code=502, detail=f"Agent error: {resp.text}")
         return resp.json()
@@ -319,7 +323,11 @@ async def trigger_redeploy(
     headers = {"X-Agent-Token": agent_token} if agent_token else {}
     try:
         async with httpx.AsyncClient(timeout=300) as client:
-            resp = await client.post(f"{agent_url}/devices/{device_id}/redeploy", headers=headers)
+            resp = await client.post(
+                f"{agent_url}/devices/{device_id}/redeploy",
+                json={"script": device.redeployment_script, "version_script": device.version_script or "", "version_ref_file": device.version_ref_file or ""},
+                headers=headers,
+            )
         if resp.status_code >= 400:
             raise HTTPException(status_code=502, detail=f"Agent error: {resp.text}")
         return resp.json()
