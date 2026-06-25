@@ -78,6 +78,12 @@ rm -rf "$INSTALL_DIR/boardfarm_agent"
 cp -r "$AGENT_SRC" "$INSTALL_DIR/boardfarm_agent"
 find "$INSTALL_DIR/boardfarm_agent" -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 
+# Embed git version so the agent can report it without needing a .git directory
+if command -v git &>/dev/null && git -C "$SCRIPT_DIR" rev-parse HEAD &>/dev/null 2>&1; then
+    git -C "$SCRIPT_DIR" rev-parse --short HEAD > "$INSTALL_DIR/boardfarm_agent/VERSION" 2>/dev/null || true
+    info "Wrote version file ($(cat "$INSTALL_DIR/boardfarm_agent/VERSION"))"
+fi
+
 # Helper scripts
 info "Installing helper scripts..."
 mkdir -p "$INSTALL_DIR/scripts"

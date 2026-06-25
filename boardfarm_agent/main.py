@@ -21,7 +21,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def _get_git_sha() -> str:
+def _get_agent_version() -> str:
+    import os
+    env = os.environ.get('BOARDFARM_AGENT_VERSION')
+    if env:
+        return env
+    vfile = Path(__file__).parent / 'VERSION'
+    try:
+        v = vfile.read_text().strip()
+        if v:
+            return v
+    except Exception:
+        pass
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
@@ -35,7 +46,7 @@ def _get_git_sha() -> str:
     return ""
 
 
-_AGENT_VERSION = _get_git_sha()
+_AGENT_VERSION = _get_agent_version()
 
 
 async def _register_with_server() -> None:
