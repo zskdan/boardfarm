@@ -43,7 +43,7 @@ def _git_version() -> str:
         except subprocess.CalledProcessError:
             tag = ''
         dirty = bool(subprocess.check_output(
-            ['git', 'status', '--porcelain'], text=True,
+            ['git', 'status', '--porcelain', '-uno'], text=True,
         ).strip())
         base = f"{tag}-{sha}" if tag else sha
         return f"{base}-dirty" if dirty else base

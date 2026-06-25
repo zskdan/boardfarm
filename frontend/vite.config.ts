@@ -8,7 +8,7 @@ function gitVersion(): string {
     const sha = execSync('git rev-parse --short=8 HEAD', { encoding: 'utf8' }).trim()
     let tag = ''
     try { tag = execSync('git describe --tags --abbrev=0 2>/dev/null', { encoding: 'utf8', stdio: ['pipe','pipe','pipe'] }).trim() } catch {}
-    const dirty = execSync('git status --porcelain', { encoding: 'utf8' }).trim() !== ''
+    const dirty = execSync('git status --porcelain -uno', { encoding: 'utf8' }).trim() !== ''
     const base = tag ? `${tag}-${sha}` : sha
     return dirty ? `${base}-dirty` : base
   } catch {
