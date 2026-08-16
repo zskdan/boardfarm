@@ -15,7 +15,7 @@ import {
 import DeviceNotes from '../components/DeviceNotes';
 import BookingTimer from '../components/BookingTimer';
 import StatusBadge from '../components/StatusBadge';
-import { EditDeviceModal } from '../components/EditDeviceModal';
+import { AddDeviceModal, EditDeviceModal } from '../components/EditDeviceModal';
 import { parseDeployedVersion } from '../components/VersionBadge';
 
 const TAG_COLORS = [
@@ -252,6 +252,7 @@ export default function DeviceDetailPage() {
   const [duration, setDuration] = useState(4);
   const [showVersionDetail, setShowVersionDetail] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showClone, setShowClone] = useState(false);
   const [redeployResult, setRedeployResult] = useState<{ ok: boolean; stdout: string; stderr: string } | null>(null);
   const [redeployProgress, setRedeployProgress] = useState<number>(0);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -394,6 +395,13 @@ export default function DeviceDetailPage() {
                 title="Modify device"
               >
                 <Pencil size={12} /> Modify
+              </button>
+              <button
+                onClick={() => setShowClone(true)}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs border rounded-lg text-gray-600 hover:bg-gray-50 hover:text-blue-600"
+                title="Clone device"
+              >
+                <Copy size={12} /> Clone
               </button>
             </div>
           </div>
@@ -735,6 +743,9 @@ export default function DeviceDetailPage() {
           onSuccess={() => qc.invalidateQueries({ queryKey: ['device', id] })}
         />
       )}
+
+      {/* Clone device modal */}
+      {showClone && <AddDeviceModal cloneFrom={device} onClose={() => setShowClone(false)} />}
 
       {/* Version detail modal */}
       {showVersionDetail && device.deployed_version && (() => {
